@@ -192,17 +192,7 @@ void OverviewEffect::reconfigure(ReconfigureFlags)
     m_borderActivate.clear();
     m_gridBorderActivate.clear();
 
-    const QList<int> activateBorders = OverviewConfig::borderActivate();
-    for (const int &border : activateBorders) {
-        m_borderActivate.append(ElectricBorder(border));
-        effects->reserveElectricBorder(ElectricBorder(border), this);
-    }
-
-    const QList<int> gridActivateBorders = OverviewConfig::gridBorderActivate();
-    for (const int &border : gridActivateBorders) {
-        m_gridBorderActivate.append(ElectricBorder(border));
-        effects->reserveElectricBorder(ElectricBorder(border), this);
-    }
+    // Macqueen delegates pointer-corner overview activation to its shell.
 
     m_border->setBorders(OverviewConfig::touchBorderActivate());
     m_gridBorder->setBorders(OverviewConfig::gridTouchBorderActivate());

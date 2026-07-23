@@ -694,24 +694,24 @@ Item {
         }
 
         function toggleOverview(): string {
-            if (!CompositorService.isHyprland || !root.hyprlandOverviewLoader.item) {
-                return "HYPR_NOT_AVAILABLE";
+            if ((!CompositorService.isHyprland && !CompositorService.isMacqueen) || !root.hyprlandOverviewLoader.item) {
+                return "OVERVIEW_NOT_AVAILABLE";
             }
             root.hyprlandOverviewLoader.item.overviewOpen = !root.hyprlandOverviewLoader.item.overviewOpen;
             return root.hyprlandOverviewLoader.item.overviewOpen ? "OVERVIEW_OPEN_SUCCESS" : "OVERVIEW_CLOSE_SUCCESS";
         }
 
         function closeOverview(): string {
-            if (!CompositorService.isHyprland || !root.hyprlandOverviewLoader.item) {
-                return "HYPR_NOT_AVAILABLE";
+            if ((!CompositorService.isHyprland && !CompositorService.isMacqueen) || !root.hyprlandOverviewLoader.item) {
+                return "OVERVIEW_NOT_AVAILABLE";
             }
             root.hyprlandOverviewLoader.item.overviewOpen = false;
             return "OVERVIEW_CLOSE_SUCCESS";
         }
 
         function openOverview(): string {
-            if (!CompositorService.isHyprland || !root.hyprlandOverviewLoader.item) {
-                return "HYPR_NOT_AVAILABLE";
+            if ((!CompositorService.isHyprland && !CompositorService.isMacqueen) || !root.hyprlandOverviewLoader.item) {
+                return "OVERVIEW_NOT_AVAILABLE";
             }
             root.hyprlandOverviewLoader.item.overviewOpen = true;
             return "OVERVIEW_OPEN_SUCCESS";

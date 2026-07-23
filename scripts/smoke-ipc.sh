@@ -57,13 +57,13 @@ macqueen_pid=$!
 for _ in $(seq 1 50); do
     version=$(qdbus6 org.macqueen.Compositor1 /org/macqueen/Compositor1 \
         org.macqueen.Compositor1.protocolVersion 2>/dev/null || true)
-    if [[ $version == 2 ]]; then
+    if [[ $version == 3 ]]; then
         break
     fi
     sleep 0.1
 done
 
-if [[ ${version:-} != 2 ]]; then
+if [[ ${version:-} != 3 ]]; then
     cat "$test_dir/macqueen.log" >&2
     echo "Macqueen IPC did not become ready." >&2
     exit 1

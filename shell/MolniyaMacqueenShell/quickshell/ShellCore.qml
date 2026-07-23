@@ -297,9 +297,19 @@ Item {
 
     LazyLoader {
         id: hyprlandOverviewLoader
-        active: CompositorService.isHyprland
-        component: HyprlandOverview {
-            id: hyprlandOverview
-        }
+        active: CompositorService.isHyprland || CompositorService.isMacqueen
+        component: CompositorService.isMacqueen ? macqueenOverviewComponent : hyprlandOverviewComponent
+    }
+
+    Component {
+        id: hyprlandOverviewComponent
+
+        HyprlandOverview {}
+    }
+
+    Component {
+        id: macqueenOverviewComponent
+
+        MacqueenOverview {}
     }
 }

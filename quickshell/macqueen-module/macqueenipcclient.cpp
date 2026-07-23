@@ -68,6 +68,8 @@ MacqueenIpcClient::MacqueenIpcClient(QObject *parent)
                 QStringLiteral("workspacesChanged"), this, SLOT(refreshWorkspaces()));
     bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
                 QStringLiteral("keyboardLayoutsChanged"), this, SLOT(refreshKeyboardLayouts()));
+    bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
+                QStringLiteral("overviewRequested"), this, SLOT(handleOverviewRequested(QString)));
 
     const QDBusReply<bool> registered = bus.interface()->isServiceRegistered(QString::fromLatin1(Service));
     if (registered.isValid() && registered.value()) {
@@ -241,6 +243,11 @@ void MacqueenIpcClient::handleActiveWindowChanged(const QString &id)
     Q_UNUSED(id)
     refreshActiveWindow();
     refreshWindows();
+}
+
+void MacqueenIpcClient::handleOverviewRequested(const QString &reason)
+{
+    Q_EMIT overviewRequested(reason);
 }
 
 void MacqueenIpcClient::refreshOutputs()

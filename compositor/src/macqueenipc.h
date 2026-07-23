@@ -9,6 +9,8 @@
 #include <QVariantList>
 #include <QVariantMap>
 
+#include "effect/globals.h"
+
 namespace KWin
 {
 
@@ -45,6 +47,10 @@ public Q_SLOTS:
     bool setWindowMinimized(const QString &id, bool minimized);
     bool setWindowFullscreen(const QString &id, bool fullscreen);
     bool moveWindowToWorkspace(const QString &windowId, const QString &workspaceId);
+    void requestOverview(const QString &reason = QStringLiteral("ipc"));
+
+private Q_SLOTS:
+    bool overviewBorderActivated(ElectricBorder border);
 
 Q_SIGNALS:
     void windowAdded(const QString &id);
@@ -54,6 +60,7 @@ Q_SIGNALS:
     void outputsChanged();
     void workspacesChanged();
     void keyboardLayoutsChanged();
+    void overviewRequested(const QString &reason);
 
 private:
     void watchWindow(Window *window);

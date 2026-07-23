@@ -21,6 +21,7 @@
 #include "input.h"
 #include "input_event.h"
 #include "keyboard_input.h"
+#include "macqueenipc.h"
 #include "pointer_input.h"
 #include "screenedge.h"
 #include "virtualdesktops.h"
@@ -321,8 +322,16 @@ static constexpr const auto s_appAltRev = kli18n("Walk Through Windows of Curren
 
 void TabBox::initShortcuts()
 {
-    key(s_windows, &TabBox::slotWalkThroughWindows, {Qt::MetaModifier | Qt::Key_Tab, Qt::AltModifier | Qt::Key_Tab});
-    key(s_windowsRev, &TabBox::slotWalkBackThroughWindows, {Qt::MetaModifier | Qt::ShiftModifier | Qt::Key_Tab, Qt::AltModifier | Qt::ShiftModifier | Qt::Key_Tab});
+    key(s_windows, []() {
+        if (MacqueenIpc *ipc = workspace()->findChild<MacqueenIpc *>()) {
+            ipc->requestOverview(QStringLiteral("alt-tab"));
+        }
+    }, {Qt::MetaModifier | Qt::Key_Tab, Qt::AltModifier | Qt::Key_Tab});
+    key(s_windowsRev, []() {
+        if (MacqueenIpc *ipc = workspace()->findChild<MacqueenIpc *>()) {
+            ipc->requestOverview(QStringLiteral("alt-shift-tab"));
+        }
+    }, {Qt::MetaModifier | Qt::ShiftModifier | Qt::Key_Tab, Qt::AltModifier | Qt::ShiftModifier | Qt::Key_Tab});
     key(s_app, &TabBox::slotWalkThroughCurrentAppWindows, {Qt::MetaModifier | Qt::Key_QuoteLeft, Qt::AltModifier | Qt::Key_QuoteLeft});
     key(s_appRev, &TabBox::slotWalkBackThroughCurrentAppWindows, {Qt::MetaModifier | Qt::Key_AsciiTilde, Qt::AltModifier | Qt::Key_AsciiTilde});
     key(s_windowsAlt, &TabBox::slotWalkThroughWindowsAlternative);

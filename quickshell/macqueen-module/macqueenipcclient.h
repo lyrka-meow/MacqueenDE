@@ -64,6 +64,7 @@ Q_SIGNALS:
     void workspacesChanged();
     void keyboardLayoutsChanged();
     void availableKeyboardLayoutsChanged();
+    void overviewRequested(const QString &reason);
 
 private Q_SLOTS:
     void handleServiceRegistered();
@@ -75,6 +76,7 @@ private Q_SLOTS:
     void refreshOutputs();
     void refreshWorkspaces();
     void refreshKeyboardLayouts();
+    void handleOverviewRequested(const QString &reason);
 
 private:
     QVariant call(const QString &method, const QVariantList &arguments = {}) const;

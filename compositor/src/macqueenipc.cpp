@@ -11,6 +11,7 @@
 #include "keyboard_input.h"
 #include "keyboard_layout.h"
 #include "main.h"
+#include "screenedge.h"
 #include "virtualdesktops.h"
 #include "window.h"
 #include "workspace.h"
@@ -74,6 +75,7 @@ MacqueenIpc::MacqueenIpc(Workspace *workspace)
         Q_EMIT activeWindowChanged(windowId(window));
     });
     connect(m_workspace, &Workspace::outputsChanged, this, &MacqueenIpc::outputsChanged);
+    m_workspace->screenEdges()->reserve(ElectricTopLeft, this, "overviewBorderActivated");
     if (input() && input()->keyboard() && input()->keyboard()->keyboardLayout()) {
         connect(input()->keyboard()->keyboardLayout(),
                 &KeyboardLayout::layoutsReconfigured,
@@ -105,12 +107,13 @@ MacqueenIpc::MacqueenIpc(Workspace *workspace)
 
 MacqueenIpc::~MacqueenIpc()
 {
+    m_workspace->screenEdges()->unreserve(ElectricTopLeft, this);
     QDBusConnection::sessionBus().unregisterService(m_serviceName);
 }
 
 uint MacqueenIpc::protocolVersion() const
 {
-    return 2;
+    return 3;
 }
 
 QString MacqueenIpc::compositorVersion() const
@@ -355,6 +358,20 @@ bool MacqueenIpc::moveWindowToWorkspace(const QString &windowId, const QString &
         return false;
     }
     window->setDesktops({desktop});
+    return true;
+}
+
+void MacqueenIpc::requestOverview(const QString &reason)
+{
+    Q_EMIT overviewRequested(reason);
+}
+
+bool MacqueenIpc::overviewBorderActivated(ElectricBorder border)
+{
+    if (border != ElectricTopLeft) {
+        return false;
+    }
+    requestOverview(QStringLiteral("screen-edge"));
     return true;
 }
 

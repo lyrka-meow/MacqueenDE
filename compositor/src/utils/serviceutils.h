@@ -24,10 +24,17 @@ namespace KWin
 const static QString s_waylandInterfaceName = QStringLiteral("X-KDE-Wayland-Interfaces");
 const static QString s_dbusRestrictedInterfaceName = QStringLiteral("X-KDE-DBUS-Restricted-Interfaces");
 const static QString s_macqueenPortalExecutable = QStringLiteral("xdg-desktop-portal-macqueen");
+const static QString s_spectacleExecutable = QStringLiteral("spectacle");
 
 static bool isMacqueenPortal(const QString &executablePath)
 {
     return QFileInfo(executablePath).fileName() == s_macqueenPortalExecutable;
+}
+
+static bool isTrustedScreenshotClient(const QString &executablePath)
+{
+    const QString executableName = QFileInfo(executablePath).fileName();
+    return executableName == s_macqueenPortalExecutable || executableName == s_spectacleExecutable;
 }
 
 static QStringList fetchProcessServiceField(const QString &executablePath, const QString &fieldName)
@@ -81,7 +88,7 @@ static inline QStringList fetchRestrictedDBusInterfacesFromPid(const uint pid)
     if (executablePath.isEmpty()) {
         return QStringList();
     }
-    if (isMacqueenPortal(executablePath)) {
+    if (isTrustedScreenshotClient(executablePath)) {
         return {QStringLiteral("org.kde.KWin.ScreenShot2")};
     }
     return fetchProcessServiceField(executablePath, s_dbusRestrictedInterfaceName);

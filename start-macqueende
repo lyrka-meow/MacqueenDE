@@ -71,6 +71,13 @@ if command -v dbus-update-activation-environment >/dev/null; then
         2>/dev/null || true
 fi
 
+# A user systemd instance may survive logout from another desktop. Restart the
+# broker after exporting MacqueenDE so it selects macqueende-portals.conf rather
+# than keeping the previous desktop's portal backend.
+if command -v systemctl >/dev/null; then
+    systemctl --user restart xdg-desktop-portal.service 2>/dev/null || true
+fi
+
 exec "$macqueen" \
     --drm \
     --xwayland \

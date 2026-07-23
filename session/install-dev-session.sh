@@ -22,12 +22,23 @@ if [[ ! -f "$repo_root/build/quickshell-macqueen/Macqueen/Ipc/qmldir" ]]; then
     exit 1
 fi
 
+if [[ ! -x "$repo_root/build/portal/bin/xdg-desktop-portal-kde" ]]; then
+    echo "Missing Macqueen portal build. See docs/BUILDING.md." >&2
+    exit 1
+fi
+
 echo "Installing the MacqueenDE development session..."
 sudo install -Dm755 "$launcher" /usr/local/bin/start-macqueende
 printf '%s\n' "$repo_root" |
     sudo install -Dm644 /dev/stdin /etc/macqueende/dev-root
 sudo install -Dm644 "$desktop_file" \
     /usr/share/wayland-sessions/macqueende.desktop
+sudo install -Dm644 "$repo_root/session/macqueende-portals.conf" \
+    /usr/share/xdg-desktop-portal/macqueende-portals.conf
+sed "s|@MACQUEENDE_ROOT@|$repo_root|g" \
+    "$repo_root/session/org.freedesktop.impl.portal.desktop.kde.desktop.in" |
+    sudo install -Dm644 /dev/stdin \
+        /usr/local/share/applications/org.freedesktop.impl.portal.desktop.kde.desktop
 
 echo "Installed MacqueenDE as an additional Wayland session."
 echo "Log out, select MacqueenDE in SDDM, and log in."

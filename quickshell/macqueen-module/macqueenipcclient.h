@@ -41,6 +41,11 @@ public:
     Q_INVOKABLE QString createWorkspace(uint position, const QString &name = QString());
     Q_INVOKABLE bool removeWorkspace(const QString &id);
     Q_INVOKABLE bool renameWorkspace(const QString &id, const QString &name);
+    Q_INVOKABLE bool activateWindow(const QString &id);
+    Q_INVOKABLE bool closeWindow(const QString &id);
+    Q_INVOKABLE bool setWindowMinimized(const QString &id, bool minimized);
+    Q_INVOKABLE bool setWindowFullscreen(const QString &id, bool fullscreen);
+    Q_INVOKABLE bool moveWindowToWorkspace(const QString &windowId, const QString &workspaceId);
 
 Q_SIGNALS:
     void availableChanged();

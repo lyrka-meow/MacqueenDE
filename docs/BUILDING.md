@@ -64,6 +64,7 @@ current Wayland session:
 ./scripts/smoke-virtual.sh
 ./scripts/smoke-ipc.sh
 ./scripts/smoke-quickshell.sh
+./scripts/smoke-window-ipc.sh
 ```
 
 The script creates isolated runtime, configuration, cache, and data

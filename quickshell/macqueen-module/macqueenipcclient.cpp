@@ -140,6 +140,31 @@ bool MacqueenIpcClient::renameWorkspace(const QString &id, const QString &name)
     return call(QStringLiteral("renameWorkspace"), {id, name}).toBool();
 }
 
+bool MacqueenIpcClient::activateWindow(const QString &id)
+{
+    return call(QStringLiteral("activateWindow"), {id}).toBool();
+}
+
+bool MacqueenIpcClient::closeWindow(const QString &id)
+{
+    return call(QStringLiteral("closeWindow"), {id}).toBool();
+}
+
+bool MacqueenIpcClient::setWindowMinimized(const QString &id, bool minimized)
+{
+    return call(QStringLiteral("setWindowMinimized"), {id, minimized}).toBool();
+}
+
+bool MacqueenIpcClient::setWindowFullscreen(const QString &id, bool fullscreen)
+{
+    return call(QStringLiteral("setWindowFullscreen"), {id, fullscreen}).toBool();
+}
+
+bool MacqueenIpcClient::moveWindowToWorkspace(const QString &windowId, const QString &workspaceId)
+{
+    return call(QStringLiteral("moveWindowToWorkspace"), {windowId, workspaceId}).toBool();
+}
+
 void MacqueenIpcClient::handleServiceRegistered()
 {
     if (!m_available) {

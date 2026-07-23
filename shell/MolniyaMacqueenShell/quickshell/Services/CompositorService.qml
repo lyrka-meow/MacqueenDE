@@ -242,6 +242,9 @@ Singleton {
     }
 
     function computeSortedToplevels() {
+        if (isMacqueen)
+            return macqueenToplevels();
+
         if (!ToplevelManager.toplevels || !ToplevelManager.toplevels.values)
             return [];
 
@@ -255,6 +258,21 @@ Singleton {
             return sortHyprlandToplevelsSafe();
 
         return Array.from(ToplevelManager.toplevels.values);
+    }
+
+    function macqueenToplevels() {
+        return Array.from(Macqueen.windows || []).filter(window => !window.skipTaskbar).map(window => {
+            const id = window.id;
+            return Object.assign({}, window, {
+                "address": id,
+                "activated": !!window.active,
+                "activate": () => Macqueen.activateWindow(id),
+                "close": () => Macqueen.closeWindow(id),
+                "setMinimized": minimized => Macqueen.setWindowMinimized(id, minimized),
+                "setFullscreen": fullscreen => Macqueen.setWindowFullscreen(id, fullscreen),
+                "moveToWorkspace": workspaceId => Macqueen.moveWindowToWorkspace(id, workspaceId)
+            });
+        });
     }
 
     function _get(o, path, fallback) {
@@ -498,6 +516,12 @@ Singleton {
             return MangoService.filterCurrentWorkspace(toplevels, screen);
         if (isHyprland)
             return filterHyprlandCurrentWorkspaceSafe(toplevels, screen);
+        if (isMacqueen) {
+            const current = Macqueen.workspaces.find(workspace => workspace.current);
+            if (!current)
+                return toplevels;
+            return toplevels.filter(toplevel => (toplevel.workspaces || []).includes(current.id));
+        }
         return toplevels;
     }
 
@@ -533,6 +557,8 @@ Singleton {
     function _toplevelOnScreen(toplevel, screenName) {
         if (!toplevel || !screenName)
             return false;
+        if (isMacqueen)
+            return toplevel.output === screenName;
         const screens = toplevel.screens;
         if (!screens)
             return false;

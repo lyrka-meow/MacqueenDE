@@ -25,6 +25,11 @@ Methods:
 - `createWorkspace(position, name) -> string`
 - `removeWorkspace(id) -> bool`
 - `renameWorkspace(id, name) -> bool`
+- `activateWindow(id) -> bool`
+- `closeWindow(id) -> bool`
+- `setWindowMinimized(id, minimized) -> bool`
+- `setWindowFullscreen(id, fullscreen) -> bool`
+- `moveWindowToWorkspace(windowId, workspaceId) -> bool`
 
 Workspace positions are one-based. Passing position `0` to `createWorkspace`
 appends the new workspace.
@@ -50,6 +55,6 @@ qdbus6 org.macqueen.Compositor1 /org/macqueen/Compositor1 \
     org.macqueen.Compositor1.protocolVersion
 ```
 
-Window commands, shortcut registration, screen capture and remote input are
-not part of this first interface. They require stronger authorization than
-ordinary workspace organization commands.
+Screen capture and remote input are not part of this interface. They require
+portal-mediated authorization. Window and workspace commands are available to
+clients in the user's session.

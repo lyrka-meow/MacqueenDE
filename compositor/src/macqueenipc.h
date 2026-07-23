@@ -35,6 +35,11 @@ public Q_SLOTS:
     QString createWorkspace(uint position, const QString &name);
     bool removeWorkspace(const QString &id);
     bool renameWorkspace(const QString &id, const QString &name);
+    bool activateWindow(const QString &id);
+    bool closeWindow(const QString &id);
+    bool setWindowMinimized(const QString &id, bool minimized);
+    bool setWindowFullscreen(const QString &id, bool fullscreen);
+    bool moveWindowToWorkspace(const QString &windowId, const QString &workspaceId);
 
 Q_SIGNALS:
     void windowAdded(const QString &id);

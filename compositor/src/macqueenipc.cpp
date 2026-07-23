@@ -189,6 +189,57 @@ bool MacqueenIpc::renameWorkspace(const QString &id, const QString &name)
     return true;
 }
 
+bool MacqueenIpc::activateWindow(const QString &id)
+{
+    Window *window = m_workspace->findWindow(QUuid::fromString(id));
+    if (!window || !window->isClient()) {
+        return false;
+    }
+    m_workspace->activateWindow(window, true);
+    return true;
+}
+
+bool MacqueenIpc::closeWindow(const QString &id)
+{
+    Window *window = m_workspace->findWindow(QUuid::fromString(id));
+    if (!window || !window->isClient() || !window->isCloseable()) {
+        return false;
+    }
+    window->closeWindow();
+    return true;
+}
+
+bool MacqueenIpc::setWindowMinimized(const QString &id, bool minimized)
+{
+    Window *window = m_workspace->findWindow(QUuid::fromString(id));
+    if (!window || !window->isClient() || (minimized && !window->isMinimizable())) {
+        return false;
+    }
+    window->setMinimized(minimized);
+    return true;
+}
+
+bool MacqueenIpc::setWindowFullscreen(const QString &id, bool fullscreen)
+{
+    Window *window = m_workspace->findWindow(QUuid::fromString(id));
+    if (!window || !window->isClient() || (fullscreen && !window->isFullScreenable())) {
+        return false;
+    }
+    window->setFullScreen(fullscreen);
+    return true;
+}
+
+bool MacqueenIpc::moveWindowToWorkspace(const QString &windowId, const QString &workspaceId)
+{
+    Window *window = m_workspace->findWindow(QUuid::fromString(windowId));
+    VirtualDesktop *desktop = VirtualDesktopManager::self()->desktopForId(workspaceId);
+    if (!window || !window->isClient() || !desktop) {
+        return false;
+    }
+    window->setDesktops({desktop});
+    return true;
+}
+
 void MacqueenIpc::watchWindow(Window *window)
 {
     if (!window->isClient()) {
@@ -210,8 +261,14 @@ void MacqueenIpc::watchWindow(Window *window)
     connect(window, &Window::fullScreenChanged, this, [changed]() {
         changed({QStringLiteral("fullscreen")});
     });
+    connect(window, &Window::maximizedChanged, this, [changed]() {
+        changed({QStringLiteral("maximized")});
+    });
     connect(window, &Window::desktopsChanged, this, [changed]() {
         changed({QStringLiteral("workspaces")});
+    });
+    connect(window, &Window::outputChanged, this, [changed]() {
+        changed({QStringLiteral("output")});
     });
     connect(window, &Window::windowClassChanged, this, [changed]() {
         changed({QStringLiteral("appId")});
@@ -236,6 +293,10 @@ QVariantMap MacqueenIpc::windowData(const Window *window) const
         {QStringLiteral("maximized"), window->maximizeMode() == MaximizeFull},
         {QStringLiteral("keepAbove"), window->keepAbove()},
         {QStringLiteral("skipTaskbar"), window->skipTaskbar()},
+        {QStringLiteral("closeable"), window->isCloseable()},
+        {QStringLiteral("minimizable"), window->isMinimizable()},
+        {QStringLiteral("fullscreenable"), window->isFullScreenable()},
+        {QStringLiteral("output"), window->output() ? window->output()->name() : QString()},
         {QStringLiteral("pid"), window->pid()},
     };
 }

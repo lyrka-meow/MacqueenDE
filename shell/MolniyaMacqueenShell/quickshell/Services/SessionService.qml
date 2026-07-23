@@ -324,6 +324,12 @@ Singleton {
 
     function _logout() {
         if (SettingsData.customPowerActionLogout.length === 0) {
+            if (CompositorService.isMacqueen) {
+                log.info("Exiting the Molniya session");
+                Qt.quit();
+                return;
+            }
+
             if (CompositorService.isNiri) {
                 NiriService.quit();
                 return;

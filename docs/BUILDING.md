@@ -34,6 +34,10 @@ cmake -S portal -B build/portal -G Ninja \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_INSTALL_PREFIX=/opt/macqueen-dev \
   -DBUILD_TESTING=OFF
+
+cmake -S quickshell/macqueen-module -B build/quickshell-macqueen -G Ninja \
+  -DCMAKE_BUILD_TYPE=Debug \
+  -DCMAKE_INSTALL_PREFIX=/opt/macqueen-dev
 ```
 
 The build directories are ignored by Git.
@@ -46,6 +50,7 @@ upstream settings module:
 ```bash
 cmake --build build/compositor --target macqueen --parallel 8
 cmake --build build/portal --parallel 8
+cmake --build build/quickshell-macqueen --parallel 8
 ```
 
 Reduce the parallel count on systems with less than 16 GiB of RAM.
@@ -58,6 +63,7 @@ current Wayland session:
 ```bash
 ./scripts/smoke-virtual.sh
 ./scripts/smoke-ipc.sh
+./scripts/smoke-quickshell.sh
 ```
 
 The script creates isolated runtime, configuration, cache, and data

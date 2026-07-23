@@ -5,19 +5,16 @@
 
 import Macqueen.Ipc
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
 import Quickshell
-import Quickshell.Wayland
 import qs.Common
 import qs.Widgets
 
 Scope {
-    id: root
+    id: controller
 
     property bool chooserOpen: false
     property string requestId: ""
-    property string title: ""
+    property string chooserTitle: ""
     property var choices: []
     property bool allowRestore: true
     property int selectedIndex: -1
@@ -30,16 +27,18 @@ Scope {
     }
 
     function cancel() {
-        if (requestId.length > 0)
-            Macqueen.cancelScreenCastSelection(requestId);
+        const pendingRequest = requestId;
         closeChooser();
+        if (pendingRequest.length > 0)
+            Macqueen.cancelScreenCastSelection(pendingRequest);
     }
 
     function accept() {
         if (selectedIndex < 0 || selectedIndex >= choices.length)
             return;
+        const pendingRequest = requestId;
         const choice = choices[selectedIndex];
-        if (Macqueen.submitScreenCastSelection(requestId, choice.kind, choice.id, allowRestore))
+        if (Macqueen.submitScreenCastSelection(pendingRequest, choice.kind, choice.id, allowRestore))
             closeChooser();
     }
 
@@ -55,191 +54,260 @@ Scope {
                 Macqueen.cancelScreenCastSelection(newRequestId);
                 return;
             }
-            root.requestId = newRequestId;
-            root.title = newTitle;
-            root.choices = (options.outputs || []).concat(options.windows || []);
-            root.allowRestore = true;
-            root.selectedIndex = root.choices.length === 1 ? 0 : -1;
-            root.chooserOpen = true;
+            controller.requestId = newRequestId;
+            controller.chooserTitle = newTitle;
+            controller.choices = (options.outputs || []).concat(options.windows || []);
+            controller.allowRestore = true;
+            controller.selectedIndex = controller.choices.length === 1 ? 0 : -1;
+            controller.chooserOpen = true;
         }
     }
 
     Loader {
-        active: root.chooserOpen
+        active: controller.chooserOpen
         asynchronous: false
 
-        sourceComponent: PanelWindow {
-            id: panel
+        sourceComponent: FloatingWindow {
+            id: window
 
-            screen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
-            visible: root.chooserOpen
-            color: "transparent"
+            readonly property int chooserWidth: 760
+            readonly property int chooserHeight: screen ? Math.min(680, screen.height - 80) : 680
 
-            WlrLayershell.namespace: "macqueen:screencast-chooser"
-            WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.exclusiveZone: -1
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+            objectName: "macqueenScreenCastChooser"
+            title: controller.chooserTitle
+            minimumSize: Qt.size(chooserWidth, Math.min(chooserHeight, 480))
+            maximumSize: Qt.size(chooserWidth, chooserHeight)
+            color: Theme.surfaceContainer
+            visible: controller.chooserOpen
 
-            anchors {
-                top: true
-                left: true
-                right: true
-                bottom: true
-            }
-
-            Rectangle {
-                anchors.fill: parent
-                color: Theme.withAlpha("#000000", 0.68)
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: root.cancel()
-                }
-            }
+            onClosed: controller.cancel()
 
             FocusScope {
                 anchors.fill: parent
                 focus: true
 
                 Keys.onEscapePressed: event => {
-                    root.cancel();
+                    controller.cancel();
                     event.accepted = true;
                 }
                 Keys.onReturnPressed: event => {
-                    root.accept();
+                    controller.accept();
                     event.accepted = true;
                 }
                 Keys.onEnterPressed: event => {
-                    root.accept();
+                    controller.accept();
+                    event.accepted = true;
+                }
+                Keys.onUpPressed: event => {
+                    controller.selectedIndex = Math.max(0, controller.selectedIndex - 1);
+                    choicesView.positionViewAtIndex(controller.selectedIndex, ListView.Contain);
+                    event.accepted = true;
+                }
+                Keys.onDownPressed: event => {
+                    controller.selectedIndex = Math.min(controller.choices.length - 1, controller.selectedIndex + 1);
+                    choicesView.positionViewAtIndex(controller.selectedIndex, ListView.Contain);
                     event.accepted = true;
                 }
 
+                Item {
+                    id: header
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.spacingL
+                    height: 66
+
+                    MouseArea {
+                        anchors.left: parent.left
+                        anchors.right: windowButtons.left
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        onPressed: windowControls.tryStartMove()
+                    }
+
+                    Column {
+                        anchors.left: parent.left
+                        anchors.right: windowButtons.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.rightMargin: Theme.spacingM
+                        spacing: 4
+
+                        StyledText {
+                            width: parent.width
+                            text: controller.chooserTitle
+                            color: Theme.surfaceText
+                            font.pixelSize: Theme.fontSizeLarge
+                            font.weight: Font.DemiBold
+                            elide: Text.ElideRight
+                        }
+
+                        StyledText {
+                            text: "Выберите экран или окно для демонстрации"
+                            color: Theme.surfaceTextMedium
+                            font.pixelSize: Theme.fontSizeSmall
+                        }
+                    }
+
+                    Row {
+                        id: windowButtons
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.spacingXS
+
+                        DankActionButton {
+                            iconName: "close"
+                            iconSize: Theme.iconSize - 4
+                            iconColor: Theme.surfaceText
+                            onClicked: controller.cancel()
+                        }
+                    }
+                }
+
                 Rectangle {
-                    anchors.centerIn: parent
-                    width: Math.min(parent.width - 48, 920)
-                    height: Math.min(parent.height - 48, 680)
-                    radius: 24
-                    color: Theme.surfaceContainer
+                    id: listBackground
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: header.bottom
+                    anchors.bottom: footer.top
+                    anchors.leftMargin: Theme.spacingL
+                    anchors.rightMargin: Theme.spacingL
+                    anchors.topMargin: Theme.spacingS
+                    anchors.bottomMargin: Theme.spacingM
+                    radius: Theme.cornerRadius
+                    color: Theme.surfaceContainerHigh
                     border.width: 1
                     border.color: Theme.outline
 
-                    MouseArea {
+                    ListView {
+                        id: choicesView
                         anchors.fill: parent
-                        acceptedButtons: Qt.NoButton
-                    }
+                        anchors.margins: Theme.spacingS
+                        clip: true
+                        spacing: Theme.spacingS
+                        model: controller.choices
 
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 28
-                        spacing: 18
+                        delegate: Rectangle {
+                            id: choiceCard
 
-                        Label {
-                            Layout.fillWidth: true
-                            text: root.title
-                            color: Theme.surfaceText
-                            font.pixelSize: 24
-                            font.bold: true
-                            wrapMode: Text.WordWrap
-                        }
+                            required property int index
+                            required property var modelData
+                            width: choicesView.width
+                            height: 76
+                            radius: Theme.cornerRadius
+                            color: controller.selectedIndex === index ? Theme.primaryContainer : Theme.surfaceContainer
+                            border.width: controller.selectedIndex === index ? 2 : 1
+                            border.color: controller.selectedIndex === index ? Theme.primary : Theme.outline
 
-                        Label {
-                            Layout.fillWidth: true
-                            text: "Выберите экран или окно для демонстрации"
-                            color: Theme.withAlpha(Theme.surfaceText, 0.72)
-                            font.pixelSize: 15
-                        }
+                            Row {
+                                anchors.fill: parent
+                                anchors.margins: Theme.spacingM
+                                spacing: Theme.spacingM
 
-                        ScrollView {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            clip: true
+                                Rectangle {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 44
+                                    height: 44
+                                    radius: 12
+                                    color: controller.selectedIndex === choiceCard.index ? Theme.primary : Theme.surfaceContainerHighest
 
-                            GridLayout {
-                                width: parent.width
-                                columns: width >= 700 ? 3 : 2
-                                columnSpacing: 12
-                                rowSpacing: 12
-
-                                Repeater {
-                                    model: root.choices
-
-                                    delegate: Rectangle {
-                                        id: card
-
-                                        required property int index
-                                        required property var modelData
-                                        Layout.fillWidth: true
-                                        Layout.preferredHeight: 132
-                                        radius: 16
-                                        color: root.selectedIndex === index ? Theme.primaryContainer : Theme.surfaceContainerHigh
-                                        border.width: root.selectedIndex === index ? 2 : 1
-                                        border.color: root.selectedIndex === index ? Theme.primary : Theme.outline
-
-                                        ColumnLayout {
-                                            anchors.fill: parent
-                                            anchors.margins: 16
-                                            spacing: 8
-
-                                            Label {
-                                                text: card.modelData.kind === "window" ? "▣  Окно" : "▰  Экран"
-                                                color: root.selectedIndex === card.index ? Theme.primary : Theme.withAlpha(Theme.surfaceText, 0.7)
-                                                font.pixelSize: 13
-                                                font.bold: true
-                                            }
-
-                                            Label {
-                                                Layout.fillWidth: true
-                                                Layout.fillHeight: true
-                                                text: card.modelData.label || card.modelData.name || card.modelData.id
-                                                color: Theme.surfaceText
-                                                font.pixelSize: 16
-                                                font.bold: true
-                                                wrapMode: Text.WordWrap
-                                                elide: Text.ElideRight
-                                            }
-                                        }
-
-                                        MouseArea {
-                                            anchors.fill: parent
-                                            onClicked: root.selectedIndex = card.index
-                                            onDoubleClicked: {
-                                                root.selectedIndex = card.index;
-                                                root.accept();
-                                            }
-                                        }
+                                    StyledText {
+                                        anchors.centerIn: parent
+                                        text: choiceCard.modelData.kind === "window" ? "▣" : "▰"
+                                        color: controller.selectedIndex === choiceCard.index ? Theme.primaryText : Theme.surfaceText
+                                        font.pixelSize: 22
                                     }
+                                }
+
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width - 60
+                                    spacing: 4
+
+                                    StyledText {
+                                        width: parent.width
+                                        text: choiceCard.modelData.label || choiceCard.modelData.name || choiceCard.modelData.id
+                                        color: Theme.surfaceText
+                                        font.pixelSize: Theme.fontSizeMedium
+                                        font.weight: Font.DemiBold
+                                        elide: Text.ElideRight
+                                    }
+
+                                    StyledText {
+                                        width: parent.width
+                                        text: choiceCard.modelData.kind === "window"
+                                            ? "Окно · " + (choiceCard.modelData.appId || "приложение")
+                                            : "Экран · " + (choiceCard.modelData.name || choiceCard.modelData.description || "")
+                                        color: Theme.surfaceTextMedium
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: controller.selectedIndex = choiceCard.index
+                                onDoubleClicked: {
+                                    controller.selectedIndex = choiceCard.index;
+                                    controller.accept();
                                 }
                             }
                         }
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 12
-
-                            CheckBox {
-                                checked: root.allowRestore
-                                text: "Запомнить выбор"
-                                onToggled: root.allowRestore = checked
-                            }
-
-                            Item {
-                                Layout.fillWidth: true
-                            }
-
-                            Button {
-                                text: "Отмена"
-                                onClicked: root.cancel()
-                            }
-
-                            Button {
-                                text: "Поделиться"
-                                enabled: root.selectedIndex >= 0
-                                highlighted: true
-                                onClicked: root.accept()
-                            }
+                        StyledText {
+                            anchors.centerIn: parent
+                            visible: controller.choices.length === 0
+                            text: "Нет доступных экранов или окон"
+                            color: Theme.surfaceTextMedium
                         }
                     }
                 }
+
+                Item {
+                    id: footer
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.bottom: parent.bottom
+                    anchors.margins: Theme.spacingL
+                    height: 48
+
+                    DankButton {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: controller.allowRestore ? "✓  Запомнить выбор" : "Запомнить выбор"
+                        backgroundColor: Theme.surfaceContainerHighest
+                        textColor: Theme.surfaceText
+                        onClicked: controller.allowRestore = !controller.allowRestore
+                    }
+
+                    Row {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.spacingM
+
+                        DankButton {
+                            text: "Отмена"
+                            backgroundColor: Theme.surfaceContainerHighest
+                            textColor: Theme.surfaceText
+                            onClicked: controller.cancel()
+                        }
+
+                        DankButton {
+                            text: "Поделиться"
+                            enabled: controller.selectedIndex >= 0
+                            backgroundColor: enabled ? Theme.primary : Theme.surfaceContainerHighest
+                            textColor: enabled ? Theme.primaryText : Theme.surfaceTextMedium
+                            onClicked: controller.accept()
+                        }
+                    }
+                }
+            }
+
+            FloatingWindowControls {
+                id: windowControls
+                targetWindow: window
             }
         }
     }

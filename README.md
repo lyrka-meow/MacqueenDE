@@ -45,6 +45,21 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 [docs/UPSTREAM.md](docs/UPSTREAM.md). Local configuration and build
 instructions are in [docs/BUILDING.md](docs/BUILDING.md).
 
+## Start a direct development session
+
+After building the compositor, Quickshell module, and Molniya backend, log out
+of the current graphical desktop, enter a TTY, and run:
+
+```bash
+./start-macqueende
+```
+
+To add a separate `MacqueenDE` entry to SDDM:
+
+```bash
+./session/install-dev-session.sh
+```
+
 ## Licensing
 
 MacqueenDE contains components derived from upstream projects with their own

@@ -19,6 +19,9 @@
 
 #include <QDBusConnection>
 #include <QFile>
+#include <QAction>
+#include <QKeySequence>
+#include <KGlobalAccel>
 #include <KConfigGroup>
 #include <QRegularExpression>
 #include <QTextStream>
@@ -50,6 +53,14 @@ MacqueenIpc::MacqueenIpc(Workspace *workspace)
     : QObject(workspace)
     , m_workspace(workspace)
 {
+    m_screenshotAction = new QAction(this);
+    m_screenshotAction->setObjectName(QStringLiteral("MacqueenInteractiveScreenshot"));
+    m_screenshotAction->setText(QStringLiteral("Interactive Screenshot"));
+    KGlobalAccel::self()->setGlobalShortcut(
+        m_screenshotAction,
+        QKeySequence(Qt::META | Qt::SHIFT | Qt::Key_S));
+    connect(m_screenshotAction, &QAction::triggered, this, &MacqueenIpc::requestScreenshot);
+
     QDBusConnection bus = QDBusConnection::sessionBus();
     bus.registerObject(QStringLiteral("/org/macqueen/Compositor1"),
                        this,
@@ -113,7 +124,7 @@ MacqueenIpc::~MacqueenIpc()
 
 uint MacqueenIpc::protocolVersion() const
 {
-    return 3;
+    return 4;
 }
 
 QString MacqueenIpc::compositorVersion() const
@@ -364,6 +375,36 @@ bool MacqueenIpc::moveWindowToWorkspace(const QString &windowId, const QString &
 void MacqueenIpc::requestOverview(const QString &reason)
 {
     Q_EMIT overviewRequested(reason);
+}
+
+QString MacqueenIpc::screenshotShortcut() const
+{
+    const auto shortcuts = KGlobalAccel::self()->shortcut(m_screenshotAction);
+    if (shortcuts.isEmpty()) {
+        return {};
+    }
+    QString text = shortcuts.constFirst().toString(QKeySequence::PortableText);
+    return text.replace(QStringLiteral("Meta"), QStringLiteral("Super"));
+}
+
+bool MacqueenIpc::setScreenshotShortcut(const QString &shortcut)
+{
+    QString portable = shortcut.trimmed();
+    portable.replace(QStringLiteral("Super"), QStringLiteral("Meta"), Qt::CaseInsensitive);
+    const QKeySequence sequence = QKeySequence::fromString(portable, QKeySequence::PortableText);
+    if (!portable.isEmpty() && sequence.isEmpty()) {
+        return false;
+    }
+    KGlobalAccel::self()->setShortcut(m_screenshotAction,
+                                     sequence.isEmpty() ? QList<QKeySequence>{} : QList<QKeySequence>{sequence},
+                                     KGlobalAccel::NoAutoloading);
+    Q_EMIT screenshotShortcutChanged(screenshotShortcut());
+    return true;
+}
+
+void MacqueenIpc::requestScreenshot()
+{
+    Q_EMIT screenshotRequested();
 }
 
 bool MacqueenIpc::overviewBorderActivated(ElectricBorder border)

@@ -70,6 +70,10 @@ MacqueenIpcClient::MacqueenIpcClient(QObject *parent)
                 QStringLiteral("keyboardLayoutsChanged"), this, SLOT(refreshKeyboardLayouts()));
     bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
                 QStringLiteral("overviewRequested"), this, SLOT(handleOverviewRequested(QString)));
+    bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
+                QStringLiteral("screenshotRequested"), this, SIGNAL(screenshotRequested()));
+    bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
+                QStringLiteral("screenshotShortcutChanged"), this, SLOT(handleScreenshotShortcutChanged(QString)));
     bus.interface()->registerService(QStringLiteral("org.macqueen.MolniyaShell1"),
                                      QDBusConnectionInterface::DontQueueService,
                                      QDBusConnectionInterface::DontAllowReplacement);
@@ -136,6 +140,11 @@ uint MacqueenIpcClient::currentKeyboardLayout() const
     return m_currentKeyboardLayout;
 }
 
+QString MacqueenIpcClient::screenshotShortcut() const
+{
+    return m_screenshotShortcut;
+}
+
 void MacqueenIpcClient::refresh()
 {
     if (!m_available) {
@@ -147,6 +156,7 @@ void MacqueenIpcClient::refresh()
     refreshOutputs();
     refreshWorkspaces();
     refreshKeyboardLayouts();
+    handleScreenshotShortcutChanged(call(QStringLiteral("screenshotShortcut")).toString());
 }
 
 bool MacqueenIpcClient::activateWorkspace(const QString &id)
@@ -232,6 +242,20 @@ bool MacqueenIpcClient::cancelScreenCastSelection(const QString &requestId)
     return reply.isValid() && reply.value();
 }
 
+bool MacqueenIpcClient::setScreenshotShortcut(const QString &shortcut)
+{
+    const bool changed = call(QStringLiteral("setScreenshotShortcut"), {shortcut}).toBool();
+    if (changed) {
+        handleScreenshotShortcutChanged(call(QStringLiteral("screenshotShortcut")).toString());
+    }
+    return changed;
+}
+
+void MacqueenIpcClient::requestScreenshot()
+{
+    call(QStringLiteral("requestScreenshot"));
+}
+
 void MacqueenIpcClient::handleServiceRegistered()
 {
     if (!m_available) {
@@ -282,6 +306,15 @@ void MacqueenIpcClient::handleOverviewRequested(const QString &reason)
 void MacqueenIpcClient::handleScreenCastSelectionRequested(const QString &requestId, const QString &title, const QString &optionsJson)
 {
     Q_EMIT screenCastSelectionRequested(requestId, title, optionsJson);
+}
+
+void MacqueenIpcClient::handleScreenshotShortcutChanged(const QString &shortcut)
+{
+    if (m_screenshotShortcut == shortcut) {
+        return;
+    }
+    m_screenshotShortcut = shortcut;
+    Q_EMIT screenshotShortcutChanged();
 }
 
 void MacqueenIpcClient::refreshOutputs()

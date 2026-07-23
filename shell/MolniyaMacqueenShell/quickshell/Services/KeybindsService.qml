@@ -5,6 +5,7 @@ import QtCore
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Macqueen.Ipc
 import qs.Common
 import qs.Services
 import "../Common/ConfigIncludeResolve.js" as ConfigIncludeResolve
@@ -14,7 +15,7 @@ Singleton {
     id: root
     readonly property var log: Log.scoped("KeybindsService")
 
-    property bool available: CompositorService.isNiri || CompositorService.isHyprland || CompositorService.isMango
+    property bool available: CompositorService.isNiri || CompositorService.isHyprland || CompositorService.isMango || CompositorService.isMacqueen
     property string currentProvider: {
         if (CompositorService.isNiri)
             return "niri";
@@ -22,6 +23,8 @@ Singleton {
             return "hyprland";
         if (CompositorService.isMango)
             return "mangowc";
+        if (CompositorService.isMacqueen)
+            return "macqueen";
         return "";
     }
 
@@ -343,6 +346,23 @@ Singleton {
             return;
         const hasData = Object.keys(_allBinds).length > 0;
         loading = showLoading !== false && !hasData;
+        if (currentProvider === "macqueen") {
+            _rawData = {
+                "provider": "macqueen",
+                "binds": {
+                    "Screenshot": [{
+                        "key": Macqueen.screenshotShortcut,
+                        "action": "spawn dms ipc call macqueen-screenshot capture",
+                        "desc": "Interactive Screenshot",
+                        "source": "dms-default",
+                        "hasDefault": true
+                    }]
+                }
+            };
+            _processData();
+            loading = false;
+            return;
+        }
         loadProcess.command = ["dms", "keybinds", "show", currentProvider];
         loadProcess.running = true;
     }
@@ -509,6 +529,15 @@ Singleton {
         }
         if (!bindData.key || !Actions.isValidAction(bindData.action))
             return;
+        if (currentProvider === "macqueen") {
+            const saved = Macqueen.setScreenshotShortcut(bindData.key);
+            bindSaveCompleted(saved);
+            if (saved) {
+                _pendingSavedKey = bindData.key;
+                loadBinds(false);
+            }
+            return;
+        }
         saving = true;
         const cmd = ["dms", "keybinds", "set", currentProvider, bindData.key, bindData.action, "--desc", bindData.desc || ""];
         if (originalKey && originalKey !== bindData.key)
@@ -557,6 +586,13 @@ Singleton {
         }
         if (!key)
             return;
+        if (currentProvider === "macqueen") {
+            if (Macqueen.setScreenshotShortcut("")) {
+                bindRemoved(key);
+                loadBinds(false);
+            }
+            return;
+        }
         removeProcess.command = ["dms", "keybinds", "remove", currentProvider, key];
         removeProcess.running = true;
         bindRemoved(key);
@@ -569,6 +605,13 @@ Singleton {
         }
         if (!key)
             return;
+        if (currentProvider === "macqueen") {
+            if (Macqueen.setScreenshotShortcut("Super+Shift+S")) {
+                bindRemoved(key);
+                loadBinds(false);
+            }
+            return;
+        }
         removeProcess.command = ["dms", "keybinds", "reset", currentProvider, key];
         removeProcess.running = true;
         bindRemoved(key);
@@ -599,7 +642,7 @@ Singleton {
     }
 
     function getDmsActions() {
-        return Actions.getDmsActions(CompositorService.isNiri, CompositorService.isHyprland);
+        return Actions.getDmsActions(CompositorService.isNiri, CompositorService.isHyprland, CompositorService.isMacqueen);
     }
 
     function buildSpawnAction(command, args) {

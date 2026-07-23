@@ -6,6 +6,7 @@
 #pragma once
 
 #include <QObject>
+#include <QAction>
 #include <QVariantList>
 #include <QVariantMap>
 
@@ -48,6 +49,9 @@ public Q_SLOTS:
     bool setWindowFullscreen(const QString &id, bool fullscreen);
     bool moveWindowToWorkspace(const QString &windowId, const QString &workspaceId);
     void requestOverview(const QString &reason = QStringLiteral("ipc"));
+    QString screenshotShortcut() const;
+    bool setScreenshotShortcut(const QString &shortcut);
+    void requestScreenshot();
 
 private Q_SLOTS:
     bool overviewBorderActivated(ElectricBorder border);
@@ -61,12 +65,15 @@ Q_SIGNALS:
     void workspacesChanged();
     void keyboardLayoutsChanged();
     void overviewRequested(const QString &reason);
+    void screenshotRequested();
+    void screenshotShortcutChanged(const QString &shortcut);
 
 private:
     void watchWindow(Window *window);
     QVariantMap windowData(const Window *window) const;
 
     Workspace *m_workspace;
+    QAction *m_screenshotAction = nullptr;
     const QString m_serviceName = QStringLiteral("org.macqueen.Compositor1");
 };
 

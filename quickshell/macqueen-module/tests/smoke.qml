@@ -12,7 +12,7 @@ ShellRoot {
             console.log("Macqueen workspaces:", JSON.stringify(Macqueen.workspaces))
             if (!Macqueen.available)
                 throw new Error("Macqueen IPC is unavailable")
-            if (Macqueen.protocolVersion !== 3)
+            if (Macqueen.protocolVersion !== 4)
                 throw new Error("Unexpected protocol version: " + Macqueen.protocolVersion)
             if (Macqueen.compositorVersion !== "0.1.0-dev")
                 throw new Error("Unexpected compositor version: " + Macqueen.compositorVersion)

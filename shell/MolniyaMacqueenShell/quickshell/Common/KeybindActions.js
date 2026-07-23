@@ -118,6 +118,7 @@ const DMS_ACTIONS = [
     { id: "spawn dms ipc call niri screenshot", label: "Screenshot: Interactive", compositor: "niri" },
     { id: "spawn dms ipc call niri screenshotScreen", label: "Screenshot: Full Screen", compositor: "niri" },
     { id: "spawn dms ipc call niri screenshotWindow", label: "Screenshot: Window", compositor: "niri" },
+    { id: "spawn dms ipc call macqueen-screenshot capture", label: "Macqueen: Interactive Screenshot", compositor: "macqueen" },
     { id: "spawn dms ipc call hypr toggleOverview", label: "Hyprland: Toggle Overview", compositor: "hyprland" },
     { id: "spawn dms ipc call hypr openOverview", label: "Hyprland: Open Overview", compositor: "hyprland" },
     { id: "spawn dms ipc call hypr closeOverview", label: "Hyprland: Close Overview", compositor: "hyprland" },
@@ -811,7 +812,7 @@ function getDmsActionArgs() {
     return DMS_ACTION_ARGS;
 }
 
-function getDmsActions(isNiri, isHyprland) {
+function getDmsActions(isNiri, isHyprland, isMacqueen) {
     const result = [];
     for (let i = 0; i < DMS_ACTIONS.length; i++) {
         const action = DMS_ACTIONS[i];
@@ -826,6 +827,10 @@ function getDmsActions(isNiri, isHyprland) {
                 break;
             case "hyprland":
                 if (isHyprland)
+                    result.push(action);
+                break;
+            case "macqueen":
+                if (isMacqueen)
                     result.push(action);
                 break;
         }

@@ -27,6 +27,7 @@ class MacqueenIpcClient : public QObject
     Q_PROPERTY(QVariantList keyboardLayouts READ keyboardLayouts NOTIFY keyboardLayoutsChanged)
     Q_PROPERTY(QVariantList availableKeyboardLayouts READ availableKeyboardLayouts NOTIFY availableKeyboardLayoutsChanged)
     Q_PROPERTY(uint currentKeyboardLayout READ currentKeyboardLayout NOTIFY keyboardLayoutsChanged)
+    Q_PROPERTY(QString screenshotShortcut READ screenshotShortcut NOTIFY screenshotShortcutChanged)
 
 public:
     explicit MacqueenIpcClient(QObject *parent = nullptr);
@@ -41,6 +42,7 @@ public:
     QVariantList keyboardLayouts() const;
     QVariantList availableKeyboardLayouts() const;
     uint currentKeyboardLayout() const;
+    QString screenshotShortcut() const;
 
     Q_INVOKABLE void refresh();
     Q_INVOKABLE bool activateWorkspace(const QString &id);
@@ -56,6 +58,8 @@ public:
     Q_INVOKABLE bool setCurrentKeyboardLayout(uint index);
     Q_INVOKABLE bool submitScreenCastSelection(const QString &requestId, const QString &kind, const QString &id, bool allowRestore = true);
     Q_INVOKABLE bool cancelScreenCastSelection(const QString &requestId);
+    Q_INVOKABLE bool setScreenshotShortcut(const QString &shortcut);
+    Q_INVOKABLE void requestScreenshot();
 
 Q_SIGNALS:
     void availableChanged();
@@ -68,6 +72,8 @@ Q_SIGNALS:
     void availableKeyboardLayoutsChanged();
     void overviewRequested(const QString &reason);
     void screenCastSelectionRequested(const QString &requestId, const QString &title, const QString &optionsJson);
+    void screenshotRequested();
+    void screenshotShortcutChanged();
 
 private Q_SLOTS:
     void handleServiceRegistered();
@@ -81,6 +87,7 @@ private Q_SLOTS:
     void refreshKeyboardLayouts();
     void handleOverviewRequested(const QString &reason);
     void handleScreenCastSelectionRequested(const QString &requestId, const QString &title, const QString &optionsJson);
+    void handleScreenshotShortcutChanged(const QString &shortcut);
 
 private:
     QVariant call(const QString &method, const QVariantList &arguments = {}) const;
@@ -104,4 +111,5 @@ private:
     QVariantList m_keyboardLayouts;
     QVariantList m_availableKeyboardLayouts;
     uint m_currentKeyboardLayout = 0;
+    QString m_screenshotShortcut;
 };

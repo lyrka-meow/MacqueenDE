@@ -302,6 +302,7 @@ Item {
     }
 
     MacqueenScreenCastChooser {}
+    MacqueenScreenshot {}
 
     Component {
         id: hyprlandOverviewComponent

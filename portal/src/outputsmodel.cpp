@@ -328,6 +328,33 @@ QList<Output> OutputsModel::selectedOutputs() const
     return ret;
 }
 
+QVariantList OutputsModel::selectionCandidates() const
+{
+    QVariantList candidates;
+    candidates.reserve(m_outputs.size());
+    for (const Output &output : m_outputs) {
+        candidates.append(QVariantMap{
+            {QStringLiteral("id"), output.uniqueId()},
+            {QStringLiteral("name"), output.name()},
+            {QStringLiteral("label"), output.display()},
+            {QStringLiteral("description"), output.description()},
+            {QStringLiteral("kind"), QStringLiteral("output")},
+        });
+    }
+    return candidates;
+}
+
+bool OutputsModel::selectByUniqueId(const QString &uniqueId)
+{
+    for (int row = 0; row < m_outputs.size(); ++row) {
+        if (m_outputs.at(row).uniqueId() == uniqueId) {
+            clearSelection();
+            return setData(index(row, 0), Qt::Checked, Qt::CheckStateRole);
+        }
+    }
+    return false;
+}
+
 QString OutputsModel::virtualScreenIdForApp(const QString &appId)
 {
     const QString baseId = QStringLiteral("virtual-xdp-kde-") + appId;

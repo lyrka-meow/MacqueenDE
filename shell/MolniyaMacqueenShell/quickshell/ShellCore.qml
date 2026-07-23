@@ -301,6 +301,8 @@ Item {
         component: CompositorService.isMacqueen ? macqueenOverviewComponent : hyprlandOverviewComponent
     }
 
+    MacqueenScreenCastChooser {}
+
     Component {
         id: hyprlandOverviewComponent
 

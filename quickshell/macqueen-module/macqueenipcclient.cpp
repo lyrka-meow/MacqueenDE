@@ -70,6 +70,15 @@ MacqueenIpcClient::MacqueenIpcClient(QObject *parent)
                 QStringLiteral("keyboardLayoutsChanged"), this, SLOT(refreshKeyboardLayouts()));
     bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
                 QStringLiteral("overviewRequested"), this, SLOT(handleOverviewRequested(QString)));
+    bus.interface()->registerService(QStringLiteral("org.macqueen.MolniyaShell1"),
+                                     QDBusConnectionInterface::DontQueueService,
+                                     QDBusConnectionInterface::DontAllowReplacement);
+    bus.connect(QStringLiteral("org.freedesktop.impl.portal.desktop.kde"),
+                QStringLiteral("/org/macqueen/ScreenCastChooser1"),
+                QStringLiteral("org.macqueen.ScreenCastChooser1"),
+                QStringLiteral("selectionRequested"),
+                this,
+                SLOT(handleScreenCastSelectionRequested(QString,QString,QString)));
 
     const QDBusReply<bool> registered = bus.interface()->isServiceRegistered(QString::fromLatin1(Service));
     if (registered.isValid() && registered.value()) {
@@ -203,6 +212,26 @@ bool MacqueenIpcClient::setCurrentKeyboardLayout(uint index)
     return changed;
 }
 
+bool MacqueenIpcClient::submitScreenCastSelection(const QString &requestId, const QString &kind, const QString &id, bool allowRestore)
+{
+    QDBusInterface chooser(QStringLiteral("org.freedesktop.impl.portal.desktop.kde"),
+                           QStringLiteral("/org/macqueen/ScreenCastChooser1"),
+                           QStringLiteral("org.macqueen.ScreenCastChooser1"),
+                           QDBusConnection::sessionBus());
+    const QDBusReply<bool> reply = chooser.call(QStringLiteral("select"), requestId, kind, id, allowRestore);
+    return reply.isValid() && reply.value();
+}
+
+bool MacqueenIpcClient::cancelScreenCastSelection(const QString &requestId)
+{
+    QDBusInterface chooser(QStringLiteral("org.freedesktop.impl.portal.desktop.kde"),
+                           QStringLiteral("/org/macqueen/ScreenCastChooser1"),
+                           QStringLiteral("org.macqueen.ScreenCastChooser1"),
+                           QDBusConnection::sessionBus());
+    const QDBusReply<bool> reply = chooser.call(QStringLiteral("cancel"), requestId);
+    return reply.isValid() && reply.value();
+}
+
 void MacqueenIpcClient::handleServiceRegistered()
 {
     if (!m_available) {
@@ -248,6 +277,11 @@ void MacqueenIpcClient::handleActiveWindowChanged(const QString &id)
 void MacqueenIpcClient::handleOverviewRequested(const QString &reason)
 {
     Q_EMIT overviewRequested(reason);
+}
+
+void MacqueenIpcClient::handleScreenCastSelectionRequested(const QString &requestId, const QString &title, const QString &optionsJson)
+{
+    Q_EMIT screenCastSelectionRequested(requestId, title, optionsJson);
 }
 
 void MacqueenIpcClient::refreshOutputs()

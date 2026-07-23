@@ -54,6 +54,8 @@ public:
     Q_INVOKABLE bool moveWindowToWorkspace(const QString &windowId, const QString &workspaceId);
     Q_INVOKABLE bool setKeyboardLayouts(const QStringList &layouts);
     Q_INVOKABLE bool setCurrentKeyboardLayout(uint index);
+    Q_INVOKABLE bool submitScreenCastSelection(const QString &requestId, const QString &kind, const QString &id, bool allowRestore = true);
+    Q_INVOKABLE bool cancelScreenCastSelection(const QString &requestId);
 
 Q_SIGNALS:
     void availableChanged();
@@ -65,6 +67,7 @@ Q_SIGNALS:
     void keyboardLayoutsChanged();
     void availableKeyboardLayoutsChanged();
     void overviewRequested(const QString &reason);
+    void screenCastSelectionRequested(const QString &requestId, const QString &title, const QString &optionsJson);
 
 private Q_SLOTS:
     void handleServiceRegistered();
@@ -77,6 +80,7 @@ private Q_SLOTS:
     void refreshWorkspaces();
     void refreshKeyboardLayouts();
     void handleOverviewRequested(const QString &reason);
+    void handleScreenCastSelectionRequested(const QString &requestId, const QString &title, const QString &optionsJson);
 
 private:
     QVariant call(const QString &method, const QVariantList &arguments = {}) const;

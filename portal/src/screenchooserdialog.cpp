@@ -7,6 +7,7 @@
  */
 
 #include "screenchooserdialog.h"
+#include "macqueenscreenchooserbridge.h"
 #include "utils.h"
 #include "waylandintegration.h"
 
@@ -17,6 +18,7 @@
 #include <KWayland/Client/plasmawindowmodel.h>
 
 #include <QCoreApplication>
+#include <QJsonDocument>
 #include <QScreen>
 #include <QSettings>
 #include <QSortFilterProxyModel>
@@ -86,6 +88,36 @@ public:
                 ret << itemData(index);
         }
         return ret;
+    }
+
+    QVariantList selectionCandidates() const
+    {
+        using KWayland::Client::PlasmaWindowModel;
+        QVariantList candidates;
+        candidates.reserve(rowCount());
+        for (int row = 0; row < rowCount(); ++row) {
+            const QModelIndex idx = index(row, 0);
+            candidates.append(QVariantMap{
+                {QStringLiteral("id"), idx.data(PlasmaWindowModel::Uuid).toString()},
+                {QStringLiteral("label"), idx.data(Qt::DisplayRole).toString()},
+                {QStringLiteral("appId"), idx.data(PlasmaWindowModel::AppId).toString()},
+                {QStringLiteral("kind"), QStringLiteral("window")},
+            });
+        }
+        return candidates;
+    }
+
+    bool selectByUuid(const QString &uuid)
+    {
+        using KWayland::Client::PlasmaWindowModel;
+        for (int row = 0; row < rowCount(); ++row) {
+            const QModelIndex idx = index(row, 0);
+            if (idx.data(PlasmaWindowModel::Uuid).toString() == uuid) {
+                clearSelection();
+                return setData(idx, Qt::Checked, Qt::CheckStateRole);
+            }
+        }
+        return false;
     }
 
     QHash<int, QByteArray> roleNames() const override
@@ -171,10 +203,10 @@ ScreenChooserDialog::ScreenChooserDialog(const QString &appName, bool multiple, 
         } else {
             options |= OutputsModel::OutputsExcluded;
         }
-        auto model = new OutputsModel(options, this);
-        props.insert(u"outputsModel"_s, QVariant::fromValue<QObject *>(model));
-        numberOfMonitors += model->rowCount(QModelIndex());
-        connect(this, &ScreenChooserDialog::clearSelection, model, &OutputsModel::clearSelection);
+        m_outputsModel = new OutputsModel(options, this);
+        props.insert(u"outputsModel"_s, QVariant::fromValue<QObject *>(m_outputsModel));
+        numberOfMonitors += m_outputsModel->rowCount(QModelIndex());
+        connect(this, &ScreenChooserDialog::clearSelection, m_outputsModel, &OutputsModel::clearSelection);
     } else {
         props.insert(u"outputsModel"_s, QVariant::fromValue(nullptr));
     }
@@ -182,11 +214,11 @@ ScreenChooserDialog::ScreenChooserDialog(const QString &appName, bool multiple, 
     int numberOfWindows = 0;
     if (types & ScreenCastPortal::Window) {
         auto model = new KWayland::Client::PlasmaWindowModel(WaylandIntegration::plasmaWindowManagement());
-        auto windowsProxy = new FilteredWindowModel(this);
-        windowsProxy->setSourceModel(model);
-        props.insert(u"windowsModel"_s, QVariant::fromValue<QObject *>(windowsProxy));
-        connect(this, &ScreenChooserDialog::clearSelection, windowsProxy, &FilteredWindowModel::clearSelection);
-        numberOfWindows += model->rowCount(QModelIndex());
+        m_windowsModel = new FilteredWindowModel(this);
+        m_windowsModel->setSourceModel(model);
+        props.insert(u"windowsModel"_s, QVariant::fromValue<QObject *>(m_windowsModel));
+        connect(this, &ScreenChooserDialog::clearSelection, m_windowsModel, &FilteredWindowModel::clearSelection);
+        numberOfWindows += m_windowsModel->rowCount(QModelIndex());
     } else {
         props.insert(u"windowsModel"_s, QVariant::fromValue(nullptr));
     }
@@ -261,28 +293,42 @@ ScreenChooserDialog::ScreenChooserDialog(const QString &appName, bool multiple, 
     }
     props.insert(u"mainText"_s, mainText);
 
+    if (qEnvironmentVariable("XDG_CURRENT_DESKTOP").compare(u"MacqueenDE"_s, Qt::CaseInsensitive) == 0) {
+        QVariantMap externalOptions{
+            {u"multiple"_s, multiple},
+            {u"outputs"_s, m_outputsModel ? m_outputsModel->selectionCandidates() : QVariantList{}},
+            {u"windows"_s, m_windowsModel ? m_windowsModel->selectionCandidates() : QVariantList{}},
+        };
+        const QString optionsJson = QString::fromUtf8(QJsonDocument::fromVariant(externalOptions).toJson(QJsonDocument::Compact));
+        if (MacqueenScreenChooserBridge::self()->request(this, mainText, optionsJson)) {
+            m_external = true;
+            return;
+        }
+    }
+
     create(QStringLiteral("ScreenChooserDialog"), props);
     connect(m_theDialog, SIGNAL(clearSelection()), this, SIGNAL(clearSelection()));
 }
 
-ScreenChooserDialog::~ScreenChooserDialog() = default;
+ScreenChooserDialog::~ScreenChooserDialog()
+{
+    MacqueenScreenChooserBridge::self()->forget(this);
+}
 
 QList<Output> ScreenChooserDialog::selectedOutputs() const
 {
-    OutputsModel *model = dynamic_cast<OutputsModel *>(m_theDialog->property("outputsModel").value<QObject *>());
-    if (!model) {
+    if (!m_outputsModel) {
         return {};
     }
-    return model->selectedOutputs();
+    return m_outputsModel->selectedOutputs();
 }
 
 QList<KWayland::Client::PlasmaWindow *> ScreenChooserDialog::selectedWindows() const
 {
-    FilteredWindowModel *model = dynamic_cast<FilteredWindowModel *>(m_theDialog->property("windowsModel").value<QObject *>());
-    if (!model) {
+    if (!m_windowsModel) {
         return {};
     }
-    const auto selectedWindowsData = model->selectedWindowsData();
+    const auto selectedWindowsData = m_windowsModel->selectedWindowsData();
     QList<KWayland::Client::PlasmaWindow *> windows;
     windows.reserve(selectedWindowsData.size());
     auto allWindows = WaylandIntegration::plasmaWindowManagement()->windows();
@@ -307,7 +353,22 @@ void ScreenChooserDialog::setRegion(const QRect region)
 
 bool ScreenChooserDialog::allowRestore() const
 {
+    if (m_external) {
+        return m_externalAllowRestore;
+    }
     return m_theDialog->property("allowRestore").toBool();
+}
+
+bool ScreenChooserDialog::selectExternal(const QString &kind, const QString &id, bool allowRestore)
+{
+    m_externalAllowRestore = allowRestore;
+    if (kind == u"output"_s && m_outputsModel) {
+        return m_outputsModel->selectByUniqueId(id);
+    }
+    if (kind == u"window"_s && m_windowsModel) {
+        return m_windowsModel->selectByUuid(id);
+    }
+    return false;
 }
 
 void ScreenChooserDialog::accept()
@@ -319,6 +380,8 @@ void ScreenChooserDialog::accept()
             if (result == DialogResult::Accepted) {
                 setRegion(selectionEditor->rect());
                 QuickDialog::accept();
+            } else if (m_external) {
+                QuickDialog::reject();
             } else {
                 // if we selected rectangular region, but didn't actually choose a region, start over
                 QTimer::singleShot(0, m_theDialog, SLOT(present()));

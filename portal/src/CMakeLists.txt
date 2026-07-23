@@ -57,6 +57,8 @@ set(xdg_desktop_portal_kde_SRCS
     inputcapture.cpp
     inputcapturebarrier.cpp
     inputcapturedialog.cpp
+    macqueenscreenchooserbridge.cpp
+    macqueenscreenchooserbridge.h
     notificationinhibition.cpp
     notificationinhibition.h
     outputsmodel.cpp outputsmodel.h

@@ -23,6 +23,8 @@ class PlasmaWindow;
 }
 }
 
+class FilteredWindowModel;
+
 class ScreenChooserDialog : public QuickDialog
 {
     Q_OBJECT
@@ -34,6 +36,7 @@ public:
     QList<KWayland::Client::PlasmaWindow *> selectedWindows() const;
     bool allowRestore() const;
     QRect selectedRegion() const;
+    bool selectExternal(const QString &kind, const QString &id, bool allowRestore);
 
 public Q_SLOTS:
     void accept() override;
@@ -45,6 +48,10 @@ private:
     void setRegion(const QRect region);
 
     QRect m_region;
+    OutputsModel *m_outputsModel = nullptr;
+    FilteredWindowModel *m_windowsModel = nullptr;
+    bool m_external = false;
+    bool m_externalAllowRestore = true;
 };
 
 #endif // XDG_DESKTOP_PORTAL_KDE_SCREENCHOOSER_DIALOG_H

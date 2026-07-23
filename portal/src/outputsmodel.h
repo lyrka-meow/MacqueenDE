@@ -132,6 +132,8 @@ public:
 
     const Output &outputAt(int row) const;
     QList<Output> selectedOutputs() const;
+    QVariantList selectionCandidates() const;
+    bool selectByUniqueId(const QString &uniqueId);
     bool hasSelection() const
     {
         return !m_selectedRows.isEmpty();

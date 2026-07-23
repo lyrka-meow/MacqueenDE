@@ -23,6 +23,12 @@ namespace KWin
 
 const static QString s_waylandInterfaceName = QStringLiteral("X-KDE-Wayland-Interfaces");
 const static QString s_dbusRestrictedInterfaceName = QStringLiteral("X-KDE-DBUS-Restricted-Interfaces");
+const static QString s_macqueenPortalExecutable = QStringLiteral("xdg-desktop-portal-macqueen");
+
+static bool isMacqueenPortal(const QString &executablePath)
+{
+    return QFileInfo(executablePath).fileName() == s_macqueenPortalExecutable;
+}
 
 static QStringList fetchProcessServiceField(const QString &executablePath, const QString &fieldName)
 {
@@ -59,6 +65,13 @@ static inline QStringList fetchRequestedInterfacesForDesktopId(const QString &de
 
 static inline QStringList fetchRequestedInterfaces(const QString &executablePath)
 {
+    if (isMacqueenPortal(executablePath)) {
+        return {
+            QStringLiteral("org_kde_kwin_fake_input"),
+            QStringLiteral("org_kde_plasma_window_management"),
+            QStringLiteral("zkde_screencast_unstable_v1"),
+        };
+    }
     return fetchProcessServiceField(executablePath, s_waylandInterfaceName);
 }
 
@@ -67,6 +80,9 @@ static inline QStringList fetchRestrictedDBusInterfacesFromPid(const uint pid)
     const auto executablePath = executablePathFromPid(pid);
     if (executablePath.isEmpty()) {
         return QStringList();
+    }
+    if (isMacqueenPortal(executablePath)) {
+        return {QStringLiteral("org.kde.KWin.ScreenShot2")};
     }
     return fetchProcessServiceField(executablePath, s_dbusRestrictedInterfaceName);
 }

@@ -5,7 +5,7 @@ set -euo pipefail
 repo_root=${MACQUEENDE_ROOT:?MACQUEENDE_ROOT is not set}
 backend="$repo_root/shell/MolniyaMacqueenShell/core/bin/dms"
 shell_dir="$repo_root/shell/MolniyaMacqueenShell/quickshell"
-portal="$repo_root/build/portal/bin/xdg-desktop-portal-kde"
+portal="$repo_root/build/portal/bin/xdg-desktop-portal-macqueen"
 
 if [[ ! -x "$backend" ]]; then
     echo "run-molniya: missing $backend; run make dev in the shell core" >&2

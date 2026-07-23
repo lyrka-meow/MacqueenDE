@@ -22,7 +22,7 @@ if [[ ! -f "$repo_root/build/quickshell-macqueen/Macqueen/Ipc/qmldir" ]]; then
     exit 1
 fi
 
-if [[ ! -x "$repo_root/build/portal/bin/xdg-desktop-portal-kde" ]]; then
+if [[ ! -x "$repo_root/build/portal/bin/xdg-desktop-portal-macqueen" ]]; then
     echo "Missing Macqueen portal build. See docs/BUILDING.md." >&2
     exit 1
 fi
@@ -38,7 +38,7 @@ sudo install -Dm644 "$repo_root/session/macqueende-portals.conf" \
 sed "s|@MACQUEENDE_ROOT@|$repo_root|g" \
     "$repo_root/session/org.freedesktop.impl.portal.desktop.kde.desktop.in" |
     sudo install -Dm644 /dev/stdin \
-        /usr/local/share/applications/org.freedesktop.impl.portal.desktop.kde.desktop
+        /usr/local/share/applications/org.macqueen.portal.desktop
 
 echo "Installed MacqueenDE as an additional Wayland session."
 echo "Log out, select MacqueenDE in SDDM, and log in."

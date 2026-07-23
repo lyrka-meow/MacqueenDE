@@ -4,6 +4,7 @@ add_definitions(-DTRANSLATION_DOMAIN="xdg-desktop-portal-kde")
 add_subdirectory(kirigami-filepicker)
 
 add_executable(xdg-desktop-portal-kde)
+set_target_properties(xdg-desktop-portal-kde PROPERTIES OUTPUT_NAME xdg-desktop-portal-macqueen)
 ecm_add_qml_module(xdg-desktop-portal-kde
     URI org.kde.xdgdesktopportal
     VERSION 1.0
@@ -366,4 +367,3 @@ install(FILES
     DESTINATION ${KDE_INSTALL_KNOTIFYRCDIR})
 
 ecm_qt_install_logging_categories(EXPORT XDPKDE FILE xdp-kde.categories DESTINATION ${KDE_INSTALL_LOGGINGCATEGORIESDIR})
-

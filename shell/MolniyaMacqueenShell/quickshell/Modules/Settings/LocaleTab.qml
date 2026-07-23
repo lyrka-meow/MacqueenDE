@@ -1,17 +1,23 @@
-import QtQuick
 import Macqueen.Ipc
+import QtQuick
 import qs.Common
-import qs.Widgets
 import qs.Modules.Settings.Widgets
+import qs.Widgets
 
 Item {
     id: localeTab
 
     readonly property string _systemDefaultLabel: I18n.tr("System Default")
-    property string pendingLayoutCode: ""
 
     function availableLayoutOptions() {
-        return Macqueen.availableKeyboardLayouts.map(layout => `${layout.name} (${layout.code})`);
+        const configured = Macqueen.keyboardLayouts.map((layout) => {
+            return layout.code;
+        });
+        return Macqueen.availableKeyboardLayouts.filter((layout) => {
+            return !configured.includes(layout.code);
+        }).map((layout) => {
+            return `${layout.name} (${layout.code})`;
+        });
     }
 
     function codeForLayoutOption(option) {
@@ -19,24 +25,34 @@ Item {
         return match ? match[1] : "";
     }
 
-    function addPendingLayout() {
-        if (!pendingLayoutCode)
-            return;
-        const current = Macqueen.keyboardLayouts.map(layout => layout.code);
-        if (!current.includes(pendingLayoutCode))
-            Macqueen.setKeyboardLayouts(current.concat([pendingLayoutCode]));
+    function addLayout(code) {
+        if (!code)
+            return ;
+
+        const current = Macqueen.keyboardLayouts.map((layout) => {
+            return layout.code;
+        });
+        if (!current.includes(code))
+            Macqueen.setKeyboardLayouts(current.concat([code]));
+
     }
 
     function removeLayout(code) {
-        const current = Macqueen.keyboardLayouts.map(layout => layout.code);
+        const current = Macqueen.keyboardLayouts.map((layout) => {
+            return layout.code;
+        });
         if (current.length <= 1)
-            return;
-        Macqueen.setKeyboardLayouts(current.filter(layout => layout !== code));
+            return ;
+
+        Macqueen.setKeyboardLayouts(current.filter((layout) => {
+            return layout !== code;
+        }));
     }
 
     function _localeDisplayName(localeCode) {
         if (!I18n.presentLocales[localeCode])
-            return;
+            return ;
+
         const nativeName = I18n.presentLocales[localeCode].nativeLanguageName;
         return nativeName[0].toUpperCase() + nativeName.slice(1);
     }
@@ -48,9 +64,11 @@ Item {
     function _codeForDisplayName(displayName) {
         if (displayName === _systemDefaultLabel)
             return "";
+
         for (const code of Object.keys(I18n.presentLocales)) {
             if (_localeDisplayName(code) === displayName)
                 return code;
+
         }
         return "";
     }
@@ -63,6 +81,7 @@ Item {
 
         Column {
             id: mainColumn
+
             topPadding: 4
             width: Math.min(550, parent.width - Theme.spacingL * 2)
             anchors.horizontalCenter: parent.horizontalCenter
@@ -76,6 +95,7 @@ Item {
 
                 SettingsDropdownRow {
                     id: localeDropdown
+
                     tab: "locale"
                     tags: ["locale", "language", "country"]
                     settingKey: "locale"
@@ -83,18 +103,17 @@ Item {
                     description: I18n.tr("Change the locale used by the DMS interface.")
                     options: localeTab._allLocaleOptions()
                     enableFuzzySearch: true
-
                     Component.onCompleted: {
                         currentValue = SessionData.locale ? localeTab._localeDisplayName(SessionData.locale) : localeTab._systemDefaultLabel;
                     }
-
-                    onValueChanged: value => {
+                    onValueChanged: (value) => {
                         SessionData.set("locale", localeTab._codeForDisplayName(value));
                     }
                 }
 
                 SettingsDropdownRow {
                     id: timeLocaleDropdown
+
                     tab: "locale"
                     tags: ["locale", "time", "date", "format", "region"]
                     settingKey: "timeLocale"
@@ -102,15 +121,14 @@ Item {
                     description: I18n.tr("Change the locale used for date and time formatting, independent of the interface language.")
                     options: localeTab._allLocaleOptions()
                     enableFuzzySearch: true
-
                     Component.onCompleted: {
                         currentValue = SessionData.timeLocale ? localeTab._localeDisplayName(SessionData.timeLocale) : localeTab._systemDefaultLabel;
                     }
-
-                    onValueChanged: value => {
+                    onValueChanged: (value) => {
                         SessionData.set("timeLocale", localeTab._codeForDisplayName(value));
                     }
                 }
+
             }
 
             SettingsCard {
@@ -137,6 +155,7 @@ Item {
 
                         delegate: Rectangle {
                             required property var modelData
+
                             width: parent ? parent.width : 0
                             height: 48
                             radius: Theme.cornerRadius
@@ -169,6 +188,7 @@ Item {
 
                             DankButton {
                                 id: removeButton
+
                                 anchors.right: parent.right
                                 anchors.rightMargin: Theme.spacingS
                                 anchors.verticalCenter: parent.verticalCenter
@@ -180,11 +200,14 @@ Item {
                                 enabled: Macqueen.keyboardLayouts.length > 1
                                 onClicked: localeTab.removeLayout(modelData.code)
                             }
+
                         }
+
                     }
 
                     SettingsDropdownRow {
                         id: addLayoutDropdown
+
                         width: parent.width
                         tab: "locale"
                         tags: ["keyboard", "layout", "add", "language"]
@@ -193,16 +216,11 @@ Item {
                         description: I18n.tr("Select any layout installed by the system.")
                         options: localeTab.availableLayoutOptions()
                         enableFuzzySearch: true
-                        onValueChanged: value => localeTab.pendingLayoutCode = localeTab.codeForLayoutOption(value)
-                    }
-
-                    DankButton {
-                        anchors.right: parent.right
-                        text: I18n.tr("Add")
-                        iconName: "add"
-                        enabled: localeTab.pendingLayoutCode.length > 0
-                            && !Macqueen.keyboardLayouts.some(layout => layout.code === localeTab.pendingLayoutCode)
-                        onClicked: localeTab.addPendingLayout()
+                        emptyText: I18n.tr("Choose a layout…")
+                        onValueChanged: (value) => {
+                            localeTab.addLayout(localeTab.codeForLayoutOption(value));
+                            currentValue = "";
+                        }
                     }
 
                     StyledText {
@@ -213,8 +231,13 @@ Item {
                         font.pixelSize: Theme.fontSizeSmall
                         wrapMode: Text.WordWrap
                     }
+
                 }
+
             }
+
         }
+
     }
+
 }

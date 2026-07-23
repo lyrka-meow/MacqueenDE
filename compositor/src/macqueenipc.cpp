@@ -248,6 +248,11 @@ bool MacqueenIpc::setKeyboardLayouts(const QStringList &layouts)
     group.writeEntry(QStringLiteral("LayoutList"), layouts.join(QLatin1Char(',')), KConfig::Notify);
     group.writeEntry(QStringLiteral("VariantList"), QStringList(layouts.size(), QString()).join(QLatin1Char(',')), KConfig::Notify);
     group.sync();
+
+    // Apply the new keymap immediately. KConfig notifications are not guaranteed
+    // to be delivered back to the process that wrote the configuration.
+    input()->keyboard()->xkb()->reconfigure();
+    input()->keyboard()->keyboardLayout()->resetLayout();
     return true;
 }
 

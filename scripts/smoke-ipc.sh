@@ -82,6 +82,17 @@ grep -q "width: 1280" <<<"$outputs"
 grep -q "height: 720" <<<"$outputs"
 grep -q "name: Desktop 1" <<<"$workspaces"
 
+gdbus call --session \
+    --dest org.macqueen.Compositor1 \
+    --object-path /org/macqueen/Compositor1 \
+    --method org.macqueen.Compositor1.setKeyboardLayouts \
+    "[\"us\", \"ru\"]" | grep -q true
+
+layouts=$(qdbus6 org.macqueen.Compositor1 /org/macqueen/Compositor1 \
+    org.macqueen.Compositor1.keyboardLayouts)
+grep -q "code: us" <<<"$layouts"
+grep -q "code: ru" <<<"$layouts"
+
 second_workspace=$(qdbus6 org.macqueen.Compositor1 /org/macqueen/Compositor1 \
     org.macqueen.Compositor1.createWorkspace 2 "Second")
 [[ -n $second_workspace ]]

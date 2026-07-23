@@ -58,7 +58,17 @@ MacqueenIpc::MacqueenIpc(Workspace *workspace)
     m_screenshotAction->setText(QStringLiteral("Interactive Screenshot"));
     KGlobalAccel::self()->setGlobalShortcut(
         m_screenshotAction,
-        QKeySequence(Qt::META | Qt::SHIFT | Qt::Key_S));
+        {
+            QKeySequence(Qt::META | Qt::SHIFT | Qt::Key_S),
+            QKeySequence(Qt::META | Qt::SHIFT | 0x042B), // Ы on the physical S key
+        });
+    auto screenshotShortcuts = KGlobalAccel::self()->shortcut(m_screenshotAction);
+    const QKeySequence latinDefault(Qt::META | Qt::SHIFT | Qt::Key_S);
+    const QKeySequence russianDefault(Qt::META | Qt::SHIFT | 0x042B);
+    if (screenshotShortcuts.contains(latinDefault) && !screenshotShortcuts.contains(russianDefault)) {
+        screenshotShortcuts.append(russianDefault);
+        KGlobalAccel::self()->setShortcut(m_screenshotAction, screenshotShortcuts, KGlobalAccel::NoAutoloading);
+    }
     connect(m_screenshotAction, &QAction::triggered, this, &MacqueenIpc::requestScreenshot);
 
     QDBusConnection bus = QDBusConnection::sessionBus();
@@ -395,9 +405,14 @@ bool MacqueenIpc::setScreenshotShortcut(const QString &shortcut)
     if (!portable.isEmpty() && sequence.isEmpty()) {
         return false;
     }
-    KGlobalAccel::self()->setShortcut(m_screenshotAction,
-                                     sequence.isEmpty() ? QList<QKeySequence>{} : QList<QKeySequence>{sequence},
-                                     KGlobalAccel::NoAutoloading);
+    QList<QKeySequence> sequences;
+    if (!sequence.isEmpty()) {
+        sequences.append(sequence);
+        if (sequence == QKeySequence(Qt::META | Qt::SHIFT | Qt::Key_S)) {
+            sequences.append(QKeySequence(Qt::META | Qt::SHIFT | 0x042B));
+        }
+    }
+    KGlobalAccel::self()->setShortcut(m_screenshotAction, sequences, KGlobalAccel::NoAutoloading);
     Q_EMIT screenshotShortcutChanged(screenshotShortcut());
     return true;
 }

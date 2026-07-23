@@ -82,6 +82,10 @@ grep -q "width: 1280" <<<"$outputs"
 grep -q "height: 720" <<<"$outputs"
 grep -q "name: Desktop 1" <<<"$workspaces"
 
+default_layouts=$(qdbus6 org.macqueen.Compositor1 /org/macqueen/Compositor1 \
+    org.macqueen.Compositor1.keyboardLayouts)
+grep -q "code: us" <<<"$default_layouts"
+
 gdbus call --session \
     --dest org.macqueen.Compositor1 \
     --object-path /org/macqueen/Compositor1 \

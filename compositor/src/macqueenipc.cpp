@@ -182,8 +182,14 @@ QVariantList MacqueenIpc::keyboardLayouts() const
     Xkb *xkb = input()->keyboard()->xkb();
     const uint current = xkb->currentLayout();
     for (uint index = 0; index < xkb->numberOfLayouts(); ++index) {
+        QString code = xkb->layoutShortName(index);
+        // xkbcommon uses "us" when no layout is explicitly configured, while
+        // the corresponding rule name remains empty.
+        if (code.isEmpty()) {
+            code = QStringLiteral("us");
+        }
         result.append(QVariantMap{
-            {QStringLiteral("code"), xkb->layoutShortName(index)},
+            {QStringLiteral("code"), code},
             {QStringLiteral("name"), xkb->layoutName(index)},
             {QStringLiteral("index"), index},
             {QStringLiteral("active"), index == current},

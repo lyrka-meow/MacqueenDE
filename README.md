@@ -42,7 +42,8 @@ tested nested first, then in a separate TTY/session, and only later packaged as
 a system session.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
-[docs/UPSTREAM.md](docs/UPSTREAM.md).
+[docs/UPSTREAM.md](docs/UPSTREAM.md). Local configuration and build
+instructions are in [docs/BUILDING.md](docs/BUILDING.md).
 
 ## Licensing
 
@@ -50,4 +51,3 @@ MacqueenDE contains components derived from upstream projects with their own
 license sets and copyright notices. The license files imported with each
 component are authoritative for that component. New project-level work is
 licensed under GPL-3.0 unless a component requires a compatible alternative.
-

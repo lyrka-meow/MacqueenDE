@@ -38,10 +38,43 @@ cmake -S portal -B build/portal -G Ninja \
 
 The build directories are ignored by Git.
 
+## Build the verified baseline
+
+The first development target is the Wayland compositor rather than every
+upstream settings module:
+
+```bash
+cmake --build build/compositor --target kwin_wayland --parallel 8
+cmake --build build/portal --parallel 8
+```
+
+Reduce the parallel count on systems with less than 16 GiB of RAM.
+
+## Virtual smoke test
+
+Run the compositor without taking control of a display, input device, or the
+current Wayland session:
+
+```bash
+./scripts/smoke-virtual.sh
+```
+
+The script creates isolated runtime, configuration, cache, and data
+directories. It starts a 1280x720 virtual output, disables screen locking,
+global shortcuts, and activities, then exits with a trivial child session.
+
+The imported 6.7.3 baseline was successfully configured, compiled, and tested
+this way on Arch Linux with:
+
+- Linux 7.1.4
+- GCC 16.1.1
+- Qt 6.11.1
+- KDE Frameworks 6.28.0
+- Plasma Wayland Protocols 1.21.0
+
 ## Development sequence
 
 1. Configure and compile the unmodified source baselines.
 2. Create a nested compositor smoke-test command.
 3. Add Macqueen identity without installing a system session.
 4. Only after nested tests pass, add a separate display-manager session.
-

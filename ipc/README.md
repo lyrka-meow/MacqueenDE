@@ -21,6 +21,13 @@ Methods:
 - `windows() -> list<map>`
 - `outputs() -> list<map>`
 - `workspaces() -> list<map>`
+- `activateWorkspace(id) -> bool`
+- `createWorkspace(position, name) -> string`
+- `removeWorkspace(id) -> bool`
+- `renameWorkspace(id, name) -> bool`
+
+Workspace positions are one-based. Passing position `0` to `createWorkspace`
+appends the new workspace.
 
 Signals:
 
@@ -43,7 +50,6 @@ qdbus6 org.macqueen.Compositor1 /org/macqueen/Compositor1 \
     org.macqueen.Compositor1.protocolVersion
 ```
 
-Mutating window commands, shortcut registration, screen capture and remote
-input are intentionally not part of this first interface. They require an
-authorization design rather than unrestricted access for every session-bus
-client.
+Window commands, shortcut registration, screen capture and remote input are
+not part of this first interface. They require stronger authorization than
+ordinary workspace organization commands.

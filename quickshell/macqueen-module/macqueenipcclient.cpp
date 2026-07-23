@@ -120,6 +120,26 @@ void MacqueenIpcClient::refresh()
     refreshWorkspaces();
 }
 
+bool MacqueenIpcClient::activateWorkspace(const QString &id)
+{
+    return call(QStringLiteral("activateWorkspace"), {id}).toBool();
+}
+
+QString MacqueenIpcClient::createWorkspace(uint position, const QString &name)
+{
+    return call(QStringLiteral("createWorkspace"), {position, name}).toString();
+}
+
+bool MacqueenIpcClient::removeWorkspace(const QString &id)
+{
+    return call(QStringLiteral("removeWorkspace"), {id}).toBool();
+}
+
+bool MacqueenIpcClient::renameWorkspace(const QString &id, const QString &name)
+{
+    return call(QStringLiteral("renameWorkspace"), {id, name}).toBool();
+}
+
 void MacqueenIpcClient::handleServiceRegistered()
 {
     if (!m_available) {
@@ -180,13 +200,13 @@ void MacqueenIpcClient::refreshWorkspaces()
     }
 }
 
-QVariant MacqueenIpcClient::call(const QString &method) const
+QVariant MacqueenIpcClient::call(const QString &method, const QVariantList &arguments) const
 {
     QDBusInterface interface(QString::fromLatin1(Service),
                              QString::fromLatin1(Path),
                              QString::fromLatin1(Interface),
                              QDBusConnection::sessionBus());
-    const QDBusMessage reply = interface.call(method);
+    const QDBusMessage reply = interface.callWithArgumentList(QDBus::Block, method, arguments);
     if (reply.type() == QDBusMessage::ReplyMessage && !reply.arguments().isEmpty()) {
         return reply.arguments().constFirst();
     }

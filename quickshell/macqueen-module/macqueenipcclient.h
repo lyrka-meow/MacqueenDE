@@ -37,6 +37,10 @@ public:
     QVariantList workspaces() const;
 
     Q_INVOKABLE void refresh();
+    Q_INVOKABLE bool activateWorkspace(const QString &id);
+    Q_INVOKABLE QString createWorkspace(uint position, const QString &name = QString());
+    Q_INVOKABLE bool removeWorkspace(const QString &id);
+    Q_INVOKABLE bool renameWorkspace(const QString &id, const QString &name);
 
 Q_SIGNALS:
     void availableChanged();
@@ -57,7 +61,7 @@ private Q_SLOTS:
     void refreshWorkspaces();
 
 private:
-    QVariant call(const QString &method) const;
+    QVariant call(const QString &method, const QVariantList &arguments = {}) const;
     void refreshVersions();
     void refreshWindows();
     void refreshActiveWindow();

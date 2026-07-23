@@ -81,6 +81,22 @@ grep -q "name: Virtual-0" <<<"$outputs"
 grep -q "width: 1280" <<<"$outputs"
 grep -q "height: 720" <<<"$outputs"
 grep -q "name: Desktop 1" <<<"$workspaces"
+
+second_workspace=$(qdbus6 org.macqueen.Compositor1 /org/macqueen/Compositor1 \
+    org.macqueen.Compositor1.createWorkspace 2 "Second")
+[[ -n $second_workspace ]]
+
+qdbus6 org.macqueen.Compositor1 /org/macqueen/Compositor1 \
+    org.macqueen.Compositor1.activateWorkspace "$second_workspace" | grep -q true
+qdbus6 org.macqueen.Compositor1 /org/macqueen/Compositor1 \
+    org.macqueen.Compositor1.renameWorkspace "$second_workspace" "Renamed" | grep -q true
+
+workspaces=$(qdbus6 org.macqueen.Compositor1 /org/macqueen/Compositor1 \
+    org.macqueen.Compositor1.workspaces)
+grep -q "name: Renamed" <<<"$workspaces"
+
+qdbus6 org.macqueen.Compositor1 /org/macqueen/Compositor1 \
+    org.macqueen.Compositor1.removeWorkspace "$second_workspace" | grep -q true
 ' _ "$repo_root" "$macqueen_binary"
 
 echo "Macqueen IPC smoke test passed."

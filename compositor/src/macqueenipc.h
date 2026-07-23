@@ -31,6 +31,10 @@ public Q_SLOTS:
     QVariantList windows() const;
     QVariantList outputs() const;
     QVariantList workspaces() const;
+    bool activateWorkspace(const QString &id);
+    QString createWorkspace(uint position, const QString &name);
+    bool removeWorkspace(const QString &id);
+    bool renameWorkspace(const QString &id, const QString &name);
 
 Q_SIGNALS:
     void windowAdded(const QString &id);

@@ -21,6 +21,17 @@ ShellRoot {
             if (Macqueen.workspaces.length !== 1 || Macqueen.workspaces[0].name !== "Desktop 1")
                 throw new Error("Default workspace was not exposed")
 
+            const workspaceId = Macqueen.createWorkspace(2, "QML workspace")
+            if (!workspaceId || !Macqueen.activateWorkspace(workspaceId))
+                throw new Error("Workspace creation or activation failed")
+            if (!Macqueen.renameWorkspace(workspaceId, "QML renamed"))
+                throw new Error("Workspace rename failed")
+            Macqueen.refresh()
+            if (Macqueen.workspaces.length !== 2 || !Macqueen.workspaces.some(workspace => workspace.id === workspaceId && workspace.current && workspace.name === "QML renamed"))
+                throw new Error("Workspace changes were not reflected in QML")
+            if (!Macqueen.removeWorkspace(workspaceId))
+                throw new Error("Workspace removal failed")
+
             console.log("Macqueen QML module smoke test passed")
             Qt.quit()
         }

@@ -153,6 +153,42 @@ QVariantList MacqueenIpc::workspaces() const
     return result;
 }
 
+bool MacqueenIpc::activateWorkspace(const QString &id)
+{
+    VirtualDesktopManager *manager = VirtualDesktopManager::self();
+    VirtualDesktop *desktop = manager->desktopForId(id);
+    return desktop && (desktop == manager->currentDesktop() || manager->setCurrent(desktop));
+}
+
+QString MacqueenIpc::createWorkspace(uint position, const QString &name)
+{
+    VirtualDesktopManager *manager = VirtualDesktopManager::self();
+    const uint insertionIndex = position == 0 ? manager->count() : position - 1;
+    VirtualDesktop *desktop = manager->createVirtualDesktop(insertionIndex, name);
+    return desktop ? desktop->id() : QString();
+}
+
+bool MacqueenIpc::removeWorkspace(const QString &id)
+{
+    VirtualDesktopManager *manager = VirtualDesktopManager::self();
+    VirtualDesktop *desktop = manager->desktopForId(id);
+    if (!desktop || manager->count() <= 1) {
+        return false;
+    }
+    manager->removeVirtualDesktop(desktop);
+    return true;
+}
+
+bool MacqueenIpc::renameWorkspace(const QString &id, const QString &name)
+{
+    VirtualDesktop *desktop = VirtualDesktopManager::self()->desktopForId(id);
+    if (!desktop || name.trimmed().isEmpty()) {
+        return false;
+    }
+    desktop->setName(name.trimmed());
+    return true;
+}
+
 void MacqueenIpc::watchWindow(Window *window)
 {
     if (!window->isClient()) {

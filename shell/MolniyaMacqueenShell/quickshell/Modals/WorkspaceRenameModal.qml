@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import qs.Common
 import qs.Services
+import Macqueen.Ipc 1.0
 import qs.Widgets
 
 FloatingWindow {
@@ -40,6 +41,10 @@ FloatingWindow {
             NiriService.renameWorkspace(name);
         } else if (CompositorService.isHyprland) {
             HyprlandService.renameWorkspace(name);
+        } else if (CompositorService.isMacqueen) {
+            const current = Macqueen.workspaces.find(workspace => workspace.current);
+            if (current)
+                Macqueen.renameWorkspace(current.id, name);
         } else {
             log.warn("rename not supported for this compositor");
         }

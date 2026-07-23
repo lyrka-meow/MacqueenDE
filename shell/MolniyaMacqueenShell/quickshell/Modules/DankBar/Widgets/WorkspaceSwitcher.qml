@@ -5,6 +5,7 @@ import Quickshell.Widgets
 import Quickshell.Hyprland
 import Quickshell.I3
 import Quickshell.WindowManager
+import Macqueen.Ipc 1.0
 import qs.Common
 import qs.Services
 import qs.Widgets
@@ -95,6 +96,8 @@ Item {
         case "scroll":
         case "miracle":
             return false;
+        case "macqueen":
+            return false;
         default:
             return (WindowManager.windowsets?.length ?? 0) > 0;
         }
@@ -131,6 +134,8 @@ Item {
         case "scroll":
         case "miracle":
             return getSwayActiveWorkspace();
+        case "macqueen":
+            return getMacqueenActiveWorkspace();
         default:
             return 1;
         }
@@ -163,6 +168,9 @@ Item {
         case "scroll":
         case "miracle":
             baseList = getSwayWorkspaces();
+            break;
+        case "macqueen":
+            baseList = getMacqueenWorkspaces();
             break;
         default:
             return [1];
@@ -200,6 +208,15 @@ Item {
                 "num": 1
             }
         ];
+    }
+
+    function getMacqueenWorkspaces() {
+        return Array.from(Macqueen.workspaces || []);
+    }
+
+    function getMacqueenActiveWorkspace() {
+        const current = getMacqueenWorkspaces().find(workspace => workspace.current);
+        return current?.id ?? "";
     }
 
     // sway/scroll fold `<num>:<name>` into the name field (num 1 → name "1:test"); drop the redundant prefix so the index option controls it
@@ -713,6 +730,10 @@ Item {
         case "miracle":
             dispatchSwayWorkspace(data);
             break;
+        case "macqueen":
+            if (data.id)
+                Macqueen.activateWorkspace(data.id);
+            break;
         }
     }
 
@@ -819,6 +840,15 @@ Item {
             }
 
             dispatchSwayWorkspace(realWorkspaces[nextIndex]);
+        } else if (CompositorService.isMacqueen) {
+            const realWorkspaces = getRealWorkspaces();
+            if (realWorkspaces.length < 2)
+                return;
+            const currentIndex = realWorkspaces.findIndex(workspace => workspace.id === root.currentWorkspace);
+            const validIndex = currentIndex === -1 ? 0 : currentIndex;
+            const nextIndex = direction > 0 ? Math.min(validIndex + 1, realWorkspaces.length - 1) : Math.max(validIndex - 1, 0);
+            if (nextIndex !== validIndex)
+                Macqueen.activateWorkspace(realWorkspaces[nextIndex].id);
         }
     }
 
@@ -833,6 +863,8 @@ Item {
             return (modelData?.tag !== undefined) ? (modelData.tag + 1) : "";
         if (CompositorService.isSway || CompositorService.isScroll || CompositorService.isMiracle)
             return (modelData?.num !== undefined && modelData.num !== -1) ? modelData.num : (modelData?.name ?? "");
+        if (CompositorService.isMacqueen)
+            return modelData?.position ?? "";
         return modelData - 1;
     }
 
@@ -848,6 +880,8 @@ Item {
             isPlaceholder = modelData?.tag === -1;
         } else if (CompositorService.isSway || CompositorService.isScroll || CompositorService.isMiracle) {
             isPlaceholder = modelData?._placeholder === true;
+        } else if (CompositorService.isMacqueen) {
+            isPlaceholder = false;
         } else {
             isPlaceholder = modelData === -1;
         }
@@ -879,7 +913,7 @@ Item {
         return getWorkspaceIndexFallback(modelData, index);
     }
 
-    readonly property bool hasNativeWorkspaceSupport: CompositorService.isNiri || CompositorService.isHyprland || root.isMango || CompositorService.isSway || CompositorService.isScroll || CompositorService.isMiracle
+    readonly property bool hasNativeWorkspaceSupport: CompositorService.isNiri || CompositorService.isHyprland || root.isMango || CompositorService.isSway || CompositorService.isScroll || CompositorService.isMiracle || CompositorService.isMacqueen
     readonly property bool hasWorkspaces: getRealWorkspaces().length > 0
     readonly property bool shouldShow: hasNativeWorkspaceSupport || (useExtWorkspace && hasWorkspaces)
 
@@ -1148,6 +1182,8 @@ Item {
                         return !!(modelData && root.dwlActiveTags.includes(modelData.tag));
                     if (CompositorService.isSway || CompositorService.isScroll || CompositorService.isMiracle)
                         return !!(modelData && root.swayWorkspaceKey(modelData) === root.currentWorkspace);
+                    if (CompositorService.isMacqueen)
+                        return modelData?.id === root.currentWorkspace;
                     return modelData === root.currentWorkspace;
                 }
                 property bool isOccupied: {

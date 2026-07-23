@@ -15,7 +15,7 @@ Singleton {
     id: root
     readonly property var log: Log.scoped("KeybindsService")
 
-    property bool available: CompositorService.isNiri || CompositorService.isHyprland || CompositorService.isMango || CompositorService.isMacqueen
+    property bool available: CompositorService.isNiri || CompositorService.isHyprland || CompositorService.isMango || (CompositorService.isMacqueen && Macqueen.protocolVersion >= 4)
     property string currentProvider: {
         if (CompositorService.isNiri)
             return "niri";

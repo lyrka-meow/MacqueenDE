@@ -156,7 +156,11 @@ void MacqueenIpcClient::refresh()
     refreshOutputs();
     refreshWorkspaces();
     refreshKeyboardLayouts();
-    handleScreenshotShortcutChanged(call(QStringLiteral("screenshotShortcut")).toString());
+    if (m_protocolVersion >= 4) {
+        handleScreenshotShortcutChanged(call(QStringLiteral("screenshotShortcut")).toString());
+    } else {
+        handleScreenshotShortcutChanged({});
+    }
 }
 
 bool MacqueenIpcClient::activateWorkspace(const QString &id)
@@ -244,6 +248,9 @@ bool MacqueenIpcClient::cancelScreenCastSelection(const QString &requestId)
 
 bool MacqueenIpcClient::setScreenshotShortcut(const QString &shortcut)
 {
+    if (!m_available || m_protocolVersion < 4) {
+        return false;
+    }
     const bool changed = call(QStringLiteral("setScreenshotShortcut"), {shortcut}).toBool();
     if (changed) {
         handleScreenshotShortcutChanged(call(QStringLiteral("screenshotShortcut")).toString());
@@ -253,6 +260,9 @@ bool MacqueenIpcClient::setScreenshotShortcut(const QString &shortcut)
 
 void MacqueenIpcClient::requestScreenshot()
 {
+    if (!m_available || m_protocolVersion < 4) {
+        return;
+    }
     call(QStringLiteral("requestScreenshot"));
 }
 

@@ -15,7 +15,7 @@ import (
 var shellApp = shellapp.New(shellapp.Config{
 	ID:        "danklinux",
 	EnvPrefix: "DMS",
-	QSAppID:   "com.danklinux.dms",
+	QSAppID:   "org.macqueende.molniya",
 	Version:   Version,
 	Embedded:  embeddedShell{},
 	Boot:      bootBackend,

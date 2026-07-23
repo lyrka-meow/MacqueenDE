@@ -935,7 +935,7 @@ func checkOptionalDependencies() []checkResult {
 func checkConfigurationFiles() []checkResult {
 	configDir, _ := os.UserConfigDir()
 	cacheDir, _ := os.UserCacheDir()
-	dmsDir := "DankMaterialShell"
+	dmsDir := "MolniyaMacqueenShell"
 
 	configFiles := []struct{ name, path string }{
 		{"settings.json", filepath.Join(configDir, dmsDir, "settings.json")},
@@ -1177,7 +1177,7 @@ func checkFonts() []checkResult {
 	if err != nil {
 		return nil
 	}
-	settingsPath := filepath.Join(configDir, "DankMaterialShell", "settings.json")
+	settingsPath := filepath.Join(configDir, "MolniyaMacqueenShell", "settings.json")
 
 	fontFamily := "Inter Variable"
 	monoFontFamily := "Fira Code"

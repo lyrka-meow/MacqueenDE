@@ -43,7 +43,7 @@ Item {
                 spacing: Theme.spacingXS
 
                 StyledText {
-                    text: I18n.tr("Welcome to DankMaterialShell", "greeter welcome page title")
+                    text: I18n.tr("Welcome to MolniyaMacqueenShell", "greeter welcome page title")
                     font.pixelSize: Theme.fontSizeXLarge + 4
                     font.weight: Font.Bold
                     color: Theme.surfaceText

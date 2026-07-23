@@ -177,7 +177,7 @@ Item {
                         let appId = Paths.moddedAppId(rawAppId);
                         let coreAppData = null;
 
-                        if (rawAppId === "org.quickshell" || rawAppId === "com.danklinux.dms") {
+                        if (rawAppId === "org.quickshell" || rawAppId === "org.macqueende.molniya") {
                             coreAppData = getCoreAppDataByTitle(toplevel.title);
                             if (coreAppData)
                                 appId = coreAppData.builtInPluginId;
@@ -257,7 +257,7 @@ Item {
                         let coreAppData = null;
                         let isCoreApp = false;
 
-                        if (rawAppId === "org.quickshell" || rawAppId === "com.danklinux.dms") {
+                        if (rawAppId === "org.quickshell" || rawAppId === "org.macqueende.molniya") {
                             coreAppData = getCoreAppDataByTitle(toplevel.title);
                             if (coreAppData)
                                 isCoreApp = true;

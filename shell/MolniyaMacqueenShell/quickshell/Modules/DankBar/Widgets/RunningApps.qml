@@ -309,7 +309,7 @@ BasePill {
                             mipmap: true
                             asynchronous: true
                             visible: status === Image.Ready
-                            layer.enabled: appId === "org.quickshell" || appId === "com.danklinux.dms"
+                            layer.enabled: appId === "org.quickshell" || appId === "org.macqueende.molniya"
                             layer.smooth: true
                             layer.mipmap: true
                             layer.effect: MultiEffect {
@@ -553,7 +553,7 @@ BasePill {
                             mipmap: true
                             asynchronous: true
                             visible: status === Image.Ready
-                            layer.enabled: appId === "org.quickshell" || appId === "com.danklinux.dms"
+                            layer.enabled: appId === "org.quickshell" || appId === "org.macqueende.molniya"
                             layer.smooth: true
                             layer.mipmap: true
                             layer.effect: MultiEffect {

@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=DankMaterialShell
+Name=MolniyaMacqueenShell
 GenericName=Desktop Shell
-Comment=Material 3 inspired shell for Wayland compositors
+Comment=Material 3 desktop shell for the Macqueen compositor
 Exec=dms run
 Icon=danklogo
 Terminal=false

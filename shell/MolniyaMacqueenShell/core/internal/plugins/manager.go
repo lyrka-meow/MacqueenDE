@@ -38,7 +38,7 @@ func getPluginsDir() string {
 		log.Error("failed to get user config dir", "err", err)
 		return ""
 	}
-	return filepath.Join(configDir, "DankMaterialShell", "plugins")
+	return filepath.Join(configDir, "MolniyaMacqueenShell", "plugins")
 }
 
 func (m *Manager) IsInstalled(plugin Plugin) (bool, error) {

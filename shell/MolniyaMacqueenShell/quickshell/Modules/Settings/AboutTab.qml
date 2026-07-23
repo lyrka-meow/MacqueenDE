@@ -174,7 +174,7 @@ Item {
 
                         StyledText {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: "DANK LINUX"
+                            text: "MOLNIYA"
                             font.pixelSize: parent.compactLogo ? 32 : 48
                             font.weight: Font.Bold
                             font.family: DankCommon.Fonts.sans
@@ -186,7 +186,7 @@ Item {
                     StyledText {
                         text: {
                             if (!ShellVersionService.shellVersion && !DMSService.cliVersion)
-                                return "dms";
+                                return "MolniyaMacqueenShell";
 
                             let version = ShellVersionService.shellVersion || "";
                             let cliVersion = DMSService.cliVersion || "";
@@ -194,7 +194,7 @@ Item {
                             // Debian/Ubuntu/OpenSUSE git format: 1.0.3+git2264.c5c5ce84
                             let match = version.match(/^([\d.]+)\+git(\d+)\./);
                             if (match) {
-                                return `dms (git) v${match[1]}-${match[2]}`;
+                                return `Molniya (git) v${match[1]}-${match[2]}`;
                             }
 
                             // Fedora COPR git format: 0.0.git.2267.d430cae9
@@ -216,30 +216,30 @@ Item {
                                 if (!baseVersion)
                                     baseVersion = extractBaseVersion(ShellVersionService.semverVersion);
                                 if (baseVersion) {
-                                    return `dms (git) v${baseVersion}-${match[1]}`;
+                                    return `Molniya (git) v${baseVersion}-${match[1]}`;
                                 }
-                                return `dms (git) v${match[1]}`;
+                                return `Molniya (git) v${match[1]}`;
                             }
 
                             // Stable release format: 1.0.3
                             match = version.match(/^([\d.]+)$/);
                             if (match) {
-                                return `dms v${match[1]}`;
+                                return `Molniya v${match[1]}`;
                             }
 
                             if (!version && cliVersion) {
                                 match = cliVersion.match(/^([\d.]+)\+git(\d+)\./);
                                 if (match) {
-                                    return `dms (git) v${match[1]}-${match[2]}`;
+                                    return `Molniya (git) v${match[1]}-${match[2]}`;
                                 }
                                 match = cliVersion.match(/^([\d.]+)$/);
                                 if (match) {
-                                    return `dms v${match[1]}`;
+                                    return `Molniya v${match[1]}`;
                                 }
-                                return `dms ${cliVersion}`;
+                                return `Molniya ${cliVersion}`;
                             }
 
-                            return `dms ${version}`;
+                            return `Molniya ${version}`;
                         }
                         font.pixelSize: Theme.fontSizeXLarge
                         font.weight: Font.Bold
@@ -304,10 +304,10 @@ Item {
                             iconSize: 18
                             backgroundColor: Theme.surfaceTextHover
                             textColor: Theme.surfaceText
-                            onClicked: Qt.openUrlExternally("https://github.com/AvengeMedia/DankMaterialShell")
+                            onClicked: Qt.openUrlExternally("https://github.com/lyrka-meow/MacqueenDE")
                             onHoveredChanged: {
                                 if (hovered)
-                                    resourceTooltip.show(resourceButtonsRow.compactMode ? "GitHub - AvengeMedia/DankMaterialShell" : "github.com/AvengeMedia/DankMaterialShell", githubButton, 0, 0, "bottom");
+                                    resourceTooltip.show(resourceButtonsRow.compactMode ? "GitHub - lyrka-meow/MacqueenDE" : "github.com/lyrka-meow/MacqueenDE", githubButton, 0, 0, "bottom");
                                 else
                                     resourceTooltip.hide();
                             }
@@ -578,7 +578,7 @@ Item {
                     }
 
                     StyledText {
-                        text: I18n.tr('dms is a highly customizable, modern desktop shell with a <a href="https://m3.material.io/" style="text-decoration:none; color:%1;">material 3 inspired</a> design.<br /><br/>It is built with <a href="https://quickshell.org" style="text-decoration:none; color:%1;">Quickshell</a>, a QT6 framework for building desktop shells, and <a href="https://go.dev" style="text-decoration:none; color:%1;">Go</a>, a statically typed, compiled programming language.').arg(Theme.primary)
+                        text: I18n.tr('MolniyaMacqueenShell is a customizable Material 3 desktop shell built specifically for the Macqueen compositor.<br /><br/>It is powered by <a href="https://quickshell.org" style="text-decoration:none; color:%1;">Quickshell</a> and a Go backend, and is based on the open-source DankMaterialShell project.').arg(Theme.primary)
                         textFormat: Text.RichText
                         font.pixelSize: Theme.fontSizeMedium
                         linkColor: Theme.primary
@@ -819,7 +819,7 @@ Item {
 
             StyledText {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: I18n.tr('<a href="https://github.com/AvengeMedia/DankMaterialShell/blob/master/LICENSE" style="text-decoration:none; color:%1;">MIT License</a>').arg(Theme.surfaceVariantText)
+                text: I18n.tr('<a href="https://github.com/lyrka-meow/MacqueenDE/blob/main/LICENSE" style="text-decoration:none; color:%1;">MIT License</a>').arg(Theme.surfaceVariantText)
                 font.pixelSize: Theme.fontSizeMedium
                 color: Theme.surfaceVariantText
                 textFormat: Text.RichText

@@ -202,7 +202,7 @@ BasePill {
                 smooth: true
                 mipmap: true
                 asynchronous: true
-                layer.enabled: activeWindow && (activeWindow.appId === "org.quickshell" || activeWindow.appId === "com.danklinux.dms")
+                layer.enabled: activeWindow && (activeWindow.appId === "org.quickshell" || activeWindow.appId === "org.macqueende.molniya")
                 layer.smooth: true
                 layer.mipmap: true
                 layer.effect: MultiEffect {
@@ -255,7 +255,7 @@ BasePill {
                     smooth: true
                     mipmap: true
                     asynchronous: true
-                    layer.enabled: activeWindow && (activeWindow.appId === "org.quickshell" || activeWindow.appId === "com.danklinux.dms")
+                    layer.enabled: activeWindow && (activeWindow.appId === "org.quickshell" || activeWindow.appId === "org.macqueende.molniya")
                     layer.smooth: true
                     layer.mipmap: true
                     layer.effect: MultiEffect {

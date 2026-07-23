@@ -109,7 +109,7 @@ Item {
                     }
 
                     StyledText {
-                        text: I18n.tr("DankMaterialShell is ready to use", "greeter completion page subtitle")
+                        text: I18n.tr("MolniyaMacqueenShell is ready to use", "greeter completion page subtitle")
                         font.pixelSize: Theme.fontSizeMedium
                         color: Theme.surfaceVariantText
                     }

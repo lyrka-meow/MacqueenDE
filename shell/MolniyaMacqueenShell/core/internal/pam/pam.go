@@ -156,7 +156,7 @@ func IsNixOS() bool {
 }
 
 func ReadAuthSettings(homeDir string) (AuthSettings, error) {
-	settingsPath := filepath.Join(homeDir, ".config", "DankMaterialShell", "settings.json")
+	settingsPath := filepath.Join(homeDir, ".config", "MolniyaMacqueenShell", "settings.json")
 	data, err := os.ReadFile(settingsPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -801,7 +801,7 @@ func moduleReferenceExists(ref string, deps lockscreenPamValidateDeps) bool {
 const UserLockscreenPamService = "dankshell"
 
 func UserLockscreenPamDir() string {
-	return filepath.Join(utils.XDGStateHome(), "DankMaterialShell", "pam")
+	return filepath.Join(utils.XDGStateHome(), "MolniyaMacqueenShell", "pam")
 }
 
 // WriteUserLockscreenPamConfig resolves the distro's real auth stack into a

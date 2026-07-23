@@ -76,7 +76,7 @@ Singleton {
     readonly property string _homeUrl: StandardPaths.writableLocation(StandardPaths.HomeLocation)
     readonly property string _configUrl: StandardPaths.writableLocation(StandardPaths.ConfigLocation)
     readonly property string _configDir: Paths.strip(_configUrl)
-    readonly property string pluginSettingsPath: _configDir + "/DankMaterialShell/plugin_settings.json"
+    readonly property string pluginSettingsPath: _configDir + "/MolniyaMacqueenShell/plugin_settings.json"
 
     property bool _loading: false
     property bool _pluginSettingsLoading: false
@@ -3645,7 +3645,7 @@ Singleton {
     FileView {
         id: settingsFile
 
-        path: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/DankMaterialShell/settings.json"
+        path: StandardPaths.writableLocation(StandardPaths.ConfigLocation) + "/MolniyaMacqueenShell/settings.json"
         blockLoading: true
         blockWrites: true
         atomicWrites: true

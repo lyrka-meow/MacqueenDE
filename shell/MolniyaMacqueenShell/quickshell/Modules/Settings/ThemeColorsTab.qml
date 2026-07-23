@@ -725,7 +725,7 @@ Item {
                                     property var variants: modelData.variants || null
                                     property string selectedVariant: hasVariants ? SettingsData.getRegistryThemeVariant(modelData.id, variants?.default || "") : ""
                                     property string previewPath: {
-                                        const baseDir = Quickshell.env("HOME") + "/.config/DankMaterialShell/themes/" + (modelData.sourceDir || modelData.id);
+                                        const baseDir = Quickshell.env("HOME") + "/.config/MolniyaMacqueenShell/themes/" + (modelData.sourceDir || modelData.id);
                                         const mode = Theme.isLightMode ? "light" : "dark";
                                         if (hasVariants && selectedVariant)
                                             return baseDir + "/preview-" + selectedVariant + "-" + mode + ".svg";
@@ -831,7 +831,7 @@ Item {
                                         hoverEnabled: true
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            const themesDir = Quickshell.env("HOME") + "/.config/DankMaterialShell/themes";
+                                            const themesDir = Quickshell.env("HOME") + "/.config/MolniyaMacqueenShell/themes";
                                             const themePath = themesDir + "/" + (modelData.sourceDir || modelData.id) + "/theme.json";
                                             SettingsData.set("customThemeFile", themePath);
                                             Theme.switchTheme("custom", true, true);

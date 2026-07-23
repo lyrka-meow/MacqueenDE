@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=DMS
+Name=Molniya
 Comment=Select an application to open links and files
 Exec=dms open %u
 Icon=danklogo

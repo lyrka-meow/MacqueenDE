@@ -218,7 +218,7 @@ func ensureFontCache() {
 	var fontsToCheck []string
 
 	if configDir, err := os.UserConfigDir(); err == nil {
-		settingsPath := filepath.Join(configDir, "DankMaterialShell", "settings.json")
+		settingsPath := filepath.Join(configDir, "MolniyaMacqueenShell", "settings.json")
 		if data, err := os.ReadFile(settingsPath); err == nil {
 			var settings struct {
 				FontFamily     string `json:"fontFamily"`

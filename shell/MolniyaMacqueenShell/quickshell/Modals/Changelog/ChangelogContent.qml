@@ -252,7 +252,7 @@ Column {
 
                 ChangelogUpgradeNote {
                     width: parent.width
-                    text: "App ID changed to com.danklinux.dms — update any compositor window rules targeting the old ID"
+                    text: "App ID changed to org.macqueende.molniya — update any compositor window rules targeting the old ID"
                 }
             }
         }

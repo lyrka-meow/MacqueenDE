@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=DMS Notepad
+Name=Molniya Notepad
 GenericName=Text Editor
-Comment=Quick notes and text files in the dank desktop shell
+Comment=Quick notes and text files in MolniyaMacqueenShell
 Exec=dms ipc call notepad openFile %f
 Icon=danklogo
 Terminal=false

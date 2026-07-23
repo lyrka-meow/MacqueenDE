@@ -249,7 +249,7 @@ BasePill {
             let appId = Paths.moddedAppId(rawAppId);
 
             let coreAppData = null;
-            if (rawAppId === "org.quickshell" || rawAppId === "com.danklinux.dms") {
+            if (rawAppId === "org.quickshell" || rawAppId === "org.macqueende.molniya") {
                 coreAppData = getCoreAppDataByTitle(toplevel.title);
                 if (coreAppData) {
                     appId = coreAppData.builtInPluginId;
@@ -698,7 +698,7 @@ BasePill {
                         mipmap: true
                         asynchronous: true
                         visible: status === Image.Ready && !coreIcon.visible
-                        layer.enabled: appItem.appId === "org.quickshell" || appItem.appId === "com.danklinux.dms"
+                        layer.enabled: appItem.appId === "org.quickshell" || appItem.appId === "org.macqueende.molniya"
                         layer.smooth: true
                         layer.mipmap: true
                         layer.effect: MultiEffect {
@@ -987,7 +987,7 @@ BasePill {
                                     break;
                                 }
 
-                                const shouldHidePin = modelData.appId === "org.quickshell" || modelData.appId === "com.danklinux.dms";
+                                const shouldHidePin = modelData.appId === "org.quickshell" || modelData.appId === "org.macqueende.molniya";
                                 const moddedId = Paths.moddedAppId(modelData.appId);
                                 const desktopEntry = moddedId ? DesktopEntries.heuristicLookup(moddedId) : null;
 

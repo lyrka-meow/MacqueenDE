@@ -1387,7 +1387,7 @@ Singleton {
     FileView {
         id: settingsFile
 
-        path: StandardPaths.writableLocation(StandardPaths.GenericStateLocation) + "/DankMaterialShell/session.json"
+        path: StandardPaths.writableLocation(StandardPaths.GenericStateLocation) + "/MolniyaMacqueenShell/session.json"
         blockLoading: true
         blockWrites: true
         atomicWrites: true

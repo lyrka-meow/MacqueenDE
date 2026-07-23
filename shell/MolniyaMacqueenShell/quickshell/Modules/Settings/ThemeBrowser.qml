@@ -81,7 +81,7 @@ FloatingWindow {
             var theme = installedThemes[i];
             if (theme.id === themeId) {
                 var sourceDir = theme.sourceDir || theme.id;
-                var themePath = Quickshell.env("HOME") + "/.config/DankMaterialShell/themes/" + sourceDir + "/theme.json";
+                var themePath = Quickshell.env("HOME") + "/.config/MolniyaMacqueenShell/themes/" + sourceDir + "/theme.json";
                 SettingsData.set("customThemeFile", themePath);
                 Theme.switchThemeCategory("registry", "custom");
                 Theme.switchTheme("custom", true, true);

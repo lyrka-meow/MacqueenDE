@@ -121,7 +121,7 @@ func GetDBPath() (string, error) {
 		cacheDir = filepath.Join(homeDir, ".cache")
 	}
 
-	newDir := filepath.Join(cacheDir, "DankMaterialShell", "clipboard")
+	newDir := filepath.Join(cacheDir, "MolniyaMacqueenShell", "clipboard")
 	newPath := filepath.Join(newDir, "db")
 
 	if _, err := os.Stat(newPath); err == nil {

@@ -44,6 +44,7 @@
 #include "decorations/decorationbridge.h"
 #include "dpmsinputeventfilter.h"
 #include "lidswitchtracker.h"
+#include "macqueenipc.h"
 #include "main.h"
 #include "opengl/eglcontext.h"
 #include "outputconfigurationstore.h"
@@ -165,6 +166,7 @@ Workspace::Workspace()
     connect(this, &Workspace::configChanged, m_decorationBridge.get(), &Decoration::DecorationBridge::reconfigure);
 
     new DBusInterface(this);
+    new MacqueenIpc(this);
     m_outline = std::make_unique<Outline>();
 
     m_dpmsTimer.setSingleShot(true);

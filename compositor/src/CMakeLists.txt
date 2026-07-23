@@ -125,6 +125,7 @@ target_sources(kwin PRIVATE
     layershellv1integration.cpp
     layershellv1window.cpp
     lidswitchtracker.cpp
+    macqueenipc.cpp
     main.cpp
     mousebuttons.cpp
     multigpuswapchain.cpp

@@ -49,6 +49,7 @@ public:
     void checkLayoutChange(uint previousLayout);
     void switchToNextLayout();
     void switchToPreviousLayout();
+    void switchToLayout(xkb_layout_index_t index);
     void switchToLastUsedLayout();
     void resetLayout();
 
@@ -61,7 +62,6 @@ private Q_SLOTS:
 
 private:
     void notifyLayoutChange();
-    void switchToLayout(xkb_layout_index_t index);
     void loadShortcuts();
     void reconfigure();
     Xkb *m_xkb;

@@ -31,6 +31,11 @@ public Q_SLOTS:
     QVariantList windows() const;
     QVariantList outputs() const;
     QVariantList workspaces() const;
+    QVariantList keyboardLayouts() const;
+    QVariantList availableKeyboardLayouts() const;
+    uint currentKeyboardLayout() const;
+    bool setKeyboardLayouts(const QStringList &layouts);
+    bool setCurrentKeyboardLayout(uint index);
     bool activateWorkspace(const QString &id);
     QString createWorkspace(uint position, const QString &name);
     bool removeWorkspace(const QString &id);
@@ -48,6 +53,7 @@ Q_SIGNALS:
     void activeWindowChanged(const QString &id);
     void outputsChanged();
     void workspacesChanged();
+    void keyboardLayoutsChanged();
 
 private:
     void watchWindow(Window *window);

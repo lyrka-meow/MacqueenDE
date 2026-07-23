@@ -66,6 +66,8 @@ MacqueenIpcClient::MacqueenIpcClient(QObject *parent)
                 QStringLiteral("outputsChanged"), this, SLOT(refreshOutputs()));
     bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
                 QStringLiteral("workspacesChanged"), this, SLOT(refreshWorkspaces()));
+    bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
+                QStringLiteral("keyboardLayoutsChanged"), this, SLOT(refreshKeyboardLayouts()));
 
     const QDBusReply<bool> registered = bus.interface()->isServiceRegistered(QString::fromLatin1(Service));
     if (registered.isValid() && registered.value()) {
@@ -108,6 +110,21 @@ QVariantList MacqueenIpcClient::workspaces() const
     return m_workspaces;
 }
 
+QVariantList MacqueenIpcClient::keyboardLayouts() const
+{
+    return m_keyboardLayouts;
+}
+
+QVariantList MacqueenIpcClient::availableKeyboardLayouts() const
+{
+    return m_availableKeyboardLayouts;
+}
+
+uint MacqueenIpcClient::currentKeyboardLayout() const
+{
+    return m_currentKeyboardLayout;
+}
+
 void MacqueenIpcClient::refresh()
 {
     if (!m_available) {
@@ -118,6 +135,7 @@ void MacqueenIpcClient::refresh()
     refreshActiveWindow();
     refreshOutputs();
     refreshWorkspaces();
+    refreshKeyboardLayouts();
 }
 
 bool MacqueenIpcClient::activateWorkspace(const QString &id)
@@ -163,6 +181,24 @@ bool MacqueenIpcClient::setWindowFullscreen(const QString &id, bool fullscreen)
 bool MacqueenIpcClient::moveWindowToWorkspace(const QString &windowId, const QString &workspaceId)
 {
     return call(QStringLiteral("moveWindowToWorkspace"), {windowId, workspaceId}).toBool();
+}
+
+bool MacqueenIpcClient::setKeyboardLayouts(const QStringList &layouts)
+{
+    const bool changed = call(QStringLiteral("setKeyboardLayouts"), {layouts}).toBool();
+    if (changed) {
+        refreshKeyboardLayouts();
+    }
+    return changed;
+}
+
+bool MacqueenIpcClient::setCurrentKeyboardLayout(uint index)
+{
+    const bool changed = call(QStringLiteral("setCurrentKeyboardLayout"), {index}).toBool();
+    if (changed) {
+        refreshKeyboardLayouts();
+    }
+    return changed;
 }
 
 void MacqueenIpcClient::handleServiceRegistered()
@@ -225,6 +261,22 @@ void MacqueenIpcClient::refreshWorkspaces()
     }
 }
 
+void MacqueenIpcClient::refreshKeyboardLayouts()
+{
+    const QVariantList layouts = mapList(call(QStringLiteral("keyboardLayouts")));
+    const QVariantList available = mapList(call(QStringLiteral("availableKeyboardLayouts")));
+    const uint current = call(QStringLiteral("currentKeyboardLayout")).toUInt();
+    if (m_keyboardLayouts != layouts || m_currentKeyboardLayout != current) {
+        m_keyboardLayouts = layouts;
+        m_currentKeyboardLayout = current;
+        Q_EMIT keyboardLayoutsChanged();
+    }
+    if (m_availableKeyboardLayouts != available) {
+        m_availableKeyboardLayouts = available;
+        Q_EMIT availableKeyboardLayoutsChanged();
+    }
+}
+
 QVariant MacqueenIpcClient::call(const QString &method, const QVariantList &arguments) const
 {
     QDBusInterface interface(QString::fromLatin1(Service),
@@ -277,6 +329,9 @@ void MacqueenIpcClient::clear()
     m_windows.clear();
     m_outputs.clear();
     m_workspaces.clear();
+    m_keyboardLayouts.clear();
+    m_availableKeyboardLayouts.clear();
+    m_currentKeyboardLayout = 0;
 
     if (wasAvailable) {
         Q_EMIT availableChanged();
@@ -286,4 +341,6 @@ void MacqueenIpcClient::clear()
     Q_EMIT windowsChanged();
     Q_EMIT outputsChanged();
     Q_EMIT workspacesChanged();
+    Q_EMIT keyboardLayoutsChanged();
+    Q_EMIT availableKeyboardLayoutsChanged();
 }

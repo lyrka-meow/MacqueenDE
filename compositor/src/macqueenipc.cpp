@@ -7,11 +7,20 @@
 
 #include "config-kwin.h"
 #include "core/output.h"
+#include "input.h"
+#include "keyboard_input.h"
+#include "keyboard_layout.h"
+#include "main.h"
 #include "virtualdesktops.h"
 #include "window.h"
 #include "workspace.h"
+#include "xkb.h"
 
 #include <QDBusConnection>
+#include <QFile>
+#include <KConfigGroup>
+#include <QRegularExpression>
+#include <QTextStream>
 
 namespace KWin
 {
@@ -65,6 +74,16 @@ MacqueenIpc::MacqueenIpc(Workspace *workspace)
         Q_EMIT activeWindowChanged(windowId(window));
     });
     connect(m_workspace, &Workspace::outputsChanged, this, &MacqueenIpc::outputsChanged);
+    if (input() && input()->keyboard() && input()->keyboard()->keyboardLayout()) {
+        connect(input()->keyboard()->keyboardLayout(),
+                &KeyboardLayout::layoutsReconfigured,
+                this,
+                &MacqueenIpc::keyboardLayoutsChanged);
+        connect(input()->keyboard()->keyboardLayout(),
+                &KeyboardLayout::layoutChanged,
+                this,
+                &MacqueenIpc::keyboardLayoutsChanged);
+    }
     connect(m_workspace, &Workspace::currentDesktopChanged, this, [this]() {
         Q_EMIT workspacesChanged();
     });
@@ -91,7 +110,7 @@ MacqueenIpc::~MacqueenIpc()
 
 uint MacqueenIpc::protocolVersion() const
 {
-    return 1;
+    return 2;
 }
 
 QString MacqueenIpc::compositorVersion() const
@@ -151,6 +170,94 @@ QVariantList MacqueenIpc::workspaces() const
         });
     }
     return result;
+}
+
+QVariantList MacqueenIpc::keyboardLayouts() const
+{
+    QVariantList result;
+    if (!input() || !input()->keyboard()) {
+        return result;
+    }
+
+    Xkb *xkb = input()->keyboard()->xkb();
+    const uint current = xkb->currentLayout();
+    for (uint index = 0; index < xkb->numberOfLayouts(); ++index) {
+        result.append(QVariantMap{
+            {QStringLiteral("code"), xkb->layoutShortName(index)},
+            {QStringLiteral("name"), xkb->layoutName(index)},
+            {QStringLiteral("index"), index},
+            {QStringLiteral("active"), index == current},
+        });
+    }
+    return result;
+}
+
+QVariantList MacqueenIpc::availableKeyboardLayouts() const
+{
+    QFile file(QStringLiteral("/usr/share/X11/xkb/rules/evdev.lst"));
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        file.setFileName(QStringLiteral("/usr/share/X11/xkb/rules/base.lst"));
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            return {};
+        }
+    }
+
+    QVariantList result;
+    QTextStream stream(&file);
+    bool inLayouts = false;
+    const QRegularExpression entry(QStringLiteral("^\\s*(\\S+)\\s+(.+?)\\s*$"));
+    while (!stream.atEnd()) {
+        const QString line = stream.readLine();
+        if (line.startsWith(QLatin1Char('!'))) {
+            inLayouts = line.trimmed() == QStringLiteral("! layout");
+            continue;
+        }
+        if (!inLayouts || line.trimmed().isEmpty()) {
+            continue;
+        }
+        const QRegularExpressionMatch match = entry.match(line);
+        if (match.hasMatch()) {
+            result.append(QVariantMap{
+                {QStringLiteral("code"), match.captured(1)},
+                {QStringLiteral("name"), match.captured(2)},
+            });
+        }
+    }
+    return result;
+}
+
+uint MacqueenIpc::currentKeyboardLayout() const
+{
+    return input() && input()->keyboard() ? input()->keyboard()->xkb()->currentLayout() : 0;
+}
+
+bool MacqueenIpc::setKeyboardLayouts(const QStringList &layouts)
+{
+    static const QRegularExpression validLayout(QStringLiteral("^[A-Za-z0-9_()+-]+$"));
+    if (layouts.isEmpty()) {
+        return false;
+    }
+    for (const QString &layout : layouts) {
+        if (!validLayout.match(layout).hasMatch()) {
+            return false;
+        }
+    }
+
+    KConfigGroup group(kwinApp()->kxkbConfig(), QStringLiteral("Layout"));
+    group.writeEntry(QStringLiteral("Use"), true, KConfig::Notify);
+    group.writeEntry(QStringLiteral("LayoutList"), layouts.join(QLatin1Char(',')), KConfig::Notify);
+    group.writeEntry(QStringLiteral("VariantList"), QStringList(layouts.size(), QString()).join(QLatin1Char(',')), KConfig::Notify);
+    group.sync();
+    return true;
+}
+
+bool MacqueenIpc::setCurrentKeyboardLayout(uint index)
+{
+    if (!input() || !input()->keyboard() || index >= input()->keyboard()->xkb()->numberOfLayouts()) {
+        return false;
+    }
+    input()->keyboard()->keyboardLayout()->switchToLayout(index);
+    return true;
 }
 
 bool MacqueenIpc::activateWorkspace(const QString &id)

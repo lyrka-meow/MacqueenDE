@@ -12,7 +12,7 @@ ShellRoot {
             console.log("Macqueen workspaces:", JSON.stringify(Macqueen.workspaces))
             if (!Macqueen.available)
                 throw new Error("Macqueen IPC is unavailable")
-            if (Macqueen.protocolVersion !== 1)
+            if (Macqueen.protocolVersion !== 2)
                 throw new Error("Unexpected protocol version: " + Macqueen.protocolVersion)
             if (Macqueen.compositorVersion !== "0.1.0-dev")
                 throw new Error("Unexpected compositor version: " + Macqueen.compositorVersion)
@@ -20,6 +20,8 @@ ShellRoot {
                 throw new Error("Virtual output was not exposed")
             if (Macqueen.workspaces.length !== 1 || Macqueen.workspaces[0].name !== "Desktop 1")
                 throw new Error("Default workspace was not exposed")
+            if (Macqueen.keyboardLayouts.length < 1 || Macqueen.availableKeyboardLayouts.length < 1)
+                throw new Error("Keyboard layouts were not exposed")
 
             const workspaceId = Macqueen.createWorkspace(2, "QML workspace")
             if (!workspaceId || !Macqueen.activateWorkspace(workspaceId))

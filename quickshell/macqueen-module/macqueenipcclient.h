@@ -24,6 +24,9 @@ class MacqueenIpcClient : public QObject
     Q_PROPERTY(QVariantList windows READ windows NOTIFY windowsChanged)
     Q_PROPERTY(QVariantList outputs READ outputs NOTIFY outputsChanged)
     Q_PROPERTY(QVariantList workspaces READ workspaces NOTIFY workspacesChanged)
+    Q_PROPERTY(QVariantList keyboardLayouts READ keyboardLayouts NOTIFY keyboardLayoutsChanged)
+    Q_PROPERTY(QVariantList availableKeyboardLayouts READ availableKeyboardLayouts NOTIFY availableKeyboardLayoutsChanged)
+    Q_PROPERTY(uint currentKeyboardLayout READ currentKeyboardLayout NOTIFY keyboardLayoutsChanged)
 
 public:
     explicit MacqueenIpcClient(QObject *parent = nullptr);
@@ -35,6 +38,9 @@ public:
     QVariantList windows() const;
     QVariantList outputs() const;
     QVariantList workspaces() const;
+    QVariantList keyboardLayouts() const;
+    QVariantList availableKeyboardLayouts() const;
+    uint currentKeyboardLayout() const;
 
     Q_INVOKABLE void refresh();
     Q_INVOKABLE bool activateWorkspace(const QString &id);
@@ -46,6 +52,8 @@ public:
     Q_INVOKABLE bool setWindowMinimized(const QString &id, bool minimized);
     Q_INVOKABLE bool setWindowFullscreen(const QString &id, bool fullscreen);
     Q_INVOKABLE bool moveWindowToWorkspace(const QString &windowId, const QString &workspaceId);
+    Q_INVOKABLE bool setKeyboardLayouts(const QStringList &layouts);
+    Q_INVOKABLE bool setCurrentKeyboardLayout(uint index);
 
 Q_SIGNALS:
     void availableChanged();
@@ -54,6 +62,8 @@ Q_SIGNALS:
     void windowsChanged();
     void outputsChanged();
     void workspacesChanged();
+    void keyboardLayoutsChanged();
+    void availableKeyboardLayoutsChanged();
 
 private Q_SLOTS:
     void handleServiceRegistered();
@@ -64,6 +74,7 @@ private Q_SLOTS:
     void handleActiveWindowChanged(const QString &id);
     void refreshOutputs();
     void refreshWorkspaces();
+    void refreshKeyboardLayouts();
 
 private:
     QVariant call(const QString &method, const QVariantList &arguments = {}) const;
@@ -84,4 +95,7 @@ private:
     QVariantList m_windows;
     QVariantList m_outputs;
     QVariantList m_workspaces;
+    QVariantList m_keyboardLayouts;
+    QVariantList m_availableKeyboardLayouts;
+    uint m_currentKeyboardLayout = 0;
 };

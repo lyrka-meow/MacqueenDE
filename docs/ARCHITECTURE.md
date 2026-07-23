@@ -26,9 +26,10 @@ Macqueen compositor
 
 ### Macqueen compositor
 
-The compositor begins as a traceable derivative of KWin 6.7.3. Initially it
-keeps working internals intact while public identity, session ownership, and
-shell integration are separated from Plasma.
+The compositor begins as a traceable derivative of KWin 6.7.3. The public
+executable is `macqueen`. Initially it keeps working internals intact while
+public identity, session ownership, and shell integration are separated from
+Plasma.
 
 Subsystems retained as the technical foundation:
 
@@ -89,4 +90,3 @@ interfaces are then replaced with Macqueen IPC and shell-owned selection UI.
 5. Add versioned IPC and the Quickshell module.
 6. Port screen sharing and remote desktop.
 7. Build MolniyaMacqueenShell and Arch packages.
-

@@ -406,43 +406,43 @@ ecm_qt_declare_logging_category(kwin
     CATEGORY_NAME kwin_output_config
 )
 
-add_executable(kwin_wayland main_wayland.cpp)
+add_executable(macqueen main_wayland.cpp)
 
 if(TARGET PkgConfig::libsystemd)
-    ecm_qt_declare_logging_category(kwin_wayland
+    ecm_qt_declare_logging_category(macqueen
         HEADER watchdoglogging.h
         IDENTIFIER KWIN_WATCHDOG
         CATEGORY_NAME kwin_watchdog
         DEFAULT_SEVERITY Info
     )
 
-    target_sources(kwin_wayland PRIVATE watchdog.cpp)
-    target_link_libraries(kwin_wayland PkgConfig::libsystemd)
+    target_sources(macqueen PRIVATE watchdog.cpp)
+    target_link_libraries(macqueen PkgConfig::libsystemd)
 endif()
 
-target_link_libraries(kwin_wayland
+target_link_libraries(macqueen
     kwin
     KF6::Crash
     KF6::I18n
 )
 if (KWIN_BUILD_X11)
-    target_link_libraries(kwin_wayland KWinXwaylandServerModule)
+    target_link_libraries(macqueen KWinXwaylandServerModule)
 endif()
-target_compile_definitions(kwin_wayland PRIVATE
+target_compile_definitions(macqueen PRIVATE
     -DTRANSLATION_DOMAIN=\"kwin\"
 )
-kcoreaddons_target_static_plugins(kwin_wayland NAMESPACE "kwin/effects/plugins")
+kcoreaddons_target_static_plugins(macqueen NAMESPACE "kwin/effects/plugins")
 
-install(TARGETS kwin_wayland ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+install(TARGETS macqueen ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
 
-target_link_libraries(kwin_wayland
+target_link_libraries(macqueen
     KWinQpaPlugin
     KF6WindowSystemKWinPlugin
     KF6IdleTimeKWinPlugin
 )
 
 if (TARGET KF6GlobalAccelKWinPlugin)
-    target_link_libraries(kwin_wayland KF6GlobalAccelKWinPlugin)
+    target_link_libraries(macqueen KF6GlobalAccelKWinPlugin)
 endif()
 
 add_custom_target(

@@ -44,7 +44,7 @@ The first development target is the Wayland compositor rather than every
 upstream settings module:
 
 ```bash
-cmake --build build/compositor --target kwin_wayland --parallel 8
+cmake --build build/compositor --target macqueen --parallel 8
 cmake --build build/portal --parallel 8
 ```
 

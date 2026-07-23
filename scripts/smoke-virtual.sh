@@ -3,11 +3,11 @@
 set -euo pipefail
 
 repo_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
-kwin_binary="$repo_root/build/compositor/bin/kwin_wayland"
+macqueen_binary="$repo_root/build/compositor/bin/macqueen"
 
-if [[ ! -x "$kwin_binary" ]]; then
-    echo "Missing compositor build: $kwin_binary" >&2
-    echo "Build the kwin_wayland target first. See docs/BUILDING.md." >&2
+if [[ ! -x "$macqueen_binary" ]]; then
+    echo "Missing compositor build: $macqueen_binary" >&2
+    echo "Build the macqueen target first. See docs/BUILDING.md." >&2
     exit 1
 fi
 
@@ -35,7 +35,7 @@ env \
     KWIN_COMPOSE=Q \
     QT_PLUGIN_PATH="$repo_root/build/compositor/bin:$repo_root/build/compositor/lib" \
     timeout 15s \
-    "$kwin_binary" \
+    "$macqueen_binary" \
         --virtual \
         --width 1280 \
         --height 720 \
@@ -46,4 +46,3 @@ env \
         --exit-with-session /usr/bin/true
 
 echo "Virtual compositor smoke test passed."
-

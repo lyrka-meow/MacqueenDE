@@ -17,6 +17,7 @@
 #cmakedefine01 KWIN_BUILD_QACCESSIBILITYCLIENT
 constexpr QLatin1StringView KWIN_CONFIG("kwinrc");
 constexpr QLatin1StringView KWIN_VERSION_STRING("${PROJECT_VERSION}");
+constexpr QLatin1StringView MACQUEEN_VERSION_STRING("${MACQUEEN_VERSION}");
 constexpr QLatin1StringView XCB_VERSION_STRING("${XCB_VERSION}");
 constexpr QLatin1StringView KWIN_KILLER_BIN("${KWIN_KILLER_BIN}");
 constexpr QLatin1StringView KWIN_DIALOG_BIN("${KWIN_DIALOG_BIN}");

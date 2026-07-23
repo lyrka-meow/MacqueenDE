@@ -15,6 +15,10 @@ deprecation decision, or proof that MacqueenDE does not need it.
 | Settings | Plasma KCM install namespaces | Move to Macqueen settings API/UI |
 | Session service | plasma-kwin_wayland.service | Replace with Macqueen session units |
 
+The legacy Plasma systemd user service is not installed by default. It remains
+available temporarily behind `MACQUEEN_INSTALL_LEGACY_PLASMA_SERVICE=ON` for
+compatibility investigations only.
+
 ## Plasma Wayland protocols inherited by KWin
 
 The following protocols are currently consumed from
@@ -57,4 +61,3 @@ for tablet mode and the virtual keyboard.
 ScreenCast and RemoteDesktop behavior are migration-critical. File chooser and
 general desktop dialogs may initially use a fallback backend while native
 MolniyaMacqueenShell dialogs are designed.
-

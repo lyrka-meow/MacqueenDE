@@ -162,13 +162,14 @@ bool Application::wasCrash()
 
 void Application::createAboutData()
 {
-    KAboutData aboutData(QStringLiteral("kwin"), // The program name used internally
-                         i18n("KWin"), // A displayable program name string
-                         KWIN_VERSION_STRING, // The program version string
-                         i18n("KDE window manager"), // Short description of what the app does
+    KAboutData aboutData(QStringLiteral("macqueen"), // The program name used internally
+                         i18n("Macqueen"), // A displayable program name string
+                         MACQUEEN_VERSION_STRING, // The program version string
+                         i18n("Independent Wayland compositor for Quickshell"), // Short description of what the app does
                          KAboutLicense::GPL, // The license this code is released under
-                         i18n("(c) 1999-2019, The KDE Developers")); // Copyright Statement
+                         i18n("(c) 1999-2026, The KDE Developers; (c) 2026, The MacqueenDE contributors")); // Copyright Statement
 
+    aboutData.addAuthor(QStringLiteral("lyrka-meow"), i18n("MacqueenDE maintainer"));
     aboutData.addAuthor(i18n("Matthias Ettrich"), QString(), QStringLiteral("ettrich@kde.org"));
     aboutData.addAuthor(i18n("Cristian Tibirna"), QString(), QStringLiteral("tibirna@kde.org"));
     aboutData.addAuthor(i18n("Daniel M. Duley"), QString(), QStringLiteral("mosfet@kde.org"));
@@ -189,7 +190,7 @@ void Application::setupCommandLine(QCommandLineParser *parser)
     QCommandLineOption lockOption(s_lockOption, i18n("Disable configuration options"));
     QCommandLineOption crashesOption(s_crashesOption, i18n("Indicate that KWin has recently crashed n times"), QStringLiteral("n"));
 
-    parser->setApplicationDescription(i18n("KDE window manager"));
+    parser->setApplicationDescription(i18n("Independent Wayland compositor for Quickshell"));
     parser->addOption(lockOption);
     parser->addOption(crashesOption);
     KAboutData::applicationData().setupCommandLine(parser);

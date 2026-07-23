@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.16)
 set(PROJECT_VERSION "6.7.3") # Handled by release scripts
 project(KWin VERSION ${PROJECT_VERSION})
 
+set(MACQUEEN_VERSION "0.1.0-dev")
+
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -53,6 +55,7 @@ option(KWIN_BUILD_TABBOX "Enable building of KWin Tabbox functionality" ON)
 option(KWIN_BUILD_X11 "Enable building X11 common code and Xwayland support" ON)
 option(KWIN_BUILD_GLOBALSHORTCUTS "Enable building of KWin with global shortcuts support" ON)
 option(KWIN_BUILD_RUNNERS "Enable building of KWin with krunner support" ON)
+option(MACQUEEN_INSTALL_LEGACY_PLASMA_SERVICE "Install the legacy Plasma KWin systemd user service" OFF)
 
 find_package(Qt6 ${QT_MIN_VERSION} CONFIG REQUIRED COMPONENTS
     Concurrent
@@ -538,8 +541,10 @@ install(
 
 install(EXPORT KWinTargets DESTINATION "${CMAKECONFIG_INSTALL_DIR}" FILE KWinTargets.cmake NAMESPACE KWin:: )
 
-ecm_install_configured_files(INPUT plasma-kwin_wayland.service.in @ONLY
-            DESTINATION ${KDE_INSTALL_SYSTEMDUSERUNITDIR})
+if (MACQUEEN_INSTALL_LEGACY_PLASMA_SERVICE)
+    ecm_install_configured_files(INPUT plasma-kwin_wayland.service.in @ONLY
+                DESTINATION ${KDE_INSTALL_SYSTEMDUSERUNITDIR})
+endif()
 
 
 ki18n_install(po)

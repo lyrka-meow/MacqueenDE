@@ -375,7 +375,7 @@ int main(int argc, char *argv[])
                                                 "xwayland-xauthority");
 
     QCommandLineOption replaceOption(QStringLiteral("replace"),
-                                     i18n("Exits this instance so it can be restarted by kwin_wayland_wrapper."));
+                                     i18n("Exits this instance so it can be restarted by the session supervisor."));
 
     QCommandLineOption drmOption(QStringLiteral("drm"), i18n("Render through drm node."));
     QCommandLineOption locale1Option(QStringLiteral("locale1"), i18n("Extract locale information from locale1 rather than the user's configuration"));

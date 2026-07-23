@@ -101,7 +101,9 @@ void DesktopBackgroundItem::updateWindow()
     QString activity = m_activity;
     if (activity.isEmpty()) {
 #if KWIN_BUILD_ACTIVITIES
-        activity = Workspace::self()->activities()->current();
+        if (Workspace::self()->activities()) {
+            activity = Workspace::self()->activities()->current();
+        }
 #endif
     }
 

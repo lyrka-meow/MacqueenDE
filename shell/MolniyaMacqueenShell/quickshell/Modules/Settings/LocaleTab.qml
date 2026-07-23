@@ -137,7 +137,7 @@ Item {
 
                         delegate: Rectangle {
                             required property var modelData
-                            width: parent?.width ?? 0
+                            width: parent ? parent.width : 0
                             height: 48
                             radius: Theme.cornerRadius
                             color: modelData.active ? Theme.primaryContainer : Theme.surfaceContainerHigh

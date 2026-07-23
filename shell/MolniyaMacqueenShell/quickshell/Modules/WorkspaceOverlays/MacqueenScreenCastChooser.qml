@@ -63,12 +63,8 @@ Scope {
         }
     }
 
-    Loader {
-        active: controller.chooserOpen
-        asynchronous: false
-
-        sourceComponent: FloatingWindow {
-            id: window
+    FloatingWindow {
+        id: window
 
             readonly property int chooserWidth: 760
             readonly property int chooserHeight: screen ? Math.min(680, screen.height - 80) : 680
@@ -305,10 +301,9 @@ Scope {
                 }
             }
 
-            FloatingWindowControls {
-                id: windowControls
-                targetWindow: window
-            }
+        FloatingWindowControls {
+            id: windowControls
+            targetWindow: window
         }
     }
 }

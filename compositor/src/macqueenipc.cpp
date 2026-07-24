@@ -430,6 +430,10 @@ void MacqueenIpc::setShortcutCaptureActive(bool active)
         return;
     }
     m_shortcutCaptureActive = active;
+    // Block every KGlobalAccel action while the editor is listening. Otherwise
+    // an existing compositor shortcut (for example a layout switch involving
+    // Alt+Shift) consumes part of the new combination before Quickshell sees it.
+    m_workspace->disableGlobalShortcutsForClient(active);
     m_screenshotAction->setEnabled(!active);
     if (active) {
         m_pressedRawKeys.clear();

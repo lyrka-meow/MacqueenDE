@@ -39,12 +39,15 @@ fi
 
 repo_root=$(resolve_repo_root)
 macqueen="$repo_root/build/compositor/bin/macqueen"
+macqueen_screenshot_plugin="$repo_root/build/compositor/bin/kwin/plugins/screenshot.so"
 molniya="$repo_root/session/run-molniya"
 qml_module="$repo_root/build/quickshell-macqueen"
 qt_plugins="$repo_root/build/compositor/bin:$repo_root/build/compositor/lib"
 
 [[ -x "$macqueen" ]] ||
     die "missing $macqueen; build the compositor first"
+[[ -f "$macqueen_screenshot_plugin" ]] ||
+    die "missing $macqueen_screenshot_plugin; run: cmake --build $repo_root/build/compositor --target screenshot"
 [[ -x "$molniya" ]] ||
     die "missing $molniya"
 [[ -f "$qml_module/Macqueen/Ipc/qmldir" ]] ||

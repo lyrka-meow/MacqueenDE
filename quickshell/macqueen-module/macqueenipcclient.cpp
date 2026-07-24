@@ -258,6 +258,13 @@ bool MacqueenIpcClient::setScreenshotShortcut(const QString &shortcut)
     return changed;
 }
 
+void MacqueenIpcClient::setShortcutCaptureActive(bool active)
+{
+    if (m_protocolVersion >= 5) {
+        call(QStringLiteral("setShortcutCaptureActive"), {active});
+    }
+}
+
 void MacqueenIpcClient::requestScreenshot()
 {
     if (!m_available || m_protocolVersion < 4) {

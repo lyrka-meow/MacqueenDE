@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import Macqueen.Ipc
 import Quickshell.Wayland
 import qs.Common
 import qs.Services
@@ -43,6 +44,16 @@ Item {
     property bool addingNewKey: false
     property bool useCustomCompositor: false
     property bool _altShiftGhost: false
+
+    onRecordingChanged: {
+        if (KeybindsService.currentProvider === "macqueen")
+            Macqueen.setShortcutCaptureActive(recording);
+    }
+
+    Component.onDestruction: {
+        if (recording && KeybindsService.currentProvider === "macqueen")
+            Macqueen.setShortcutCaptureActive(false);
+    }
 
     readonly property var keys: bindData.keys || []
     readonly property bool hasOverride: {

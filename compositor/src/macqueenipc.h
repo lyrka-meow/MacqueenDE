@@ -53,6 +53,7 @@ public Q_SLOTS:
     void requestOverview(const QString &reason = QStringLiteral("ipc"));
     QString screenshotShortcut() const;
     bool setScreenshotShortcut(const QString &shortcut);
+    void setShortcutCaptureActive(bool active);
     QVariantMap screenshotShortcutDebug() const;
     void requestScreenshot();
 
@@ -78,6 +79,7 @@ private:
 
     Workspace *m_workspace;
     QAction *m_screenshotAction = nullptr;
+    bool m_shortcutCaptureActive = false;
     QSet<quint32> m_pressedRawKeys;
     QStringList m_recentRawKeyEvents;
     quint32 m_lastRawKeyCode = 0;

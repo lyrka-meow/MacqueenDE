@@ -141,7 +141,7 @@ MacqueenIpc::~MacqueenIpc()
 
 uint MacqueenIpc::protocolVersion() const
 {
-    return 4;
+    return 5;
 }
 
 QString MacqueenIpc::compositorVersion() const
@@ -424,6 +424,18 @@ bool MacqueenIpc::setScreenshotShortcut(const QString &shortcut)
     return true;
 }
 
+void MacqueenIpc::setShortcutCaptureActive(bool active)
+{
+    if (m_shortcutCaptureActive == active) {
+        return;
+    }
+    m_shortcutCaptureActive = active;
+    m_screenshotAction->setEnabled(!active);
+    if (active) {
+        m_pressedRawKeys.clear();
+    }
+}
+
 QVariantMap MacqueenIpc::screenshotShortcutDebug() const
 {
     QVariantList pressedKeys;
@@ -441,6 +453,7 @@ QVariantMap MacqueenIpc::screenshotShortcutDebug() const
         {QStringLiteral("pressedKeyCodes"), pressedKeys},
         {QStringLiteral("recentEvents"), m_recentRawKeyEvents},
         {QStringLiteral("triggerCount"), m_screenshotShortcutTriggerCount},
+        {QStringLiteral("captureActive"), m_shortcutCaptureActive},
         {QStringLiteral("shortcutsInhibited"), waylandServer()->isKeyboardShortcutsInhibited()},
     };
 }
@@ -468,7 +481,10 @@ void MacqueenIpc::handleRawKeyState(quint32 keyCode, KeyboardKeyState state)
         m_recentRawKeyEvents.removeFirst();
     }
 
-    if (state != KeyboardKeyState::Pressed || keyCode != KEY_S || waylandServer()->isKeyboardShortcutsInhibited()) {
+    if (m_shortcutCaptureActive
+        || state != KeyboardKeyState::Pressed
+        || keyCode != KEY_S
+        || waylandServer()->isKeyboardShortcutsInhibited()) {
         return;
     }
 

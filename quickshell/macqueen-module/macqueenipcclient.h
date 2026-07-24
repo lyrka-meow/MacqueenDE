@@ -59,6 +59,7 @@ public:
     Q_INVOKABLE bool submitScreenCastSelection(const QString &requestId, const QString &kind, const QString &id, bool allowRestore = true);
     Q_INVOKABLE bool cancelScreenCastSelection(const QString &requestId);
     Q_INVOKABLE bool setScreenshotShortcut(const QString &shortcut);
+    Q_INVOKABLE void setShortcutCaptureActive(bool active);
     Q_INVOKABLE void requestScreenshot();
 
 Q_SIGNALS:

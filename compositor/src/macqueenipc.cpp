@@ -11,11 +11,13 @@
 #include "keyboard_input.h"
 #include "keyboard_layout.h"
 #include "main.h"
+#include "input_event.h"
 #include "screenedge.h"
 #include "virtualdesktops.h"
 #include "window.h"
 #include "workspace.h"
 #include "xkb.h"
+#include "wayland_server.h"
 
 #include <QDBusConnection>
 #include <QFile>
@@ -25,12 +27,59 @@
 #include <KConfigGroup>
 #include <QRegularExpression>
 #include <QTextStream>
+#include <linux/input-event-codes.h>
 
 namespace KWin
 {
 
 namespace
 {
+
+class ScreenshotShortcutFilter : public InputEventFilter
+{
+public:
+    explicit ScreenshotShortcutFilter(MacqueenIpc *ipc)
+        : InputEventFilter(InputFilterOrder::GlobalShortcut)
+        , m_ipc(ipc)
+    {
+        input()->installInputEventFilter(this);
+    }
+
+    bool keyboardKey(KeyboardKeyEvent *event) override
+    {
+        if (event->state == KeyboardKeyState::Released) {
+            return m_filteredKeys.remove(event->nativeScanCode);
+        }
+        if (event->state != KeyboardKeyState::Pressed || waylandServer()->isKeyboardShortcutsInhibited()) {
+            return false;
+        }
+
+        QString portable = m_ipc->screenshotShortcut();
+        portable.replace(QStringLiteral("Super"), QStringLiteral("Meta"), Qt::CaseInsensitive);
+        const QKeySequence sequence = QKeySequence::fromString(portable, QKeySequence::PortableText);
+        if (sequence.isEmpty()) {
+            return false;
+        }
+
+        const QKeyCombination configured = sequence[0];
+        const Qt::KeyboardModifiers modifiers = event->modifiersRelevantForGlobalShortcuts;
+        const bool modifiersMatch = configured.keyboardModifiers() == modifiers;
+        const bool translatedKeyMatches = configured.key() == event->key;
+        const bool physicalDefaultMatches = configured.key() == Qt::Key_S && event->nativeScanCode == KEY_S;
+        if (!modifiersMatch || (!translatedKeyMatches && !physicalDefaultMatches)) {
+            return false;
+        }
+
+        m_filteredKeys.insert(event->nativeScanCode);
+        input()->keyboard()->addFilteredKey(event->nativeScanCode);
+        m_ipc->requestScreenshot();
+        return true;
+    }
+
+private:
+    MacqueenIpc *m_ipc;
+    QSet<quint32> m_filteredKeys;
+};
 
 QString windowId(const Window *window)
 {
@@ -70,6 +119,7 @@ MacqueenIpc::MacqueenIpc(Workspace *workspace)
         KGlobalAccel::self()->setShortcut(m_screenshotAction, screenshotShortcuts, KGlobalAccel::NoAutoloading);
     }
     connect(m_screenshotAction, &QAction::triggered, this, &MacqueenIpc::requestScreenshot);
+    m_screenshotShortcutFilter = std::make_unique<ScreenshotShortcutFilter>(this);
 
     QDBusConnection bus = QDBusConnection::sessionBus();
     bus.registerObject(QStringLiteral("/org/macqueen/Compositor1"),

@@ -9,6 +9,7 @@
 #include <QAction>
 #include <QVariantList>
 #include <QVariantMap>
+#include <memory>
 
 #include "effect/globals.h"
 
@@ -17,6 +18,7 @@ namespace KWin
 
 class Window;
 class Workspace;
+class InputEventFilter;
 
 class MacqueenIpc : public QObject
 {
@@ -74,6 +76,7 @@ private:
 
     Workspace *m_workspace;
     QAction *m_screenshotAction = nullptr;
+    std::unique_ptr<InputEventFilter> m_screenshotShortcutFilter;
     const QString m_serviceName = QStringLiteral("org.macqueen.Compositor1");
 };
 

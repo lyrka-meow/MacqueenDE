@@ -35,71 +35,6 @@ namespace KWin
 namespace
 {
 
-class ScreenshotShortcutFilter : public InputEventFilter
-{
-public:
-    explicit ScreenshotShortcutFilter(MacqueenIpc *ipc)
-        : InputEventFilter(InputFilterOrder::GlobalShortcut)
-        , m_ipc(ipc)
-    {
-        input()->installInputEventFilter(this);
-    }
-
-    bool keyboardKey(KeyboardKeyEvent *event) override
-    {
-        if (event->state == KeyboardKeyState::Released) {
-            m_pressedKeys.remove(event->nativeScanCode);
-            return m_filteredKeys.remove(event->nativeScanCode);
-        }
-        if (event->state != KeyboardKeyState::Pressed) {
-            return false;
-        }
-        m_pressedKeys.insert(event->nativeScanCode);
-        if (waylandServer()->isKeyboardShortcutsInhibited()) {
-            return false;
-        }
-
-        QString portable = m_ipc->screenshotShortcut();
-        portable.replace(QStringLiteral("Super"), QStringLiteral("Meta"), Qt::CaseInsensitive);
-        const QKeySequence sequence = QKeySequence::fromString(portable, QKeySequence::PortableText);
-        if (sequence.isEmpty()) {
-            return false;
-        }
-
-        const QKeyCombination configured = sequence[0];
-        const bool physicalDefaultConfigured =
-            configured == QKeyCombination(Qt::META | Qt::SHIFT, Qt::Key_S);
-        const bool shiftPressed = m_pressedKeys.contains(KEY_LEFTSHIFT) || m_pressedKeys.contains(KEY_RIGHTSHIFT);
-        const bool metaPressed = m_pressedKeys.contains(KEY_LEFTMETA) || m_pressedKeys.contains(KEY_RIGHTMETA);
-        const bool controlPressed = m_pressedKeys.contains(KEY_LEFTCTRL) || m_pressedKeys.contains(KEY_RIGHTCTRL);
-        const bool altPressed = m_pressedKeys.contains(KEY_LEFTALT) || m_pressedKeys.contains(KEY_RIGHTALT);
-        const bool physicalDefaultMatches = physicalDefaultConfigured
-            && event->nativeScanCode == KEY_S
-            && shiftPressed
-            && metaPressed
-            && !controlPressed
-            && !altPressed;
-
-        const Qt::KeyboardModifiers modifiers = event->modifiersRelevantForGlobalShortcuts;
-        const bool modifiersMatch = configured.keyboardModifiers() == modifiers;
-        const bool translatedKeyMatches = configured.key() == event->key;
-        const bool translatedMatches = modifiersMatch && translatedKeyMatches;
-        if (!physicalDefaultMatches && !translatedMatches) {
-            return false;
-        }
-
-        m_filteredKeys.insert(event->nativeScanCode);
-        input()->keyboard()->addFilteredKey(event->nativeScanCode);
-        m_ipc->requestScreenshot();
-        return true;
-    }
-
-private:
-    MacqueenIpc *m_ipc;
-    QSet<quint32> m_pressedKeys;
-    QSet<quint32> m_filteredKeys;
-};
-
 QString windowId(const Window *window)
 {
     return window ? window->internalId().toString(QUuid::WithoutBraces) : QString();
@@ -138,7 +73,10 @@ MacqueenIpc::MacqueenIpc(Workspace *workspace)
         KGlobalAccel::self()->setShortcut(m_screenshotAction, screenshotShortcuts, KGlobalAccel::NoAutoloading);
     }
     connect(m_screenshotAction, &QAction::triggered, this, &MacqueenIpc::requestScreenshot);
-    m_screenshotShortcutFilter = std::make_unique<ScreenshotShortcutFilter>(this);
+    // This signal is emitted by an input spy before the normal filter chain.
+    // Tracking physical scan codes here makes the default shortcut independent
+    // of the active keyboard layout and of filters which consume modifier keys.
+    connect(input(), &InputRedirection::keyStateChanged, this, &MacqueenIpc::handleRawKeyState);
 
     QDBusConnection bus = QDBusConnection::sessionBus();
     bus.registerObject(QStringLiteral("/org/macqueen/Compositor1"),
@@ -486,9 +424,69 @@ bool MacqueenIpc::setScreenshotShortcut(const QString &shortcut)
     return true;
 }
 
+QVariantMap MacqueenIpc::screenshotShortcutDebug() const
+{
+    QVariantList pressedKeys;
+    for (quint32 key : m_pressedRawKeys) {
+        pressedKeys.append(key);
+    }
+    std::sort(pressedKeys.begin(), pressedKeys.end(), [](const QVariant &left, const QVariant &right) {
+        return left.toUInt() < right.toUInt();
+    });
+
+    return {
+        {QStringLiteral("configuredShortcut"), screenshotShortcut()},
+        {QStringLiteral("lastKeyCode"), m_lastRawKeyCode},
+        {QStringLiteral("lastKeyState"), m_lastRawKeyState == KeyboardKeyState::Pressed ? QStringLiteral("pressed") : QStringLiteral("released")},
+        {QStringLiteral("pressedKeyCodes"), pressedKeys},
+        {QStringLiteral("recentEvents"), m_recentRawKeyEvents},
+        {QStringLiteral("triggerCount"), m_screenshotShortcutTriggerCount},
+        {QStringLiteral("shortcutsInhibited"), waylandServer()->isKeyboardShortcutsInhibited()},
+    };
+}
+
 void MacqueenIpc::requestScreenshot()
 {
     Q_EMIT screenshotRequested();
+}
+
+void MacqueenIpc::handleRawKeyState(quint32 keyCode, KeyboardKeyState state)
+{
+    m_lastRawKeyCode = keyCode;
+    m_lastRawKeyState = state;
+    if (state == KeyboardKeyState::Pressed) {
+        m_pressedRawKeys.insert(keyCode);
+    } else if (state == KeyboardKeyState::Released) {
+        m_pressedRawKeys.remove(keyCode);
+    }
+
+    const QString event = QStringLiteral("%1:%2")
+                              .arg(keyCode)
+                              .arg(state == KeyboardKeyState::Pressed ? QStringLiteral("down") : QStringLiteral("up"));
+    m_recentRawKeyEvents.append(event);
+    while (m_recentRawKeyEvents.size() > 16) {
+        m_recentRawKeyEvents.removeFirst();
+    }
+
+    if (state != KeyboardKeyState::Pressed || keyCode != KEY_S || waylandServer()->isKeyboardShortcutsInhibited()) {
+        return;
+    }
+
+    QString portable = screenshotShortcut();
+    portable.replace(QStringLiteral("Super"), QStringLiteral("Meta"), Qt::CaseInsensitive);
+    const QKeySequence sequence = QKeySequence::fromString(portable, QKeySequence::PortableText);
+    if (sequence.isEmpty() || sequence[0] != QKeyCombination(Qt::META | Qt::SHIFT, Qt::Key_S)) {
+        return;
+    }
+
+    const bool shiftPressed = m_pressedRawKeys.contains(KEY_LEFTSHIFT) || m_pressedRawKeys.contains(KEY_RIGHTSHIFT);
+    const bool metaPressed = m_pressedRawKeys.contains(KEY_LEFTMETA) || m_pressedRawKeys.contains(KEY_RIGHTMETA);
+    const bool controlPressed = m_pressedRawKeys.contains(KEY_LEFTCTRL) || m_pressedRawKeys.contains(KEY_RIGHTCTRL);
+    const bool altPressed = m_pressedRawKeys.contains(KEY_LEFTALT) || m_pressedRawKeys.contains(KEY_RIGHTALT);
+    if (shiftPressed && metaPressed && !controlPressed && !altPressed) {
+        ++m_screenshotShortcutTriggerCount;
+        requestScreenshot();
+    }
 }
 
 bool MacqueenIpc::overviewBorderActivated(ElectricBorder border)

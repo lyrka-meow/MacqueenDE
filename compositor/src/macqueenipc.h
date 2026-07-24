@@ -7,18 +7,18 @@
 
 #include <QObject>
 #include <QAction>
+#include <QSet>
 #include <QVariantList>
 #include <QVariantMap>
-#include <memory>
 
 #include "effect/globals.h"
+#include "input_event.h"
 
 namespace KWin
 {
 
 class Window;
 class Workspace;
-class InputEventFilter;
 
 class MacqueenIpc : public QObject
 {
@@ -53,10 +53,12 @@ public Q_SLOTS:
     void requestOverview(const QString &reason = QStringLiteral("ipc"));
     QString screenshotShortcut() const;
     bool setScreenshotShortcut(const QString &shortcut);
+    QVariantMap screenshotShortcutDebug() const;
     void requestScreenshot();
 
 private Q_SLOTS:
     bool overviewBorderActivated(ElectricBorder border);
+    void handleRawKeyState(quint32 keyCode, KeyboardKeyState state);
 
 Q_SIGNALS:
     void windowAdded(const QString &id);
@@ -76,7 +78,11 @@ private:
 
     Workspace *m_workspace;
     QAction *m_screenshotAction = nullptr;
-    std::unique_ptr<InputEventFilter> m_screenshotShortcutFilter;
+    QSet<quint32> m_pressedRawKeys;
+    QStringList m_recentRawKeyEvents;
+    quint32 m_lastRawKeyCode = 0;
+    KeyboardKeyState m_lastRawKeyState = KeyboardKeyState::Released;
+    quint64 m_screenshotShortcutTriggerCount = 0;
     const QString m_serviceName = QStringLiteral("org.macqueen.Compositor1");
 };
 

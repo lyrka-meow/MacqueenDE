@@ -38,6 +38,10 @@ cmake -S portal -B build/portal -G Ninja \
 cmake -S quickshell/macqueen-module -B build/quickshell-macqueen -G Ninja \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_INSTALL_PREFIX=/opt/macqueen-dev
+
+cmake -S apps/macqueen-screenshot -B build/macqueen-screenshot -G Ninja \
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+  -DBUILD_TESTING=OFF
 ```
 
 The build directories are ignored by Git.
@@ -49,11 +53,30 @@ upstream settings module:
 
 ```bash
 cmake --build build/compositor --target macqueen --parallel 8
+cmake --build build/compositor --target screenshot --parallel 8
 cmake --build build/portal --parallel 8
 cmake --build build/quickshell-macqueen --parallel 8
+cmake --build build/macqueen-screenshot --parallel 8
 ```
 
 Reduce the parallel count on systems with less than 16 GiB of RAM.
+
+## Macqueen Screenshot upstream
+
+`apps/macqueen-screenshot` is the MacqueenDE fork of KDE Spectacle. The
+baseline was imported from the official `v6.7.3` tag using `git subtree`, so
+its licensing and upstream ancestry remain explicit.
+
+To import a future upstream tag, first commit all local fork changes, then run:
+
+```bash
+git subtree pull --prefix apps/macqueen-screenshot \
+  https://invent.kde.org/graphics/spectacle.git <tag> --squash
+```
+
+Review the resulting merge before pushing it. Macqueen-specific branding,
+OpenCV compatibility, compositor authorization, and session integration are
+maintained as local commits after the subtree import.
 
 ## Virtual smoke test
 

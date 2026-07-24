@@ -17,6 +17,11 @@ if [[ ! -f "$repo_root/build/compositor/bin/kwin/plugins/screenshot.so" ]]; then
     exit 1
 fi
 
+if [[ ! -x "$repo_root/build/macqueen-screenshot/bin/macqueen-screenshot" ]]; then
+    echo "Missing Macqueen Screenshot build. See docs/BUILDING.md." >&2
+    exit 1
+fi
+
 if [[ ! -x "$repo_root/shell/MolniyaMacqueenShell/core/bin/dms" ]]; then
     echo "Missing Molniya backend. Run:" >&2
     echo "  make -C $repo_root/shell/MolniyaMacqueenShell/core dev" >&2

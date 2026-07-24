@@ -38,14 +38,14 @@ int main(int argc, char **argv)
     QApplication app(argc, argv);
 
     KLocalizedString::setApplicationDomain(QByteArrayLiteral("spectacle"));
-    QCoreApplication::setOrganizationDomain(u"org.kde"_s);
+    QCoreApplication::setOrganizationDomain(u"org.macqueen"_s);
 
-    KAboutData aboutData(u"spectacle"_s,
-                         i18n("Spectacle"),
+    KAboutData aboutData(u"macqueen-screenshot"_s,
+                         i18n("Macqueen Screenshot"),
                          QStringLiteral(SPECTACLE_VERSION),
-                         i18n("KDE Screenshot Utility"),
+                         i18n("Screenshot utility for MacqueenDE"),
                          KAboutLicense::GPL_V2,
-                         i18n("© 2015 Boudhayan Gupta"));
+                         i18n("© 2015 Spectacle contributors; © 2026 MacqueenDE contributors"));
     aboutData.addAuthor(u"Boudhayan Gupta"_s, {}, u"bgupta@kde.org"_s);
     aboutData.addAuthor(u"David Redondo"_s, {}, u"kde@david-redondo.de"_s);
     aboutData.addAuthor(u"Noah Davis"_s, {}, u"noahadvs@gmail.com"_s);

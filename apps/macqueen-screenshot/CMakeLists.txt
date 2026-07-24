@@ -91,7 +91,9 @@ find_package(Wayland REQUIRED COMPONENTS Client)
 find_package(PlasmaWaylandProtocols REQUIRED)
 find_package(LayerShellQt REQUIRED)
 find_package(KPipeWire)
-find_package(OpenCV 4.7 REQUIRED core imgproc)
+# Arch Linux ships OpenCV 5. The APIs used by the screenshot editor are
+# compatible, so don't unnecessarily restrict the Macqueen fork to OpenCV 4.
+find_package(OpenCV REQUIRED core imgproc)
 find_package(PkgConfig REQUIRED)
 
 set_package_properties(KPipeWire PROPERTIES DESCRIPTION

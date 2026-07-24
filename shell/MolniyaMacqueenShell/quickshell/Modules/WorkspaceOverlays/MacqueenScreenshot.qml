@@ -39,7 +39,11 @@ Scope {
 
     Process {
         id: captureProcess
-        command: ["spectacle", "--region", "--new-instance"]
+        command: [
+            Quickshell.env("MACQUEENDE_ROOT") + "/build/macqueen-screenshot/bin/macqueen-screenshot",
+            "--region",
+            "--new-instance"
+        ]
         running: false
 
         onExited: (exitCode, exitStatus) => {

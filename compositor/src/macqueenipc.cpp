@@ -48,9 +48,14 @@ public:
     bool keyboardKey(KeyboardKeyEvent *event) override
     {
         if (event->state == KeyboardKeyState::Released) {
+            m_pressedKeys.remove(event->nativeScanCode);
             return m_filteredKeys.remove(event->nativeScanCode);
         }
-        if (event->state != KeyboardKeyState::Pressed || waylandServer()->isKeyboardShortcutsInhibited()) {
+        if (event->state != KeyboardKeyState::Pressed) {
+            return false;
+        }
+        m_pressedKeys.insert(event->nativeScanCode);
+        if (waylandServer()->isKeyboardShortcutsInhibited()) {
             return false;
         }
 
@@ -62,11 +67,24 @@ public:
         }
 
         const QKeyCombination configured = sequence[0];
+        const bool physicalDefaultConfigured =
+            configured == QKeyCombination(Qt::META | Qt::SHIFT, Qt::Key_S);
+        const bool shiftPressed = m_pressedKeys.contains(KEY_LEFTSHIFT) || m_pressedKeys.contains(KEY_RIGHTSHIFT);
+        const bool metaPressed = m_pressedKeys.contains(KEY_LEFTMETA) || m_pressedKeys.contains(KEY_RIGHTMETA);
+        const bool controlPressed = m_pressedKeys.contains(KEY_LEFTCTRL) || m_pressedKeys.contains(KEY_RIGHTCTRL);
+        const bool altPressed = m_pressedKeys.contains(KEY_LEFTALT) || m_pressedKeys.contains(KEY_RIGHTALT);
+        const bool physicalDefaultMatches = physicalDefaultConfigured
+            && event->nativeScanCode == KEY_S
+            && shiftPressed
+            && metaPressed
+            && !controlPressed
+            && !altPressed;
+
         const Qt::KeyboardModifiers modifiers = event->modifiersRelevantForGlobalShortcuts;
         const bool modifiersMatch = configured.keyboardModifiers() == modifiers;
         const bool translatedKeyMatches = configured.key() == event->key;
-        const bool physicalDefaultMatches = configured.key() == Qt::Key_S && event->nativeScanCode == KEY_S;
-        if (!modifiersMatch || (!translatedKeyMatches && !physicalDefaultMatches)) {
+        const bool translatedMatches = modifiersMatch && translatedKeyMatches;
+        if (!physicalDefaultMatches && !translatedMatches) {
             return false;
         }
 
@@ -78,6 +96,7 @@ public:
 
 private:
     MacqueenIpc *m_ipc;
+    QSet<quint32> m_pressedKeys;
     QSet<quint32> m_filteredKeys;
 };
 

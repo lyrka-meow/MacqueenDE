@@ -141,7 +141,7 @@ MacqueenIpc::~MacqueenIpc()
 
 uint MacqueenIpc::protocolVersion() const
 {
-    return 5;
+    return 6;
 }
 
 QString MacqueenIpc::compositorVersion() const
@@ -438,6 +438,24 @@ void MacqueenIpc::setShortcutCaptureActive(bool active)
     if (active) {
         m_pressedRawKeys.clear();
     }
+}
+
+QStringList MacqueenIpc::pressedShortcutModifiers() const
+{
+    QStringList modifiers;
+    if (m_pressedRawKeys.contains(KEY_LEFTMETA) || m_pressedRawKeys.contains(KEY_RIGHTMETA)) {
+        modifiers.append(QStringLiteral("Super"));
+    }
+    if (m_pressedRawKeys.contains(KEY_LEFTALT) || m_pressedRawKeys.contains(KEY_RIGHTALT)) {
+        modifiers.append(QStringLiteral("Alt"));
+    }
+    if (m_pressedRawKeys.contains(KEY_LEFTCTRL) || m_pressedRawKeys.contains(KEY_RIGHTCTRL)) {
+        modifiers.append(QStringLiteral("Ctrl"));
+    }
+    if (m_pressedRawKeys.contains(KEY_LEFTSHIFT) || m_pressedRawKeys.contains(KEY_RIGHTSHIFT)) {
+        modifiers.append(QStringLiteral("Shift"));
+    }
+    return modifiers;
 }
 
 QVariantMap MacqueenIpc::screenshotShortcutDebug() const

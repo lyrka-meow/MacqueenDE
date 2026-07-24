@@ -265,6 +265,14 @@ void MacqueenIpcClient::setShortcutCaptureActive(bool active)
     }
 }
 
+QStringList MacqueenIpcClient::pressedShortcutModifiers() const
+{
+    if (m_protocolVersion < 6) {
+        return {};
+    }
+    return call(QStringLiteral("pressedShortcutModifiers")).toStringList();
+}
+
 void MacqueenIpcClient::requestScreenshot()
 {
     if (!m_available || m_protocolVersion < 4) {

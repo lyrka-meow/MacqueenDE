@@ -726,6 +726,14 @@ Item {
                             let mods = KeyUtils.modsFromEvent(event.modifiers);
                             let qtKey = event.key;
 
+                            if (KeybindsService.currentProvider === "macqueen") {
+                                const physicalMods = Macqueen.pressedShortcutModifiers();
+                                for (const modifier of physicalMods) {
+                                    if (!mods.includes(modifier))
+                                        mods.push(modifier);
+                                }
+                            }
+
                             if (root._altShiftGhost && (event.modifiers & Qt.AltModifier) && !mods.includes("Shift")) {
                                 mods.push("Shift");
                             }

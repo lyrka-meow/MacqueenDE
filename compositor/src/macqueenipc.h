@@ -54,6 +54,7 @@ public Q_SLOTS:
     QString screenshotShortcut() const;
     bool setScreenshotShortcut(const QString &shortcut);
     void setShortcutCaptureActive(bool active);
+    QStringList pressedShortcutModifiers() const;
     QVariantMap screenshotShortcutDebug() const;
     void requestScreenshot();
 

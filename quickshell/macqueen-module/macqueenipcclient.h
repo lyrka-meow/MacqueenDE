@@ -60,6 +60,7 @@ public:
     Q_INVOKABLE bool cancelScreenCastSelection(const QString &requestId);
     Q_INVOKABLE bool setScreenshotShortcut(const QString &shortcut);
     Q_INVOKABLE void setShortcutCaptureActive(bool active);
+    Q_INVOKABLE QStringList pressedShortcutModifiers() const;
     Q_INVOKABLE void requestScreenshot();
 
 Q_SIGNALS:

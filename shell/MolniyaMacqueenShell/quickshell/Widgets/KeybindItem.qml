@@ -55,6 +55,17 @@ Item {
             Macqueen.setShortcutCaptureActive(false);
     }
 
+    Connections {
+        target: Macqueen
+
+        function onShortcutCaptured(shortcut) {
+            if (!root.recording || KeybindsService.currentProvider !== "macqueen")
+                return;
+            root.updateEdit({ "key": shortcut });
+            root.stopRecording();
+        }
+    }
+
     readonly property var keys: bindData.keys || []
     readonly property bool hasOverride: {
         for (var i = 0; i < keys.length; i++) {

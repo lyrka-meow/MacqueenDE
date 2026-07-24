@@ -74,6 +74,8 @@ MacqueenIpcClient::MacqueenIpcClient(QObject *parent)
                 QStringLiteral("screenshotRequested"), this, SIGNAL(screenshotRequested()));
     bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
                 QStringLiteral("screenshotShortcutChanged"), this, SLOT(handleScreenshotShortcutChanged(QString)));
+    bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
+                QStringLiteral("shortcutCaptured"), this, SIGNAL(shortcutCaptured(QString)));
     bus.interface()->registerService(QStringLiteral("org.macqueen.MolniyaShell1"),
                                      QDBusConnectionInterface::DontQueueService,
                                      QDBusConnectionInterface::DontAllowReplacement);

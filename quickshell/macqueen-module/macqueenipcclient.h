@@ -76,6 +76,7 @@ Q_SIGNALS:
     void screenCastSelectionRequested(const QString &requestId, const QString &title, const QString &optionsJson);
     void screenshotRequested();
     void screenshotShortcutChanged();
+    void shortcutCaptured(const QString &shortcut);
 
 private Q_SLOTS:
     void handleServiceRegistered();

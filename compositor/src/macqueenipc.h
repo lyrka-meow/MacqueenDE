@@ -73,6 +73,7 @@ Q_SIGNALS:
     void overviewRequested(const QString &reason);
     void screenshotRequested();
     void screenshotShortcutChanged(const QString &shortcut);
+    void shortcutCaptured(const QString &shortcut);
 
 private:
     void watchWindow(Window *window);

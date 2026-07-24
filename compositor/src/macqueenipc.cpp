@@ -141,7 +141,7 @@ MacqueenIpc::~MacqueenIpc()
 
 uint MacqueenIpc::protocolVersion() const
 {
-    return 6;
+    return 7;
 }
 
 QString MacqueenIpc::compositorVersion() const
@@ -501,6 +501,38 @@ void MacqueenIpc::handleRawKeyState(quint32 keyCode, KeyboardKeyState state)
     m_recentRawKeyEvents.append(event);
     while (m_recentRawKeyEvents.size() > 16) {
         m_recentRawKeyEvents.removeFirst();
+    }
+
+    if (m_shortcutCaptureActive && state == KeyboardKeyState::Pressed) {
+        const bool modifierKey = keyCode == KEY_LEFTSHIFT || keyCode == KEY_RIGHTSHIFT
+            || keyCode == KEY_LEFTMETA || keyCode == KEY_RIGHTMETA
+            || keyCode == KEY_LEFTCTRL || keyCode == KEY_RIGHTCTRL
+            || keyCode == KEY_LEFTALT || keyCode == KEY_RIGHTALT;
+        if (!modifierKey) {
+            Xkb *xkb = input()->keyboard()->xkb();
+            const Qt::Key key = xkb->toQtKey(xkb->toKeysym(keyCode), keyCode);
+            if (key != Qt::Key_unknown) {
+                Qt::KeyboardModifiers modifiers;
+                const QStringList physicalModifiers = pressedShortcutModifiers();
+                if (physicalModifiers.contains(QStringLiteral("Super"))) {
+                    modifiers |= Qt::MetaModifier;
+                }
+                if (physicalModifiers.contains(QStringLiteral("Alt"))) {
+                    modifiers |= Qt::AltModifier;
+                }
+                if (physicalModifiers.contains(QStringLiteral("Ctrl"))) {
+                    modifiers |= Qt::ControlModifier;
+                }
+                if (physicalModifiers.contains(QStringLiteral("Shift"))) {
+                    modifiers |= Qt::ShiftModifier;
+                }
+                QString shortcut = QKeySequence(QKeyCombination(modifiers, key)).toString(QKeySequence::PortableText);
+                shortcut.replace(QStringLiteral("Meta"), QStringLiteral("Super"));
+                if (!shortcut.isEmpty()) {
+                    Q_EMIT shortcutCaptured(shortcut);
+                }
+            }
+        }
     }
 
     if (m_shortcutCaptureActive

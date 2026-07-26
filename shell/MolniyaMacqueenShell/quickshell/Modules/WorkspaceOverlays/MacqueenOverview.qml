@@ -187,7 +187,7 @@ Scope {
                                 readonly property var workspaceWindows: root.windowsForWorkspace(modelData.id)
                                 readonly property real cardWidth: (workspaceGrid.width - workspaceGrid.spacing * (workspaceGrid.columns - 1)) / workspaceGrid.columns
                                 readonly property int requiredWindowRows: Math.max(1, Math.ceil(root.maximumWorkspaceWindowCount / 2))
-                                readonly property real desiredCardHeight: Theme.spacingXL * 2 + requiredWindowRows * 56 + Math.max(0, requiredWindowRows - 1) * Theme.spacingS + Theme.spacingM * 2
+                                readonly property real desiredCardHeight: Theme.spacingXL * 2 + requiredWindowRows * 56 + Math.max(0, requiredWindowRows - 1) * Theme.spacingS + Theme.spacingM * 3 + 34
 
                                 width: cardWidth
                                 height: Math.max(220, Math.min(panel.height - 240, desiredCardHeight))
@@ -223,6 +223,44 @@ Scope {
                                     font.weight: Font.DemiBold
                                 }
 
+                                Rectangle {
+                                    id: workspaceButton
+
+                                    anchors {
+                                        left: parent.left
+                                        right: parent.right
+                                        bottom: parent.bottom
+                                        margins: Theme.spacingM
+                                    }
+                                    height: 34
+                                    radius: Theme.cornerRadius
+                                    color: workspaceButtonMouse.containsMouse
+                                        ? Theme.primaryContainer
+                                        : (workspaceCard.modelData.current ? Theme.surfaceContainerHigh : Theme.surfaceContainerHighest)
+                                    border.width: 1
+                                    border.color: workspaceCard.modelData.current ? Theme.primary : Theme.outline
+
+                                    StyledText {
+                                        anchors.centerIn: parent
+                                        text: workspaceCard.modelData.current ? I18n.tr("Current workspace") : I18n.tr("Switch to workspace")
+                                        color: workspaceCard.modelData.current ? Theme.primary : Theme.surfaceText
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        font.weight: Font.Medium
+                                    }
+
+                                    MouseArea {
+                                        id: workspaceButtonMouse
+
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            Macqueen.activateWorkspace(workspaceCard.modelData.id);
+                                            root.close(false);
+                                        }
+                                    }
+                                }
+
                                 Flickable {
                                     id: windowViewport
 
@@ -230,9 +268,10 @@ Scope {
                                         left: parent.left
                                         right: parent.right
                                         top: parent.top
-                                        bottom: parent.bottom
+                                        bottom: workspaceButton.top
                                         margins: Theme.spacingM
                                         topMargin: Theme.spacingXL * 2
+                                        bottomMargin: Theme.spacingS
                                     }
                                     clip: true
                                     contentWidth: width

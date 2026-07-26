@@ -13,7 +13,7 @@ tmp_dir=$(mktemp -d)
 cleanup() { rm -rf -- "$tmp_dir"; }
 trap cleanup EXIT
 
-asset_url=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" |
+asset_url=$(curl -fsSL "https://api.github.com/repos/$repo/releases?per_page=20" |
     sed -n 's/.*"browser_download_url":[[:space:]]*"\([^"]*macqueende-[^"]*-'"$arch"'\.tar\.zst\)".*/\1/p' |
     head -n1)
 [[ -n "$asset_url" ]] || {

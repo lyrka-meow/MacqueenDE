@@ -24,6 +24,7 @@ Item {
     property real contentOffsetY: 0
     property string section: ""
     property int barPosition: SettingsData.Position.Top
+    property bool lyricsPanelOpen: false
 
     readonly property color accent: MediaAccentService.accent
     readonly property color onAccent: MediaAccentService.onAccent
@@ -41,13 +42,11 @@ Item {
     property bool volumeExpanded: false
     property bool devicesExpanded: false
     property bool playersExpanded: false
-    property bool lyricsExpanded: false
 
     function resetDropdownStates() {
         volumeExpanded = false;
         devicesExpanded = false;
         playersExpanded = false;
-        lyricsExpanded = false;
     }
 
     readonly property bool isRightEdge: {
@@ -1025,7 +1024,7 @@ Item {
         radius: 20
         x: Theme.spacingM
         y: 295
-        color: lyricsArea.containsMouse || lyricsExpanded ? root.accentPressed : Theme.withAlpha(root.accentPressed, 0)
+        color: lyricsArea.containsMouse || root.lyricsPanelOpen ? root.accentPressed : Theme.withAlpha(root.accentPressed, 0)
         border.color: LyricsService.hasLyrics ? root.accent : Theme.outlineStrong
         border.width: 1
         z: 100
@@ -1043,12 +1042,11 @@ Item {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: {
-                if (lyricsExpanded) {
+                if (root.lyricsPanelOpen) {
                     root.hideDropdowns();
                     return;
                 }
                 root.hideDropdowns();
-                lyricsExpanded = true;
                 const panelOnRight = false;
                 const screenX = root.popoutX;
                 const screenY = root.popoutY + root.contentOffsetY + lyricsButton.y + lyricsButton.height / 2;

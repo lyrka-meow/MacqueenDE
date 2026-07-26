@@ -418,6 +418,7 @@ DankPopout {
                         asynchronous: true
                         sourceComponent: Component {
                             MediaPlayerTab {
+                                lyricsPanelOpen: root.__dropdownType === 4
                                 targetScreen: root.screen
                                 popoutX: root.alignedX
                                 popoutY: root.alignedY

@@ -45,7 +45,7 @@ Item {
         target: CavaService
         enabled: root.live
         function onValuesChanged() {
-            const v = CavaService.values;
+            const v = CavaService.compactValues;
             if (v.length < 6)
                 return;
             const n = i => {

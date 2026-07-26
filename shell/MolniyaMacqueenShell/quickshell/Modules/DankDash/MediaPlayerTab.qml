@@ -465,7 +465,7 @@ Item {
         visible: !_noneAvailable && (!showNoPlayerNow)
         ColumnLayout {
             id: playerContent
-            width: 484
+            width: 650
             height: 430
             spacing: Theme.spacingXS
             anchors.top: parent.top
@@ -474,14 +474,32 @@ Item {
 
             Item {
                 width: parent.width
-                height: 200
+                height: 220
                 clip: false
 
-                DankAlbumArt {
-                    width: Math.min(parent.width * 0.8, parent.height * 0.9)
-                    height: width
-                    anchors.centerIn: parent
-                    activePlayer: root.activePlayer
+                Row {
+                    anchors.fill: parent
+                    spacing: Theme.spacingL
+
+                    Item {
+                        width: 220
+                        height: parent.height
+
+                        DankAlbumArt {
+                            width: 210
+                            height: width
+                            anchors.centerIn: parent
+                            activePlayer: root.activePlayer
+                        }
+                    }
+
+                    DankLyricsView {
+                        width: parent.width - 220 - parent.spacing
+                        height: parent.height
+                        activePlayer: root.activePlayer
+                        currentIndex: root.lyricIndex
+                        accent: root.accent
+                    }
                 }
             }
 
@@ -507,53 +525,6 @@ Item {
                         elide: Text.ElideRight
                         wrapMode: Text.WordWrap
                         maximumLineCount: 2
-                    }
-
-                    Item {
-                        width: parent.width
-                        height: 54
-                        visible: LyricsService.loading || LyricsService.hasLyrics
-
-                        Column {
-                            anchors.centerIn: parent
-                            width: parent.width * 0.92
-                            spacing: 2
-
-                            StyledText {
-                                width: parent.width
-                                text: root.lyricIndex > 0 ? LyricsService.lines[root.lyricIndex - 1].text : ""
-                                font.pixelSize: Theme.fontSizeSmall
-                                color: Theme.surfaceTextSecondary
-                                horizontalAlignment: Text.AlignHCenter
-                                elide: Text.ElideRight
-                            }
-
-                            StyledText {
-                                width: parent.width
-                                text: {
-                                    if (LyricsService.loading)
-                                        return I18n.tr("Loading lyrics…");
-                                    if (root.lyricIndex >= 0)
-                                        return LyricsService.lines[root.lyricIndex].text;
-                                    return LyricsService.lines.length > 0 ? LyricsService.lines[0].text : "";
-                                }
-                                font.pixelSize: Theme.fontSizeMedium
-                                font.weight: Font.DemiBold
-                                color: root.accent
-                                horizontalAlignment: Text.AlignHCenter
-                                elide: Text.ElideRight
-                            }
-
-                            StyledText {
-                                width: parent.width
-                                text: root.lyricIndex >= 0 && root.lyricIndex + 1 < LyricsService.lines.length
-                                      ? LyricsService.lines[root.lyricIndex + 1].text : ""
-                                font.pixelSize: Theme.fontSizeSmall
-                                color: Theme.surfaceTextSecondary
-                                horizontalAlignment: Text.AlignHCenter
-                                elide: Text.ElideRight
-                            }
-                        }
                     }
 
                     StyledText {

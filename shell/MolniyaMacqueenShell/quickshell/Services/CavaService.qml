@@ -10,7 +10,19 @@ import qs.Common
 Singleton {
     id: root
 
-    property list<int> values: Array(6)
+    property list<int> values: Array(48)
+    readonly property var compactValues: {
+        if (values.length < 48)
+            return values;
+        const result = [];
+        for (let band = 0; band < 6; band++) {
+            let sum = 0;
+            for (let i = 0; i < 8; i++)
+                sum += values[band * 8 + i] || 0;
+            result.push(sum / 8);
+        }
+        return result;
+    }
     property int refCount: 0
     property bool cavaAvailable: false
     readonly property string _confPath: `${Paths.strip(StandardPaths.writableLocation(StandardPaths.TempLocation))}/dms-cava-${Date.now()}-${Math.floor(Math.random() * 1000000)}.conf`
@@ -36,7 +48,7 @@ Singleton {
         command: ["sh", "-c", `cat <<'CAVACONF' > ${root._confPath}
 [general]
 framerate=25
-bars=6
+bars=48
 autosens=0
 sensitivity=30
 sleep_timer=3
@@ -61,7 +73,7 @@ exec cava -p ${root._confPath} < /dev/null`]
 
         onRunningChanged: {
             if (!running) {
-                root.values = Array(6).fill(0);
+                root.values = Array(48).fill(0);
             }
         }
 
@@ -72,10 +84,12 @@ exec cava -p ${root._confPath} < /dev/null`]
                     return;
 
                 const parts = data.split(";");
-                if (parts.length < 6)
+                if (parts.length < 48)
                     return;
 
-                const points = [parseInt(parts[0], 10), parseInt(parts[1], 10), parseInt(parts[2], 10), parseInt(parts[3], 10), parseInt(parts[4], 10), parseInt(parts[5], 10)];
+                const points = [];
+                for (let i = 0; i < 48; i++)
+                    points.push(parseInt(parts[i], 10));
                 if (points.every((v, i) => v === root.values[i]))
                     return;
 

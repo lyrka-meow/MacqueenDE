@@ -17,6 +17,9 @@ Singleton {
     property string plainLyrics: ""
     property string trackKey: ""
     property int requestId: 0
+    property string pendingArtist: ""
+    property string pendingTitle: ""
+    property real pendingDuration: 0
 
     function encoded(value) {
         return encodeURIComponent((value || "").trim());
@@ -31,6 +34,9 @@ Singleton {
 
         trackKey = key;
         requestId++;
+        pendingArtist = cleanArtist;
+        pendingTitle = cleanTitle;
+        pendingDuration = duration || 0;
         lines = [];
         plainLyrics = "";
         error = "";
@@ -51,6 +57,26 @@ Singleton {
                            "https://lrclib.net/api/get?" + query];
         loading = true;
         fetcher.running = true;
+    }
+
+    function searchTrack() {
+        searcher.reqId = requestId;
+        searcher.command = ["curl", "-fsSL", "--connect-timeout", "4", "--max-time", "10",
+                            "-H", "User-Agent: MolniyaMacqueenShell/0.1",
+                            "https://lrclib.net/api/search?track_name=" + encoded(pendingTitle)
+                            + "&artist_name=" + encoded(pendingArtist)];
+        searcher.running = true;
+    }
+
+    function acceptResult(result) {
+        plainLyrics = result?.plainLyrics || "";
+        lines = parseLrc(result?.syncedLyrics || "");
+        if (lines.length === 0 && plainLyrics)
+            error = qsTr("Lyrics are available, but not synchronized");
+        else if (lines.length === 0)
+            error = qsTr("Lyrics not found");
+        else
+            error = "";
     }
 
     function parseLrc(text) {
@@ -99,12 +125,7 @@ Singleton {
                     return;
                 try {
                     const result = JSON.parse(text);
-                    root.plainLyrics = result.plainLyrics || "";
-                    root.lines = root.parseLrc(result.syncedLyrics || "");
-                    if (root.lines.length === 0 && root.plainLyrics)
-                        root.error = qsTr("Lyrics are available, but not synchronized");
-                    else if (root.lines.length === 0)
-                        root.error = qsTr("Lyrics not found");
+                    root.acceptResult(result);
                 } catch (e) {
                     root.error = qsTr("Lyrics not found");
                     root.lines = [];
@@ -115,8 +136,53 @@ Singleton {
         onExited: exitCode => {
             if (reqId !== root.requestId)
                 return;
+            if (root.lines.length === 0) {
+                root.searchTrack();
+                return;
+            }
             root.loading = false;
-            if (exitCode !== 0 && root.lines.length === 0)
+        }
+    }
+
+    Process {
+        id: searcher
+        property int reqId: 0
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: {
+                if (searcher.reqId !== root.requestId)
+                    return;
+                try {
+                    const candidates = JSON.parse(text);
+                    let selected = null;
+                    let bestScore = -100000;
+                    for (let i = 0; i < candidates.length; i++) {
+                        const candidate = candidates[i];
+                        if (!candidate.syncedLyrics)
+                            continue;
+                        const durationDelta = root.pendingDuration > 0
+                            ? Math.abs((candidate.duration || 0) - root.pendingDuration) : 0;
+                        const score = ((candidate.trackName || "").toLowerCase() === root.pendingTitle.toLowerCase() ? 100 : 0)
+                                    + ((candidate.artistName || "").toLowerCase().includes(root.pendingArtist.toLowerCase()) ? 40 : 0)
+                                    - durationDelta;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            selected = candidate;
+                        }
+                    }
+                    root.acceptResult(selected || candidates[0] || {});
+                } catch (e) {
+                    root.error = qsTr("Lyrics not found");
+                }
+            }
+        }
+
+        onExited: exitCode => {
+            if (reqId !== root.requestId)
+                return;
+            root.loading = false;
+            if (root.lines.length === 0 && !root.error)
                 root.error = qsTr("Lyrics not found");
         }
     }

@@ -110,7 +110,7 @@ Item {
     }
 
     function updateBands() {
-        const vals = CavaService.values;
+        const vals = CavaService.compactValues;
         if (!vals || vals.length < 6)
             return;
 

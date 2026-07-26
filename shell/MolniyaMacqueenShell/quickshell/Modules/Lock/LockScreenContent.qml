@@ -1532,8 +1532,8 @@ Item {
 
                                 width: 2
                                 height: {
-                                    if (MprisController.activePlayer?.playbackState === MprisPlaybackState.Playing && CavaService.values.length > index) {
-                                        const rawLevel = CavaService.values[index] || 0;
+                                    if (MprisController.activePlayer?.playbackState === MprisPlaybackState.Playing && CavaService.compactValues.length > index) {
+                                        const rawLevel = CavaService.compactValues[index] || 0;
                                         const scaledLevel = Math.sqrt(Math.min(Math.max(rawLevel, 0), 100) / 100) * 100;
                                         const maxHeight = Theme.iconSize - 2;
                                         const minHeight = 3;

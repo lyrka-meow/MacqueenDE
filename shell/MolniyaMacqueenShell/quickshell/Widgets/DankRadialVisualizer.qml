@@ -28,12 +28,9 @@ Item {
 
             const values = CavaService.values;
             for (let i = 0; i < root.barCount; i++) {
-                const bandPos = i * 6 / root.barCount;
-                const lo = Math.floor(bandPos) % 6;
-                const hi = (lo + 1) % 6;
-                const mix = bandPos - Math.floor(bandPos);
-                const raw = (values[lo] || 0) * (1 - mix) + (values[hi] || 0) * mix;
-                const level = root.playing ? Math.max(0.06, Math.min(1, raw / 45)) : 0.035;
+                // CAVA provides one real frequency value per ray, just like Caelestia.
+                const raw = values[i] || 0;
+                const level = root.playing ? Math.max(0.045, Math.min(1, raw / 100)) : 0.025;
                 const angle = i * Math.PI * 2 / root.barCount - Math.PI / 2;
                 const length = 2 + level * root.maxLength;
                 const cos = Math.cos(angle);

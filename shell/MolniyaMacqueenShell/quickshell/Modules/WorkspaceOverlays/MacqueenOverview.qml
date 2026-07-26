@@ -1,5 +1,6 @@
 import Macqueen.Ipc
 import QtQuick
+import QtQuick.Controls as QQC2
 import Quickshell
 import Quickshell.Wayland
 import qs.Common
@@ -14,6 +15,12 @@ Scope {
     property string targetScreenName: ""
 
     readonly property var visibleWindows: Macqueen.windows.filter(window => !window.skipTaskbar)
+    readonly property int maximumWorkspaceWindowCount: {
+        let maximum = 0;
+        for (const workspace of Macqueen.workspaces)
+            maximum = Math.max(maximum, windowsForWorkspace(workspace.id).length);
+        return maximum;
+    }
 
     function targetScreen() {
         for (const screen of Quickshell.screens) {
@@ -179,9 +186,11 @@ Scope {
                                 required property var modelData
                                 readonly property var workspaceWindows: root.windowsForWorkspace(modelData.id)
                                 readonly property real cardWidth: (workspaceGrid.width - workspaceGrid.spacing * (workspaceGrid.columns - 1)) / workspaceGrid.columns
+                                readonly property int requiredWindowRows: Math.max(1, Math.ceil(root.maximumWorkspaceWindowCount / 2))
+                                readonly property real desiredCardHeight: Theme.spacingXL * 2 + requiredWindowRows * 56 + Math.max(0, requiredWindowRows - 1) * Theme.spacingS + Theme.spacingM * 2
 
                                 width: cardWidth
-                                height: Math.max(180, width * 0.56)
+                                height: Math.max(220, Math.min(panel.height - 240, desiredCardHeight))
                                 radius: Theme.cornerRadius
                                 color: Theme.surfaceContainer
                                 border.width: modelData.current ? 3 : 1
@@ -229,6 +238,10 @@ Scope {
                                     contentWidth: width
                                     contentHeight: windowGrid.implicitHeight
                                     boundsBehavior: Flickable.StopAtBounds
+
+                                    QQC2.ScrollBar.vertical: QQC2.ScrollBar {
+                                        policy: windowViewport.contentHeight > windowViewport.height ? QQC2.ScrollBar.AlwaysOn : QQC2.ScrollBar.AsNeeded
+                                    }
 
                                     Grid {
                                         id: windowGrid

@@ -6,7 +6,9 @@ import qs.Widgets
 
 Item {
     id: root
-    visible: dropdownType !== 0
+    // Do not hide the root abruptly: opacity changes below must submit a clear
+    // frame for the old translucent panel area.
+    visible: true
 
     LayoutMirroring.enabled: I18n.isRtl
     LayoutMirroring.childrenInherit: true
@@ -121,7 +123,8 @@ Item {
 
     Rectangle {
         id: lyricsPanel
-        visible: dropdownType === 4
+        visible: true
+        enabled: dropdownType === 4
         width: 360
         height: 420
         x: isRightEdge ? anchorPos.x + Theme.spacingS : anchorPos.x - width - Theme.spacingS
@@ -131,12 +134,11 @@ Item {
         border.color: Theme.withAlpha(MediaAccentService.accent, 0.45)
         border.width: 1
 
-        opacity: Theme.isDirectionalEffect ? 1 : (dropdownType === 4 ? 1 : 0)
-        scale: Theme.isDirectionalEffect ? 1 : (dropdownType === 4 ? 1 : Theme.effectScaleCollapsed)
+        opacity: dropdownType === 4 ? 1 : 0
+        scale: dropdownType === 4 ? 1 : Theme.effectScaleCollapsed
         transformOrigin: isRightEdge ? Item.Left : Item.Right
 
         Behavior on opacity {
-            enabled: !Theme.isDirectionalEffect
             NumberAnimation {
                 duration: Theme.variantDuration(Theme.expressiveDurations.expressiveDefaultSpatial, dropdownType === 4)
                 easing.type: Easing.BezierSpline
@@ -145,7 +147,6 @@ Item {
         }
 
         Behavior on scale {
-            enabled: !Theme.isDirectionalEffect
             NumberAnimation {
                 duration: Theme.variantDuration(Theme.expressiveDurations.expressiveDefaultSpatial, dropdownType === 4)
                 easing.type: Easing.BezierSpline
@@ -186,7 +187,7 @@ Item {
         Timer {
             interval: 250
             repeat: true
-            running: lyricsPanel.visible && !!root.activePlayer
+            running: root.dropdownType === 4 && !!root.activePlayer
             onTriggered: lyricsPanel.currentLyricIndex = LyricsService.indexForTime(root.activePlayer?.position || 0)
         }
     }

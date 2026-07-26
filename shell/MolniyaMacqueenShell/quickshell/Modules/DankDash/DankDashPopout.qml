@@ -145,9 +145,10 @@ DankPopout {
         }
     }
 
-    // Destroy the auxiliary surface when no dropdown is active. Merely hiding
-    // its QML item can leave the last frame visible on some compositors.
-    overlayContent: shouldBeVisible && __dropdownType !== 0 ? mediaDropdownOverlayComponent : null
+    // Keep the transparent overlay surface alive while the dashboard is open.
+    // Its panels fade to transparent before becoming inert; abruptly removing
+    // the surface can leave a stale frame on some compositors.
+    overlayContent: shouldBeVisible ? mediaDropdownOverlayComponent : null
 
     Component {
         id: mediaDropdownOverlayComponent

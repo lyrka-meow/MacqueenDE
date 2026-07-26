@@ -17,16 +17,15 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: Theme.cornerRadius
-        color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.58)
-        border.width: 1
-        border.color: Theme.withAlpha(root.accent, 0.28)
+        color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.42)
+        border.width: 0
     }
 
     Row {
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.margins: Theme.spacingM
-        spacing: Theme.spacingS
+        spacing: Theme.spacingM
 
         DankIcon {
             name: "lyrics"
@@ -96,7 +95,7 @@ Item {
             color: ListView.isCurrentItem ? root.accent : Theme.surfaceTextSecondary
             font.pixelSize: ListView.isCurrentItem ? Theme.fontSizeMedium : Theme.fontSizeSmall
             font.weight: ListView.isCurrentItem ? Font.Bold : Font.Normal
-            opacity: ListView.isCurrentItem ? 1 : 0.56
+            opacity: ListView.isCurrentItem ? 1 : 0.34
 
             Behavior on color { ColorAnimation { duration: 220 } }
             Behavior on opacity { NumberAnimation { duration: 220 } }

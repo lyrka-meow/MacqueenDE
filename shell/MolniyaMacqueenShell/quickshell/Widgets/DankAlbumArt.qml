@@ -25,7 +25,7 @@ Item {
     property string _srcOverride: "" // forces the live url when the resolved one fails
     readonly property string _mainSrc: _srcOverride !== "" ? _srcOverride : curArt
     readonly property int albumArtStatus: mainArt.imageStatus
-    property real albumSize: Math.min(width, height) * 0.72
+    property real albumSize: Math.min(width, height) * 0.58
     property bool showAnimation: true
     property real animationScale: 1.0
 

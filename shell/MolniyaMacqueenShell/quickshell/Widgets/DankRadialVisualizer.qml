@@ -9,8 +9,8 @@ Item {
     property var activePlayer
     property color color: MediaAccentService.accent
     property int barCount: 48
-    property real innerRadius: Math.min(width, height) * 0.35
-    property real maxLength: Math.min(width, height) * 0.105
+    property real innerRadius: Math.min(width, height) * 0.31
+    property real maxLength: Math.min(width, height) * 0.17
     readonly property bool playing: activePlayer?.playbackState === MprisPlaybackState.Playing
 
     Canvas {
@@ -30,9 +30,9 @@ Item {
             for (let i = 0; i < root.barCount; i++) {
                 // CAVA provides one real frequency value per ray, just like Caelestia.
                 const raw = values[i] || 0;
-                const level = root.playing ? Math.max(0.045, Math.min(1, raw / 100)) : 0.025;
+                const level = root.playing ? Math.max(0.08, Math.min(1, Math.sqrt(raw / 100))) : 0.04;
                 const angle = i * Math.PI * 2 / root.barCount - Math.PI / 2;
-                const length = 2 + level * root.maxLength;
+                const length = 3 + level * root.maxLength;
                 const cos = Math.cos(angle);
                 const sin = Math.sin(angle);
                 ctx.beginPath();

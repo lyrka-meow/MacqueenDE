@@ -49,8 +49,8 @@ Singleton {
 [general]
 framerate=25
 bars=48
-autosens=0
-sensitivity=30
+autosens=1
+sensitivity=100
 sleep_timer=3
 lower_cutoff_freq=50
 higher_cutoff_freq=12000
@@ -59,13 +59,14 @@ higher_cutoff_freq=12000
 method=raw
 raw_target=/dev/stdout
 data_format=ascii
+ascii_max_range=100
 channels=mono
 mono_option=average
 
 [smoothing]
-noise_reduction=35
+noise_reduction=20
 integral=90
-gravity=95
+gravity=70
 ignore=2
 monstercat=1.5
 CAVACONF

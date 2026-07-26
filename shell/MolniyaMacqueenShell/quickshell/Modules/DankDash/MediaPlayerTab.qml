@@ -465,7 +465,7 @@ Item {
         visible: !_noneAvailable && (!showNoPlayerNow)
         ColumnLayout {
             id: playerContent
-            width: 650
+            width: 570
             height: 430
             spacing: Theme.spacingXS
             anchors.top: parent.top
@@ -474,19 +474,19 @@ Item {
 
             Item {
                 width: parent.width
-                height: 220
+                height: 200
                 clip: false
 
                 Row {
                     anchors.fill: parent
-                    spacing: Theme.spacingL
+                    spacing: Theme.spacingM
 
                     Item {
-                        width: 220
+                        width: 190
                         height: parent.height
 
                         DankAlbumArt {
-                            width: 210
+                            width: 190
                             height: width
                             anchors.centerIn: parent
                             activePlayer: root.activePlayer
@@ -494,7 +494,7 @@ Item {
                     }
 
                     DankLyricsView {
-                        width: parent.width - 220 - parent.spacing
+                        width: parent.width - 190 - parent.spacing
                         height: parent.height
                         activePlayer: root.activePlayer
                         currentIndex: root.lyricIndex

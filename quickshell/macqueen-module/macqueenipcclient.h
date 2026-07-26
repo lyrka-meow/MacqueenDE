@@ -54,6 +54,7 @@ public:
     Q_INVOKABLE bool setWindowMinimized(const QString &id, bool minimized);
     Q_INVOKABLE bool setWindowFullscreen(const QString &id, bool fullscreen);
     Q_INVOKABLE bool moveWindowToWorkspace(const QString &windowId, const QString &workspaceId);
+    Q_INVOKABLE QString outputAtCursor() const;
     Q_INVOKABLE bool setKeyboardLayouts(const QStringList &layouts);
     Q_INVOKABLE bool setCurrentKeyboardLayout(uint index);
     Q_INVOKABLE bool submitScreenCastSelection(const QString &requestId, const QString &kind, const QString &id, bool allowRestore = true);

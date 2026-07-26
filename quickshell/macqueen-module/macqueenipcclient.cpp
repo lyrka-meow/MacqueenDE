@@ -210,6 +210,14 @@ bool MacqueenIpcClient::moveWindowToWorkspace(const QString &windowId, const QSt
     return call(QStringLiteral("moveWindowToWorkspace"), {windowId, workspaceId}).toBool();
 }
 
+QString MacqueenIpcClient::outputAtCursor() const
+{
+    if (m_protocolVersion < 8) {
+        return {};
+    }
+    return call(QStringLiteral("outputAtCursor")).toString();
+}
+
 bool MacqueenIpcClient::setKeyboardLayouts(const QStringList &layouts)
 {
     const bool changed = call(QStringLiteral("setKeyboardLayouts"), {layouts}).toBool();

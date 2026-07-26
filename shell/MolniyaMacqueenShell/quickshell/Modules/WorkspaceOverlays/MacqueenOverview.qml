@@ -11,8 +11,17 @@ Scope {
     property bool overviewOpen: false
     property int selectedWindow: -1
     property string draggingWindowId: ""
+    property string targetScreenName: ""
 
     readonly property var visibleWindows: Macqueen.windows.filter(window => !window.skipTaskbar)
+
+    function targetScreen() {
+        for (const screen of Quickshell.screens) {
+            if (screen.name === targetScreenName)
+                return screen;
+        }
+        return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null;
+    }
 
     function windowsForWorkspace(workspaceId) {
         return visibleWindows.filter(window => (window.workspaces || []).includes(workspaceId));
@@ -31,6 +40,7 @@ Scope {
 
     function open(reason) {
         if (!overviewOpen) {
+            targetScreenName = Macqueen.outputAtCursor();
             overviewOpen = true;
             selectedWindow = visibleWindows.findIndex(window => window.id === (Macqueen.activeWindow?.id || ""));
         }
@@ -65,7 +75,7 @@ Scope {
         sourceComponent: PanelWindow {
             id: panel
 
-            screen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+            screen: root.targetScreen()
             visible: root.overviewOpen
             color: "transparent"
 
@@ -204,8 +214,8 @@ Scope {
                                     font.weight: Font.DemiBold
                                 }
 
-                                Grid {
-                                    id: windowGrid
+                                Flickable {
+                                    id: windowViewport
 
                                     anchors {
                                         left: parent.left
@@ -215,83 +225,93 @@ Scope {
                                         margins: Theme.spacingM
                                         topMargin: Theme.spacingXL * 2
                                     }
-                                    columns: workspaceCard.workspaceWindows.length > 4 ? 3 : 2
-                                    spacing: Theme.spacingS
+                                    clip: true
+                                    contentWidth: width
+                                    contentHeight: windowGrid.implicitHeight
+                                    boundsBehavior: Flickable.StopAtBounds
 
-                                    Repeater {
-                                        model: workspaceCard.workspaceWindows
+                                    Grid {
+                                        id: windowGrid
 
-                                        delegate: Rectangle {
-                                            id: windowCard
+                                        width: windowViewport.width
+                                        columns: workspaceCard.workspaceWindows.length > 4 ? 3 : 2
+                                        spacing: Theme.spacingS
 
-                                            required property var modelData
-                                            readonly property int globalIndex: root.visibleWindows.findIndex(window => window.id === modelData.id)
-                                            readonly property var entry: DesktopEntries.heuristicLookup(Paths.moddedAppId(modelData.appId || ""))
-                                            readonly property string iconPath: Paths.getAppIcon(modelData.appId || "", entry) || Quickshell.iconPath("application-x-executable", "image-missing")
+                                        Repeater {
+                                            model: workspaceCard.workspaceWindows
 
-                                            width: (windowGrid.width - windowGrid.spacing * (windowGrid.columns - 1)) / windowGrid.columns
-                                            height: Math.max(52, (windowGrid.height - windowGrid.spacing) / 2)
-                                            radius: Theme.cornerRadius
-                                            color: globalIndex === root.selectedWindow ? Theme.primaryContainer : Theme.surfaceContainerHigh
-                                            border.width: globalIndex === root.selectedWindow ? 2 : 1
-                                            border.color: globalIndex === root.selectedWindow ? Theme.primary : Theme.outline
+                                            delegate: Rectangle {
+                                                id: windowCard
 
-                                            Drag.active: dragArea.drag.active
-                                            Drag.source: windowCard
-                                            Drag.hotSpot.x: width / 2
-                                            Drag.hotSpot.y: height / 2
+                                                required property var modelData
+                                                readonly property int globalIndex: root.visibleWindows.findIndex(window => window.id === modelData.id)
+                                                readonly property var entry: DesktopEntries.heuristicLookup(Paths.moddedAppId(modelData.appId || ""))
+                                                readonly property string iconPath: Paths.getAppIcon(modelData.appId || "", entry) || Quickshell.iconPath("application-x-executable", "image-missing")
 
-                                            Row {
-                                                anchors.fill: parent
-                                                anchors.margins: Theme.spacingS
-                                                spacing: Theme.spacingS
+                                                width: (windowGrid.width - windowGrid.spacing * (windowGrid.columns - 1)) / windowGrid.columns
+                                                height: 56
+                                                radius: Theme.cornerRadius
+                                                color: globalIndex === root.selectedWindow ? Theme.primaryContainer : Theme.surfaceContainerHigh
+                                                border.width: globalIndex === root.selectedWindow ? 2 : 1
+                                                border.color: globalIndex === root.selectedWindow ? Theme.primary : Theme.outline
 
-                                                Image {
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    width: 32
-                                                    height: 32
-                                                    source: windowCard.iconPath
-                                                    sourceSize: Qt.size(32, 32)
-                                                }
+                                                Drag.active: dragArea.drag.active
+                                                Drag.source: windowCard
+                                                Drag.hotSpot.x: width / 2
+                                                Drag.hotSpot.y: height / 2
 
-                                                Column {
-                                                    anchors.verticalCenter: parent.verticalCenter
-                                                    width: parent.width - 40
+                                                Row {
+                                                    anchors.fill: parent
+                                                    anchors.margins: Theme.spacingS
+                                                    spacing: Theme.spacingS
 
-                                                    StyledText {
-                                                        width: parent.width
-                                                        text: windowCard.modelData.title || windowCard.modelData.appId
-                                                        color: Theme.surfaceText
-                                                        font.pixelSize: Theme.fontSizeSmall
-                                                        font.weight: Font.Medium
-                                                        elide: Text.ElideRight
+                                                    Image {
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        width: 32
+                                                        height: 32
+                                                        source: windowCard.iconPath
+                                                        sourceSize: Qt.size(32, 32)
                                                     }
 
-                                                    StyledText {
-                                                        width: parent.width
-                                                        text: windowCard.modelData.appId
-                                                        color: Theme.surfaceVariantText
-                                                        font.pixelSize: Theme.fontSizeSmall
-                                                        elide: Text.ElideRight
+                                                    Column {
+                                                        anchors.verticalCenter: parent.verticalCenter
+                                                        width: parent.width - 40
+
+                                                        StyledText {
+                                                            width: parent.width
+                                                            text: windowCard.modelData.title || windowCard.modelData.appId
+                                                            color: Theme.surfaceText
+                                                            font.pixelSize: Theme.fontSizeSmall
+                                                            font.weight: Font.Medium
+                                                            elide: Text.ElideRight
+                                                        }
+
+                                                        StyledText {
+                                                            width: parent.width
+                                                            text: windowCard.modelData.appId
+                                                            color: Theme.surfaceVariantText
+                                                            font.pixelSize: Theme.fontSizeSmall
+                                                            elide: Text.ElideRight
+                                                        }
                                                     }
                                                 }
-                                            }
 
-                                            MouseArea {
-                                                id: dragArea
+                                                MouseArea {
+                                                    id: dragArea
 
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                drag.target: windowCard
-                                                onPressed: root.draggingWindowId = windowCard.modelData.id
-                                                onReleased: {
-                                                    windowCard.Drag.drop();
-                                                    windowCard.x = 0;
-                                                    windowCard.y = 0;
-                                                }
-                                                onClicked: {
-                                                    root.selectedWindow = windowCard.globalIndex;
-                                                    root.close(true);
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    drag.target: windowCard
+                                                    onPressed: root.draggingWindowId = windowCard.modelData.id
+                                                    onReleased: {
+                                                        windowCard.Drag.drop();
+                                                        windowCard.x = 0;
+                                                        windowCard.y = 0;
+                                                    }
+                                                    onClicked: {
+                                                        root.selectedWindow = windowCard.globalIndex;
+                                                        root.close(true);
+                                                    }
                                                 }
                                             }
                                         }

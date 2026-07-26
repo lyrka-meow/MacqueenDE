@@ -7,6 +7,7 @@
 
 #include "config-kwin.h"
 #include "core/output.h"
+#include "cursor.h"
 #include "input.h"
 #include "keyboard_input.h"
 #include "keyboard_layout.h"
@@ -141,7 +142,7 @@ MacqueenIpc::~MacqueenIpc()
 
 uint MacqueenIpc::protocolVersion() const
 {
-    return 7;
+    return 8;
 }
 
 QString MacqueenIpc::compositorVersion() const
@@ -185,6 +186,13 @@ QVariantList MacqueenIpc::outputs() const
         });
     }
     return result;
+}
+
+QString MacqueenIpc::outputAtCursor() const
+{
+    Cursor *cursor = Cursors::self()->mouse();
+    const LogicalOutput *output = cursor ? m_workspace->outputAt(cursor->pos()) : m_workspace->activeOutput();
+    return output ? output->name() : QString();
 }
 
 QVariantList MacqueenIpc::workspaces() const

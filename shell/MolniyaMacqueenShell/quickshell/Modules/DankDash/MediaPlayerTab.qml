@@ -35,6 +35,7 @@ Item {
     signal showAudioDevicesDropdown(point pos, var screen, bool rightEdge)
     signal showPlayersDropdown(point pos, var screen, bool rightEdge, var player, var players)
     signal showLyricsDropdown(point pos, var screen, bool rightEdge, var player)
+    signal toggleLyricsDropdown(point pos, var screen, bool rightEdge, var player)
     signal hideDropdowns
     signal dropdownButtonExited
     signal dropdownButtonEntered
@@ -1042,15 +1043,10 @@ Item {
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
             onClicked: {
-                if (root.lyricsPanelOpen) {
-                    root.hideDropdowns();
-                    return;
-                }
-                root.hideDropdowns();
                 const panelOnRight = false;
                 const screenX = root.popoutX;
                 const screenY = root.popoutY + root.contentOffsetY + lyricsButton.y + lyricsButton.height / 2;
-                root.showLyricsDropdown(Qt.point(screenX, screenY), root.targetScreen, panelOnRight, root.activePlayer);
+                root.toggleLyricsDropdown(Qt.point(screenX, screenY), root.targetScreen, panelOnRight, root.activePlayer);
             }
         }
     }

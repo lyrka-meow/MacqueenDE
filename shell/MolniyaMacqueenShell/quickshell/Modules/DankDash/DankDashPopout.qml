@@ -145,7 +145,9 @@ DankPopout {
         }
     }
 
-    overlayContent: shouldBeVisible ? mediaDropdownOverlayComponent : null
+    // Destroy the auxiliary surface when no dropdown is active. Merely hiding
+    // its QML item can leave the last frame visible on some compositors.
+    overlayContent: shouldBeVisible && __dropdownType !== 0 ? mediaDropdownOverlayComponent : null
 
     Component {
         id: mediaDropdownOverlayComponent

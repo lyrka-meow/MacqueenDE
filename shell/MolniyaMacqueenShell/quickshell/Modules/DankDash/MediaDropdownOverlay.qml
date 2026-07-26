@@ -90,8 +90,82 @@ Item {
             return audioDevicesPanel;
         case 3:
             return playersPanel;
+        case 4:
+            return lyricsPanel;
         default:
             return null;
+        }
+    }
+
+    Rectangle {
+        id: lyricsPanel
+        visible: dropdownType === 4
+        width: 360
+        height: 420
+        x: isRightEdge ? anchorPos.x + Theme.spacingS : anchorPos.x - width - Theme.spacingS
+        y: Math.max(Theme.spacingM, anchorPos.y - height * 0.56)
+        radius: Theme.cornerRadius * 2
+        color: Theme.floatingSurface
+        border.color: Theme.withAlpha(MediaAccentService.accent, 0.45)
+        border.width: 1
+
+        opacity: Theme.isDirectionalEffect ? 1 : (dropdownType === 4 ? 1 : 0)
+        scale: Theme.isDirectionalEffect ? 1 : (dropdownType === 4 ? 1 : Theme.effectScaleCollapsed)
+        transformOrigin: isRightEdge ? Item.Left : Item.Right
+
+        Behavior on opacity {
+            enabled: !Theme.isDirectionalEffect
+            NumberAnimation {
+                duration: Theme.variantDuration(Theme.expressiveDurations.expressiveDefaultSpatial, dropdownType === 4)
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: dropdownType === 4 ? Theme.variantPopoutEnterCurve : Theme.variantPopoutExitCurve
+            }
+        }
+
+        Behavior on scale {
+            enabled: !Theme.isDirectionalEffect
+            NumberAnimation {
+                duration: Theme.variantDuration(Theme.expressiveDurations.expressiveDefaultSpatial, dropdownType === 4)
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: dropdownType === 4 ? Theme.variantPopoutEnterCurve : Theme.variantPopoutExitCurve
+            }
+        }
+
+        ElevationShadow {
+            anchors.fill: parent
+            z: -1
+            level: Theme.elevationLevel3
+            fallbackOffset: 6
+            targetRadius: lyricsPanel.radius
+            targetColor: lyricsPanel.color
+            borderColor: lyricsPanel.border.color
+            borderWidth: lyricsPanel.border.width
+            shadowOpacity: 0.32
+            shadowEnabled: Theme.elevationEnabled
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            anchors.margins: -10
+            hoverEnabled: true
+            onEntered: root.panelAreaEntered()
+            onExited: root.panelAreaExited()
+        }
+
+        DankLyricsView {
+            anchors.fill: parent
+            anchors.margins: Theme.spacingS
+            activePlayer: root.activePlayer
+            currentIndex: lyricsPanel.currentLyricIndex
+            accent: MediaAccentService.accent
+        }
+
+        property int currentLyricIndex: -1
+        Timer {
+            interval: 250
+            repeat: true
+            running: lyricsPanel.visible && !!root.activePlayer
+            onTriggered: lyricsPanel.currentLyricIndex = LyricsService.indexForTime(root.activePlayer?.position || 0)
         }
     }
 

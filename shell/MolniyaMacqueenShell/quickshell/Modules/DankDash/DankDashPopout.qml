@@ -104,6 +104,13 @@ DankPopout {
         __dropdownType = 3;
     }
 
+    function __showLyricsDropdown(pos, rightEdge, player) {
+        __dropdownAnchor = pos;
+        __dropdownRightEdge = rightEdge;
+        __dropdownPlayer = Qt.binding(() => MprisController.activePlayer);
+        __dropdownType = 4;
+    }
+
     function __hideDropdowns() {
         __volumeCloseTimer.stop();
         __dropdownType = 0;
@@ -432,6 +439,9 @@ DankPopout {
                                 }
                                 onShowPlayersDropdown: (pos, screen, rightEdge, player, players) => {
                                     root.__showPlayersDropdown(pos, rightEdge, player, players);
+                                }
+                                onShowLyricsDropdown: (pos, screen, rightEdge, player) => {
+                                    root.__showLyricsDropdown(pos, rightEdge, player);
                                 }
                                 onHideDropdowns: root.__hideDropdowns()
                                 onDropdownButtonExited: root.__startCloseTimer()

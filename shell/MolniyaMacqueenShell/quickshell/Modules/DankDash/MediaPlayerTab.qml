@@ -33,6 +33,7 @@ Item {
     signal showVolumeDropdown(point pos, var screen, bool rightEdge, var player, var players)
     signal showAudioDevicesDropdown(point pos, var screen, bool rightEdge)
     signal showPlayersDropdown(point pos, var screen, bool rightEdge, var player, var players)
+    signal showLyricsDropdown(point pos, var screen, bool rightEdge, var player)
     signal hideDropdowns
     signal dropdownButtonExited
     signal dropdownButtonEntered
@@ -40,11 +41,13 @@ Item {
     property bool volumeExpanded: false
     property bool devicesExpanded: false
     property bool playersExpanded: false
+    property bool lyricsExpanded: false
 
     function resetDropdownStates() {
         volumeExpanded = false;
         devicesExpanded = false;
         playersExpanded = false;
+        lyricsExpanded = false;
     }
 
     readonly property bool isRightEdge: {
@@ -465,8 +468,8 @@ Item {
         visible: !_noneAvailable && (!showNoPlayerNow)
         ColumnLayout {
             id: playerContent
-            width: 570
-            height: 430
+            width: 484
+            height: 370
             spacing: Theme.spacingXS
             anchors.top: parent.top
             anchors.topMargin: 20
@@ -477,29 +480,11 @@ Item {
                 height: 200
                 clip: false
 
-                Row {
-                    anchors.fill: parent
-                    spacing: Theme.spacingM
-
-                    Item {
-                        width: 190
-                        height: parent.height
-
-                        DankAlbumArt {
-                            width: 190
-                            height: width
-                            anchors.centerIn: parent
-                            activePlayer: root.activePlayer
-                        }
-                    }
-
-                    DankLyricsView {
-                        width: parent.width - 190 - parent.spacing
-                        height: parent.height
-                        activePlayer: root.activePlayer
-                        currentIndex: root.lyricIndex
-                        accent: root.accent
-                    }
+                DankAlbumArt {
+                    width: Math.min(parent.width * 0.8, parent.height * 0.95)
+                    height: width
+                    anchors.centerIn: parent
+                    activePlayer: root.activePlayer
                 }
             }
 
@@ -1029,6 +1014,45 @@ Item {
             onExited: {
                 if (devicesExpanded)
                     dropdownButtonExited();
+            }
+        }
+    }
+
+    Rectangle {
+        id: lyricsButton
+        width: 40
+        height: 40
+        radius: 20
+        x: isRightEdge ? Theme.spacingM : parent.width - 40 - Theme.spacingM
+        y: 295
+        color: lyricsArea.containsMouse || lyricsExpanded ? root.accentPressed : Theme.withAlpha(root.accentPressed, 0)
+        border.color: LyricsService.hasLyrics ? root.accent : Theme.outlineStrong
+        border.width: 1
+        z: 100
+
+        DankIcon {
+            anchors.centerIn: parent
+            name: "lyrics"
+            size: 18
+            color: LyricsService.hasLyrics ? root.accent : Theme.surfaceText
+        }
+
+        MouseArea {
+            id: lyricsArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                if (lyricsExpanded) {
+                    root.hideDropdowns();
+                    return;
+                }
+                root.hideDropdowns();
+                lyricsExpanded = true;
+                const panelOnRight = !root.isRightEdge;
+                const screenX = panelOnRight ? (root.popoutX + root.popoutWidth) : root.popoutX;
+                const screenY = root.popoutY + root.contentOffsetY + lyricsButton.y + lyricsButton.height / 2;
+                root.showLyricsDropdown(Qt.point(screenX, screenY), root.targetScreen, panelOnRight, root.activePlayer);
             }
         }
     }

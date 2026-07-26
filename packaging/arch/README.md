@@ -1,5 +1,5 @@
 # Arch Linux packaging
 
-Packages will be produced only after nested build and smoke-test targets are
-available. Early development must not overwrite the installed KWin package.
-
+MacqueenDE currently ships through GitHub Releases while its reproducible AUR
+packages are being prepared. The release payload installs in `/opt/macqueende`
+and does not overwrite the distribution KWin package.

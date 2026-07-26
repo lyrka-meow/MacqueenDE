@@ -9,6 +9,15 @@ case "$arch" in
     *) echo "MacqueenDE binary releases do not support $arch yet." >&2; exit 1 ;;
 esac
 
+if command -v pacman >/dev/null; then
+    echo "Installing MacqueenDE runtime dependencies..."
+    sudo pacman -S --needed --noconfirm \
+        kwin spectacle xdg-desktop-portal-kde quickshell \
+        cava brightnessctl ddcutil \
+        qt6-multimedia qt6-positioning qt6-sensors qt6-svg qt6-5compat \
+        qt6-connectivity qt6-imageformats
+fi
+
 tmp_dir=$(mktemp -d)
 cleanup() { rm -rf -- "$tmp_dir"; }
 trap cleanup EXIT

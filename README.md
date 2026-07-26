@@ -4,8 +4,26 @@ MacqueenDE is an independent Wayland desktop environment built around
 **Macqueen**, a compositor derived from KWin and designed for first-class
 integration with Quickshell.
 
-The project is in its initial architecture and bootstrap phase. It is not yet
-safe to install as a desktop session.
+The project is an alpha preview. It installs as a separate desktop session and
+does not replace the system KWin package. Keep another working session
+available while testing it.
+
+## Install the Arch Linux binary preview
+
+On Arch Linux x86_64:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lyrka-meow/MacqueenDE/main/installer/install-github.sh | bash
+```
+
+Log out, select **MacqueenDE** in SDDM, and log in. The installer downloads a
+checksummed GitHub Release into `/opt/macqueende`.
+
+To uninstall while preserving user configuration:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lyrka-meow/MacqueenDE/main/installer/uninstall-release.sh | bash
+```
 
 ## Project goals
 

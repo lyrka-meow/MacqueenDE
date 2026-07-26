@@ -111,8 +111,8 @@ DankPopout {
         __dropdownType = 4;
     }
 
-    function __toggleLyricsDropdown(pos, rightEdge, player) {
-        if (__dropdownType === 4) {
+    function __toggleLyricsDropdown(pos, rightEdge, player, wasOpen) {
+        if (wasOpen) {
             __hideDropdowns();
             return;
         }
@@ -453,8 +453,8 @@ DankPopout {
                                 onShowLyricsDropdown: (pos, screen, rightEdge, player) => {
                                     root.__showLyricsDropdown(pos, rightEdge, player);
                                 }
-                                onToggleLyricsDropdown: (pos, screen, rightEdge, player) => {
-                                    root.__toggleLyricsDropdown(pos, rightEdge, player);
+                                onToggleLyricsDropdown: (pos, screen, rightEdge, player, wasOpen) => {
+                                    root.__toggleLyricsDropdown(pos, rightEdge, player, wasOpen);
                                 }
                                 onHideDropdowns: root.__hideDropdowns()
                                 onDropdownButtonExited: root.__startCloseTimer()

@@ -35,7 +35,7 @@ Item {
     signal showAudioDevicesDropdown(point pos, var screen, bool rightEdge)
     signal showPlayersDropdown(point pos, var screen, bool rightEdge, var player, var players)
     signal showLyricsDropdown(point pos, var screen, bool rightEdge, var player)
-    signal toggleLyricsDropdown(point pos, var screen, bool rightEdge, var player)
+    signal toggleLyricsDropdown(point pos, var screen, bool rightEdge, var player, bool wasOpen)
     signal hideDropdowns
     signal dropdownButtonExited
     signal dropdownButtonEntered
@@ -1039,14 +1039,16 @@ Item {
 
         MouseArea {
             id: lyricsArea
+            property bool wasOpenOnPress: false
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
+            onPressed: wasOpenOnPress = root.lyricsPanelOpen
             onClicked: {
                 const panelOnRight = false;
                 const screenX = root.popoutX;
                 const screenY = root.popoutY + root.contentOffsetY + lyricsButton.y + lyricsButton.height / 2;
-                root.toggleLyricsDropdown(Qt.point(screenX, screenY), root.targetScreen, panelOnRight, root.activePlayer);
+                root.toggleLyricsDropdown(Qt.point(screenX, screenY), root.targetScreen, panelOnRight, root.activePlayer, wasOpenOnPress);
             }
         }
     }

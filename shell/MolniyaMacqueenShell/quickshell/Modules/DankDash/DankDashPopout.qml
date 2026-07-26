@@ -81,8 +81,11 @@ DankPopout {
     property bool __dropdownRightEdge: false
     property var __dropdownPlayer: MprisController.activePlayer
     property var __dropdownPlayers: MprisController.availablePlayers
+    property bool __overlayMounted: false
 
     function __showVolumeDropdown(pos, rightEdge, player, players) {
+        __overlayUnmountTimer.stop();
+        __overlayMounted = true;
         __dropdownAnchor = pos;
         __dropdownRightEdge = rightEdge;
         __dropdownPlayer = Qt.binding(() => MprisController.activePlayer);
@@ -91,12 +94,16 @@ DankPopout {
     }
 
     function __showAudioDevicesDropdown(pos, rightEdge) {
+        __overlayUnmountTimer.stop();
+        __overlayMounted = true;
         __dropdownAnchor = pos;
         __dropdownRightEdge = rightEdge;
         __dropdownType = 2;
     }
 
     function __showPlayersDropdown(pos, rightEdge, player, players) {
+        __overlayUnmountTimer.stop();
+        __overlayMounted = true;
         __dropdownAnchor = pos;
         __dropdownRightEdge = rightEdge;
         __dropdownPlayer = Qt.binding(() => MprisController.activePlayer);
@@ -105,6 +112,8 @@ DankPopout {
     }
 
     function __showLyricsDropdown(pos, rightEdge, player) {
+        __overlayUnmountTimer.stop();
+        __overlayMounted = true;
         __dropdownAnchor = pos;
         __dropdownRightEdge = rightEdge;
         __dropdownPlayer = Qt.binding(() => MprisController.activePlayer);
@@ -123,6 +132,13 @@ DankPopout {
     function __hideDropdowns() {
         __volumeCloseTimer.stop();
         __dropdownType = 0;
+        if (__overlayMounted) {
+            Qt.callLater(() => {
+                if (root.backgroundWindow && typeof root.backgroundWindow.update === "function")
+                    root.backgroundWindow.update();
+            });
+            __overlayUnmountTimer.restart();
+        }
         if (__mediaTabRef && typeof __mediaTabRef.resetDropdownStates === "function")
             __mediaTabRef.resetDropdownStates();
     }
@@ -145,9 +161,17 @@ DankPopout {
         }
     }
 
-    // Destroy the auxiliary surface when no dropdown is active. Merely hiding
-    // its QML item can leave the last frame visible on some compositors.
-    overlayContent: shouldBeVisible && __dropdownType !== 0 ? mediaDropdownOverlayComponent : null
+    Timer {
+        id: __overlayUnmountTimer
+        interval: 120
+        onTriggered: {
+            if (root.backgroundWindow && typeof root.backgroundWindow.update === "function")
+                root.backgroundWindow.update();
+            root.__overlayMounted = false;
+        }
+    }
+
+    overlayContent: shouldBeVisible && __overlayMounted ? mediaDropdownOverlayComponent : null
 
     Component {
         id: mediaDropdownOverlayComponent

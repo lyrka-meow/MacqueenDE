@@ -1026,7 +1026,7 @@ Item {
         x: Theme.spacingM
         y: 295
         color: lyricsArea.containsMouse || root.lyricsPanelOpen ? root.accentPressed : Theme.withAlpha(root.accentPressed, 0)
-        border.color: LyricsService.hasLyrics ? root.accent : Theme.outlineStrong
+        border.color: root.lyricsPanelOpen ? root.accent : Theme.outlineStrong
         border.width: 1
         z: 100
 

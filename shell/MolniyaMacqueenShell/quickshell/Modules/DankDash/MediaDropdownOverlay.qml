@@ -72,10 +72,22 @@ Item {
     // second click before the original lyrics button can. Treat any click
     // outside the drawer as the toggle-off action.
     MouseArea {
+        id: lyricsDismissArea
         anchors.fill: parent
-        z: -100
+        z: 1000
         enabled: root.dropdownType === 4
-        onClicked: root.closeRequested()
+        propagateComposedEvents: true
+        onClicked: mouse => {
+            const inside = mouse.x >= lyricsPanel.x
+                        && mouse.x <= lyricsPanel.x + lyricsPanel.width
+                        && mouse.y >= lyricsPanel.y
+                        && mouse.y <= lyricsPanel.y + lyricsPanel.height;
+            if (inside) {
+                mouse.accepted = false;
+                return;
+            }
+            root.closeRequested();
+        }
     }
 
     function volumeWheel(wheelEvent) {

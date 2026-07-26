@@ -1023,7 +1023,7 @@ Item {
         width: 40
         height: 40
         radius: 20
-        x: parent.width - 40 - Theme.spacingM
+        x: Theme.spacingM
         y: 295
         color: lyricsArea.containsMouse || lyricsExpanded ? root.accentPressed : Theme.withAlpha(root.accentPressed, 0)
         border.color: LyricsService.hasLyrics ? root.accent : Theme.outlineStrong
@@ -1049,8 +1049,8 @@ Item {
                 }
                 root.hideDropdowns();
                 lyricsExpanded = true;
-                const panelOnRight = true;
-                const screenX = root.popoutX + root.popoutWidth;
+                const panelOnRight = false;
+                const screenX = root.popoutX;
                 const screenY = root.popoutY + root.contentOffsetY + lyricsButton.y + lyricsButton.height / 2;
                 root.showLyricsDropdown(Qt.point(screenX, screenY), root.targetScreen, panelOnRight, root.activePlayer);
             }

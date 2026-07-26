@@ -58,6 +58,7 @@ public Q_SLOTS:
     QStringList pressedShortcutModifiers() const;
     QVariantMap screenshotShortcutDebug() const;
     void requestScreenshot();
+    bool toggleHoveredWindowBorder();
 
 private Q_SLOTS:
     bool overviewBorderActivated(ElectricBorder border);
@@ -82,6 +83,7 @@ private:
 
     Workspace *m_workspace;
     QAction *m_screenshotAction = nullptr;
+    QAction *m_toggleHoveredBorderAction = nullptr;
     bool m_shortcutCaptureActive = false;
     QSet<quint32> m_pressedRawKeys;
     QStringList m_recentRawKeyEvents;

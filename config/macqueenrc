@@ -1,0 +1,6 @@
+[org.kde.kdecoration2]
+library=org.kde.breeze
+theme=Breeze
+
+[Windows]
+BorderlessMaximizedWindows=false

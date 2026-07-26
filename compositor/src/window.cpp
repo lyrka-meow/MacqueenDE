@@ -891,10 +891,8 @@ QString Window::colorScheme() const
 
 void Window::setColorScheme(const QString &colorScheme)
 {
-    QString requestedColorScheme = colorScheme;
-    if (requestedColorScheme.isEmpty()) {
-        requestedColorScheme = QStringLiteral("kdeglobals");
-    }
+    Q_UNUSED(colorScheme)
+    const QString requestedColorScheme = QStringLiteral("kdeglobals");
 
     if (m_colorScheme == requestedColorScheme) {
         return;

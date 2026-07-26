@@ -74,6 +74,14 @@ MacqueenIpc::MacqueenIpc(Workspace *workspace)
         KGlobalAccel::self()->setShortcut(m_screenshotAction, screenshotShortcuts, KGlobalAccel::NoAutoloading);
     }
     connect(m_screenshotAction, &QAction::triggered, this, &MacqueenIpc::requestScreenshot);
+
+    m_toggleHoveredBorderAction = new QAction(this);
+    m_toggleHoveredBorderAction->setObjectName(QStringLiteral("MacqueenToggleHoveredWindowBorder"));
+    m_toggleHoveredBorderAction->setText(QStringLiteral("Toggle Border of Window Under Pointer"));
+    KGlobalAccel::self()->setGlobalShortcut(
+        m_toggleHoveredBorderAction,
+        {QKeySequence(Qt::META | Qt::SHIFT | Qt::Key_B)});
+    connect(m_toggleHoveredBorderAction, &QAction::triggered, this, &MacqueenIpc::toggleHoveredWindowBorder);
     // This signal is emitted by an input spy before the normal filter chain.
     // Tracking physical scan codes here makes the default shortcut independent
     // of the active keyboard layout and of filters which consume modifier keys.
@@ -142,7 +150,7 @@ MacqueenIpc::~MacqueenIpc()
 
 uint MacqueenIpc::protocolVersion() const
 {
-    return 8;
+    return 9;
 }
 
 QString MacqueenIpc::compositorVersion() const
@@ -491,6 +499,27 @@ QVariantMap MacqueenIpc::screenshotShortcutDebug() const
 void MacqueenIpc::requestScreenshot()
 {
     Q_EMIT screenshotRequested();
+}
+
+bool MacqueenIpc::toggleHoveredWindowBorder()
+{
+    const QPointF cursorPosition = Cursors::self()->mouse()->pos();
+    auto it = m_workspace->stackingOrder().constEnd();
+    while (it != m_workspace->stackingOrder().constBegin()) {
+        Window *window = *(--it);
+        if (!window->isClient()
+            || !window->isShown()
+            || window->isDesktop()
+            || !window->frameGeometry().contains(cursorPosition)) {
+            continue;
+        }
+        if (!window->userCanSetNoBorder()) {
+            return false;
+        }
+        window->setNoBorder(!window->noBorder());
+        return true;
+    }
+    return false;
 }
 
 void MacqueenIpc::handleRawKeyState(quint32 keyCode, KeyboardKeyState state)

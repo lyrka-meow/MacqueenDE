@@ -81,9 +81,9 @@ int Application::crashes = 0;
 Application::Application(int &argc, char **argv)
     : QApplication(argc, argv)
     , m_configLock(false)
-    , m_config(KSharedConfig::openConfig(QStringLiteral("kwinrc")))
+    , m_config(KSharedConfig::openConfig(QStringLiteral("macqueenrc")))
     , m_kxkbConfig()
-    , m_kdeglobals(KSharedConfig::openConfig(QStringLiteral("kdeglobals")))
+    , m_kdeglobals(KSharedConfig::openConfig(QStringLiteral("macqueenglobals")))
 {
     qRegisterMetaType<Options::WindowOperation>("Options::WindowOperation");
     qRegisterMetaType<KWin::EffectWindow *>();

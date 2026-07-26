@@ -44,6 +44,7 @@ macqueen_screenshot="$repo_root/build/macqueen-screenshot/bin/macqueen-screensho
 molniya="$repo_root/session/run-molniya"
 qml_module="$repo_root/build/quickshell-macqueen"
 qt_plugins="$repo_root/build/compositor/bin:$repo_root/build/compositor/lib"
+user_config_dir="${XDG_CONFIG_HOME:-$HOME/.config}"
 
 [[ -x "$macqueen" ]] ||
     die "missing $macqueen; build the compositor first"
@@ -57,6 +58,14 @@ qt_plugins="$repo_root/build/compositor/bin:$repo_root/build/compositor/lib"
     die "missing the Quickshell Macqueen module; build it first"
 [[ -n ${XDG_RUNTIME_DIR:-} && -d ${XDG_RUNTIME_DIR:-} ]] ||
     die "XDG_RUNTIME_DIR is unavailable; start this from a real login TTY or SDDM"
+
+mkdir -p "$user_config_dir"
+if [[ ! -f "$user_config_dir/macqueenrc" ]]; then
+    cp "$repo_root/config/macqueenrc" "$user_config_dir/macqueenrc"
+fi
+if [[ ! -f "$user_config_dir/macqueenglobals" ]]; then
+    cp "$repo_root/config/macqueenglobals" "$user_config_dir/macqueenglobals"
+fi
 
 export MACQUEENDE_ROOT="$repo_root"
 export QT_PLUGIN_PATH="$qt_plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"

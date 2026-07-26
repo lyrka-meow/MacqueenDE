@@ -234,7 +234,7 @@ Scope {
                                         id: windowGrid
 
                                         width: windowViewport.width
-                                        columns: workspaceCard.workspaceWindows.length > 4 ? 3 : 2
+                                        columns: 2
                                         spacing: Theme.spacingS
 
                                         Repeater {
@@ -260,6 +260,21 @@ Scope {
                                                 Drag.hotSpot.x: width / 2
                                                 Drag.hotSpot.y: height / 2
 
+                                                function liftForDrag() {
+                                                    const point = windowCard.mapToItem(focusScope, 0, 0);
+                                                    windowCard.parent = focusScope;
+                                                    windowCard.x = point.x;
+                                                    windowCard.y = point.y;
+                                                    windowCard.z = 1000;
+                                                }
+
+                                                function restoreAfterDrag() {
+                                                    windowCard.parent = windowGrid;
+                                                    windowCard.x = 0;
+                                                    windowCard.y = 0;
+                                                    windowCard.z = 0;
+                                                }
+
                                                 Row {
                                                     anchors.fill: parent
                                                     anchors.margins: Theme.spacingS
@@ -283,6 +298,8 @@ Scope {
                                                             color: Theme.surfaceText
                                                             font.pixelSize: Theme.fontSizeSmall
                                                             font.weight: Font.Medium
+                                                            wrapMode: Text.NoWrap
+                                                            maximumLineCount: 1
                                                             elide: Text.ElideRight
                                                         }
 
@@ -291,6 +308,8 @@ Scope {
                                                             text: windowCard.modelData.appId
                                                             color: Theme.surfaceVariantText
                                                             font.pixelSize: Theme.fontSizeSmall
+                                                            wrapMode: Text.NoWrap
+                                                            maximumLineCount: 1
                                                             elide: Text.ElideRight
                                                         }
                                                     }
@@ -302,11 +321,13 @@ Scope {
                                                     anchors.fill: parent
                                                     hoverEnabled: true
                                                     drag.target: windowCard
-                                                    onPressed: root.draggingWindowId = windowCard.modelData.id
+                                                    onPressed: {
+                                                        root.draggingWindowId = windowCard.modelData.id;
+                                                        windowCard.liftForDrag();
+                                                    }
                                                     onReleased: {
                                                         windowCard.Drag.drop();
-                                                        windowCard.x = 0;
-                                                        windowCard.y = 0;
+                                                        windowCard.restoreAfterDrag();
                                                     }
                                                     onClicked: {
                                                         root.selectedWindow = windowCard.globalIndex;

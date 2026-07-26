@@ -40,44 +40,28 @@ static const QString s_configKeyName = QStringLiteral("org.kde.kdecoration2");
 static const QString s_defaultPlugin = QStringLiteral("org.kde.breeze");
 static const QString s_fallbackPlugin = QStringLiteral("org.kde.kwin.aurorae");
 
-static void migrateAuroraeTheme()
-{
-    const QString themeName = kwinApp()->config()->group(s_configKeyName).readEntry("theme");
-    if (!themeName.startsWith(QLatin1StringView("__aurorae__svg__"))) {
-        return;
-    }
-
-    const QString pluginName = kwinApp()->config()->group(s_configKeyName).readEntry("library");
-    if (pluginName != QLatin1StringView("org.kde.kwin.aurorae")) {
-        return;
-    }
-
-    kwinApp()->config()->group(s_configKeyName).writeEntry("library", "org.kde.kwin.aurorae.v2");
-}
-
 DecorationBridge::DecorationBridge()
     : m_factory(nullptr)
     , m_showToolTips(false)
     , m_settings()
     , m_noPlugin(false)
 {
-    migrateAuroraeTheme();
     readDecorationOptions();
 }
 
 QString DecorationBridge::readPlugin()
 {
-    return kwinApp()->config()->group(s_configKeyName).readEntry("library", s_defaultPlugin);
+    return s_defaultPlugin;
 }
 
 static bool readNoPlugin()
 {
-    return kwinApp()->config()->group(s_configKeyName).readEntry("NoPlugin", false);
+    return false;
 }
 
 QString DecorationBridge::readTheme() const
 {
-    return kwinApp()->config()->group(s_configKeyName).readEntry("theme", m_defaultTheme);
+    return QStringLiteral("Breeze");
 }
 
 void DecorationBridge::readDecorationOptions()

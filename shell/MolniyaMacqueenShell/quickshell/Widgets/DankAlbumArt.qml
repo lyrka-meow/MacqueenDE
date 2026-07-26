@@ -25,7 +25,7 @@ Item {
     property string _srcOverride: "" // forces the live url when the resolved one fails
     readonly property string _mainSrc: _srcOverride !== "" ? _srcOverride : curArt
     readonly property int albumArtStatus: mainArt.imageStatus
-    property real albumSize: Math.min(width, height) * 0.88
+    property real albumSize: Math.min(width, height) * 0.72
     property bool showAnimation: true
     property real animationScale: 1.0
 
@@ -190,6 +190,15 @@ Item {
         onTriggered: root.stepBlob(0.033)
     }
 
+    DankRadialVisualizer {
+        anchors.fill: parent
+        z: 0
+        activePlayer: root.activePlayer
+        innerRadius: root.albumSize / 2 + 7
+        maxLength: Math.max(8, (Math.min(root.width, root.height) - root.albumSize) / 2 - 10)
+        opacity: root.showAnimation ? 1 : 0
+    }
+
     ShaderEffect {
         id: blobEffect
 
@@ -199,7 +208,7 @@ Item {
         height: width
         anchors.centerIn: parent
         z: 0
-        visible: root.blobActive || activation > 0.004
+        visible: false
 
         property real phase: 0
         property real spin: 0

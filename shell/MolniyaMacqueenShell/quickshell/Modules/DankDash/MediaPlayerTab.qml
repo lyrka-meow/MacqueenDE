@@ -65,6 +65,21 @@ Item {
     readonly property real currentVolume: usePlayerVolume ? activePlayer.volume : (AudioService.sink?.audio?.volume ?? 0)
 
     property bool isSwitching: false
+    property int lyricIndex: -1
+
+    function updateLyrics() {
+        if (!activePlayer) {
+            LyricsService.loadTrack("", "", "", 0);
+            lyricIndex = -1;
+            return;
+        }
+        LyricsService.loadTrack(activePlayer.trackArtist, activePlayer.trackTitle,
+                                activePlayer.trackAlbum, stableLength);
+        lyricIndex = LyricsService.indexForTime(activePlayer.position || 0);
+    }
+
+    onStableLengthChanged: updateLyrics()
+    Component.onCompleted: updateLyrics()
 
     // Derived "no players" state: always correct, no timers.
     readonly property int _playerCount: allPlayers ? allPlayers.length : 0
@@ -89,6 +104,7 @@ Item {
         isSwitching = true;
         _switchHold = true;
         _switchHoldTimer.restart();
+        Qt.callLater(updateLyrics);
     }
 
     function maybeFinishSwitch() {
@@ -116,7 +132,22 @@ Item {
         function onTrackTitleChanged() {
             _switchHoldTimer.restart();
             maybeFinishSwitch();
+            root.updateLyrics();
         }
+        function onTrackArtistChanged() { root.updateLyrics(); }
+        function onTrackAlbumChanged() { root.updateLyrics(); }
+    }
+
+    Connections {
+        target: LyricsService
+        function onLinesChanged() { root.lyricIndex = LyricsService.indexForTime(root.activePlayer?.position || 0); }
+    }
+
+    Timer {
+        interval: 250
+        repeat: true
+        running: root.visible && !!root.activePlayer
+        onTriggered: root.lyricIndex = LyricsService.indexForTime(root.activePlayer?.position || 0)
     }
 
     Connections {
@@ -435,7 +466,7 @@ Item {
         ColumnLayout {
             id: playerContent
             width: 484
-            height: 370
+            height: 430
             spacing: Theme.spacingXS
             anchors.top: parent.top
             anchors.topMargin: 20
@@ -476,6 +507,53 @@ Item {
                         elide: Text.ElideRight
                         wrapMode: Text.WordWrap
                         maximumLineCount: 2
+                    }
+
+                    Item {
+                        width: parent.width
+                        height: 54
+                        visible: LyricsService.loading || LyricsService.hasLyrics
+
+                        Column {
+                            anchors.centerIn: parent
+                            width: parent.width * 0.92
+                            spacing: 2
+
+                            StyledText {
+                                width: parent.width
+                                text: root.lyricIndex > 0 ? LyricsService.lines[root.lyricIndex - 1].text : ""
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceTextSecondary
+                                horizontalAlignment: Text.AlignHCenter
+                                elide: Text.ElideRight
+                            }
+
+                            StyledText {
+                                width: parent.width
+                                text: {
+                                    if (LyricsService.loading)
+                                        return I18n.tr("Loading lyrics…");
+                                    if (root.lyricIndex >= 0)
+                                        return LyricsService.lines[root.lyricIndex].text;
+                                    return LyricsService.lines.length > 0 ? LyricsService.lines[0].text : "";
+                                }
+                                font.pixelSize: Theme.fontSizeMedium
+                                font.weight: Font.DemiBold
+                                color: root.accent
+                                horizontalAlignment: Text.AlignHCenter
+                                elide: Text.ElideRight
+                            }
+
+                            StyledText {
+                                width: parent.width
+                                text: root.lyricIndex >= 0 && root.lyricIndex + 1 < LyricsService.lines.length
+                                      ? LyricsService.lines[root.lyricIndex + 1].text : ""
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceTextSecondary
+                                horizontalAlignment: Text.AlignHCenter
+                                elide: Text.ElideRight
+                            }
+                        }
                     }
 
                     StyledText {

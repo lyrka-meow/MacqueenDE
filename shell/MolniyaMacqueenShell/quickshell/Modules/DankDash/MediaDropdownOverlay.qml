@@ -68,6 +68,16 @@ Item {
 
     property real _wheelAccum: 0
 
+    // The overlay lives above the dashboard window and therefore receives the
+    // second click before the original lyrics button can. Treat any click
+    // outside the drawer as the toggle-off action.
+    MouseArea {
+        anchors.fill: parent
+        z: -100
+        enabled: root.dropdownType === 4
+        onClicked: root.closeRequested()
+    }
+
     function volumeWheel(wheelEvent) {
         if (!volumeAvailable)
             return;

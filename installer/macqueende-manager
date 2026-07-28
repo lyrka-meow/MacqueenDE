@@ -50,14 +50,29 @@ info_value()
     sed -n "s/^${key}=//p" "$info_file" | head -n1
 }
 
-process_status()
+executable_status()
 {
-    local pattern=$1
-    if pgrep -f "$pattern" >/dev/null 2>&1; then
+    local expected=$1
+    local process_exe resolved
+    expected=$(readlink -f "$expected" 2>/dev/null || printf '%s' "$expected")
+    for process_exe in /proc/[0-9]*/exe; do
+        resolved=$(readlink -f "$process_exe" 2>/dev/null || true)
+        if [[ "$resolved" == "$expected" ]]; then
+            printf '%sработает%s' "$green" "$reset"
+            return
+        fi
+    done
+    printf '%sостановлен%s' "$dim" "$reset"
+}
+
+command_status()
+{
+    local command_name=$1
+    if pgrep -x "$command_name" >/dev/null 2>&1; then
         printf '%sработает%s' "$green" "$reset"
-    else
-        printf '%sостановлен%s' "$dim" "$reset"
+        return
     fi
+    printf '%sостановлен%s' "$dim" "$reset"
 }
 
 latest_binary_version()
@@ -105,13 +120,13 @@ show_status()
         printf 'Коммит:       %.12s\n' "$commit"
     line
     printf 'Macqueen:     %s\n' \
-        "$(process_status '/opt/macqueende/build/compositor/bin/macqueen')"
+        "$(executable_status '/opt/macqueende/build/compositor/bin/macqueen')"
     printf 'Quickshell:   %s\n' \
-        "$(process_status '(^|/)qs( |$)')"
+        "$(command_status qs)"
     printf 'DMS backend:  %s\n' \
-        "$(process_status '/opt/macqueende/.*/dms( |$)')"
+        "$(executable_status '/opt/macqueende/shell/MolniyaMacqueenShell/core/bin/dms')"
     printf 'Portal:       %s\n' \
-        "$(process_status '/opt/macqueende/.*/xdg-desktop-portal-macqueen')"
+        "$(executable_status '/opt/macqueende/build/portal/bin/xdg-desktop-portal-macqueen')"
     line
 }
 

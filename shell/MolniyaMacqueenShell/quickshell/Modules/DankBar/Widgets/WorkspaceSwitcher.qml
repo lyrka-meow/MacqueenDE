@@ -1775,7 +1775,7 @@ Item {
                             bottom: parent.bottom
                             bottomMargin: 2
                         }
-                        visible: root.macqueenRailStyle && isActive && !isPlaceholder
+                        visible: root.macqueenRailStyle && appIconsLoader.active && isActive && !isPlaceholder
                         width: Math.min(14, parent.width * 0.38)
                         height: 2
                         radius: 1
@@ -1789,7 +1789,7 @@ Item {
                             top: parent.top
                             margins: 3
                         }
-                        visible: root.macqueenRailStyle && !isActive && isOccupied && !isPlaceholder
+                        visible: root.macqueenRailStyle && appIconsLoader.active && !isActive && isOccupied && !isPlaceholder
                         width: 4
                         height: 4
                         radius: 2
@@ -1799,19 +1799,22 @@ Item {
 
                     Rectangle {
                         anchors.centerIn: parent
-                        visible: root.macqueenRailStyle && !appIconsLoader.active
-                        width: isActive ? 14 : 6
-                        height: isActive ? 3 : 6
+                        visible: root.macqueenRailStyle && !appIconsLoader.active && !isActive
+                        width: 6
+                        height: 6
                         radius: height / 2
-                        color: isActive ? Theme.onPrimary : (isOccupied ? delegateRoot.occupiedColor : Theme.surfaceTextMedium)
+                        color: isOccupied ? delegateRoot.occupiedColor : Theme.surfaceTextMedium
+                        opacity: isOccupied ? 1 : 0.58
                         z: 2
+                    }
 
-                        Behavior on width {
-                            NumberAnimation {
-                                duration: Theme.mediumDuration
-                                easing.type: Theme.emphasizedEasing
-                            }
-                        }
+                    DankIcon {
+                        anchors.centerIn: parent
+                        visible: root.macqueenRailStyle && !appIconsLoader.active && isActive
+                        name: "desktop_windows"
+                        size: 12
+                        color: Theme.onPrimary
+                        z: 2
                     }
 
                     Loader {

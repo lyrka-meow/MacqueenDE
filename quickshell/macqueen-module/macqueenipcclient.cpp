@@ -27,6 +27,57 @@ T converted(const QVariant &value)
     return {};
 }
 
+QVariant unpackDbusValue(const QVariant &value);
+
+QVariantMap unpackDbusMap(const QVariantMap &raw)
+{
+    QVariantMap result;
+    for (auto it = raw.cbegin(); it != raw.cend(); ++it) {
+        result.insert(it.key(), unpackDbusValue(it.value()));
+    }
+    return result;
+}
+
+QVariantList unpackDbusList(const QVariantList &raw)
+{
+    QVariantList result;
+    result.reserve(raw.size());
+    for (const QVariant &entry : raw) {
+        result.append(unpackDbusValue(entry));
+    }
+    return result;
+}
+
+QVariant unpackDbusValue(const QVariant &value)
+{
+    if (value.metaType() == QMetaType::fromType<QDBusVariant>()) {
+        return unpackDbusValue(value.value<QDBusVariant>().variant());
+    }
+
+    if (value.canConvert<QDBusArgument>()) {
+        const QDBusArgument argument = value.value<QDBusArgument>();
+        switch (argument.currentType()) {
+        case QDBusArgument::MapType:
+            return unpackDbusMap(qdbus_cast<QVariantMap>(argument));
+        case QDBusArgument::ArrayType:
+            if (argument.currentSignature() == QStringLiteral("as")) {
+                return qdbus_cast<QStringList>(argument);
+            }
+            return unpackDbusList(qdbus_cast<QVariantList>(argument));
+        default:
+            return unpackDbusValue(argument.asVariant());
+        }
+    }
+
+    if (value.metaType() == QMetaType::fromType<QVariantMap>()) {
+        return unpackDbusMap(value.toMap());
+    }
+    if (value.metaType() == QMetaType::fromType<QVariantList>()) {
+        return unpackDbusList(value.toList());
+    }
+    return value;
+}
+
 QVariantList mapList(const QVariant &value)
 {
     const QVariantList raw = converted<QVariantList>(value);
@@ -34,9 +85,9 @@ QVariantList mapList(const QVariant &value)
     result.reserve(raw.size());
     for (const QVariant &entry : raw) {
         if (entry.canConvert<QDBusArgument>()) {
-            result.append(qdbus_cast<QVariantMap>(entry.value<QDBusArgument>()));
+            result.append(unpackDbusMap(qdbus_cast<QVariantMap>(entry.value<QDBusArgument>())));
         } else {
-            result.append(entry.toMap());
+            result.append(unpackDbusMap(entry.toMap()));
         }
     }
     return result;
@@ -421,7 +472,7 @@ void MacqueenIpcClient::refreshWindows()
 
 void MacqueenIpcClient::refreshActiveWindow()
 {
-    const QVariantMap value = converted<QVariantMap>(call(QStringLiteral("activeWindow")));
+    const QVariantMap value = unpackDbusMap(converted<QVariantMap>(call(QStringLiteral("activeWindow"))));
     if (m_activeWindow != value) {
         m_activeWindow = value;
         Q_EMIT activeWindowChanged();

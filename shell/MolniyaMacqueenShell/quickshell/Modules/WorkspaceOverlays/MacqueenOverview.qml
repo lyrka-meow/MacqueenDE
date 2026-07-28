@@ -238,6 +238,7 @@ Scope {
         const windowId = draggingWindowId;
         const workspaceId = dropWorkspaceId;
         const shouldMove = windowId !== "" && workspaceId !== "";
+        console.info("MacqueenOverview: finish drag", windowId, workspaceId, "move:", shouldMove);
         endDrag();
         if (!shouldMove)
             return;
@@ -740,6 +741,7 @@ Scope {
                                             id: windowCard
 
                                             required property var modelData
+                                            property bool dragOccurred: false
                                             readonly property int globalIndex: root.visibleWindows.findIndex(window => window.id === modelData.id)
                                             readonly property bool selected: globalIndex === root.selectedWindow
                                             readonly property var entry: DesktopEntries.heuristicLookup(Paths.moddedAppId(modelData.appId || ""))
@@ -879,7 +881,10 @@ Scope {
                                                     if (containsMouse && !root.dragActive)
                                                         root.selectedWindow = windowCard.globalIndex;
                                                 }
+                                                onPressed: windowCard.dragOccurred = false
                                                 onClicked: {
+                                                    if (windowCard.dragOccurred)
+                                                        return;
                                                     root.selectedWindow = windowCard.globalIndex;
                                                     root.close(true);
                                                 }
@@ -910,6 +915,7 @@ Scope {
 
                                                 onActiveChanged: {
                                                     if (active) {
+                                                        windowCard.dragOccurred = true;
                                                         root.beginDrag(
                                                             windowCard.modelData,
                                                             windowCard,
@@ -918,7 +924,7 @@ Scope {
                                                         );
                                                         root.dragActive = true;
                                                         updatePosition();
-                                                    } else if (root.draggingWindowId) {
+                                                    } else {
                                                         root.finishDrag();
                                                     }
                                                 }

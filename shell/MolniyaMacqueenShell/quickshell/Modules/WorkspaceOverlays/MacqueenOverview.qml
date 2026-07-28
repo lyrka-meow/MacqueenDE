@@ -17,6 +17,7 @@ Scope {
     property string draggingWindowId: ""
     property string draggingWindowTitle: ""
     property string draggingWindowIcon: ""
+    property string dropWorkspaceId: ""
 
     readonly property var visibleWindows: Macqueen.windows.filter(window => !window.skipTaskbar)
     readonly property var selectedWorkspace: {
@@ -221,7 +222,7 @@ Scope {
         dragProxy.y = point.y;
         dragProxy.dragOffsetX = mouseX;
         dragProxy.dragOffsetY = mouseY;
-        dragActive = true;
+        dropWorkspaceId = "";
     }
 
     function endDrag() {
@@ -229,6 +230,7 @@ Scope {
         draggingWindowId = "";
         draggingWindowTitle = "";
         draggingWindowIcon = "";
+        dropWorkspaceId = "";
     }
 
     Connections {
@@ -302,6 +304,19 @@ Scope {
                 readonly property int gridColumns: switcher.width >= 1000
                     ? 4
                     : (switcher.width >= 760 ? 3 : 2)
+
+                function workspaceAt(pointX, pointY) {
+                    for (let index = 0; index < workspaceRepeater.count; index++) {
+                        const workspace = workspaceRepeater.itemAt(index);
+                        if (!workspace)
+                            continue;
+                        const origin = workspace.mapToItem(focusScope, 0, 0);
+                        if (pointX >= origin.x && pointX <= origin.x + workspace.width
+                                && pointY >= origin.y && pointY <= origin.y + workspace.height)
+                            return workspace.modelData.id;
+                    }
+                    return "";
+                }
 
                 Keys.onEscapePressed: event => {
                     root.close(false);
@@ -501,6 +516,8 @@ Scope {
                                 spacing: Theme.spacingS
 
                                 Repeater {
+                                    id: workspaceRepeater
+
                                     model: Macqueen.workspaces
 
                                     delegate: Rectangle {
@@ -508,29 +525,17 @@ Scope {
 
                                         required property var modelData
                                         readonly property bool selected: modelData.id === root.selectedWorkspaceId
+                                        readonly property bool dropTarget: modelData.id === root.dropWorkspaceId
                                         readonly property int windowCount: root.windowsForWorkspace(modelData.id).length
 
                                         width: Math.max(150, Math.min(210, workspaceViewport.width / Math.max(1, Math.min(4, Macqueen.workspaces.length)) - Theme.spacingS))
                                         height: 50
                                         radius: 14
-                                        color: workspaceDrop.containsDrag
+                                        color: dropTarget
                                             ? Theme.primaryContainer
                                             : (selected ? Theme.primaryContainer : Theme.surfaceContainerHigh)
-                                        border.width: selected || workspaceDrop.containsDrag ? 2 : 1
-                                        border.color: selected || workspaceDrop.containsDrag ? Theme.primary : Theme.outline
-
-                                        DropArea {
-                                            id: workspaceDrop
-
-                                            anchors.fill: parent
-                                            onEntered: root.selectedWorkspaceId = workspaceChip.modelData.id
-                                            onDropped: {
-                                                if (root.draggingWindowId)
-                                                    Macqueen.moveWindowToWorkspace(root.draggingWindowId, workspaceChip.modelData.id);
-                                                root.selectWorkspace(workspaceChip.modelData.id);
-                                                root.endDrag();
-                                            }
-                                        }
+                                        border.width: selected || dropTarget ? 2 : 1
+                                        border.color: selected || dropTarget ? Theme.primary : Theme.outline
 
                                         MouseArea {
                                             anchors.fill: parent
@@ -845,30 +850,60 @@ Scope {
                                             MouseArea {
                                                 id: windowCardMouse
 
+                                                property real pressX: 0
+                                                property real pressY: 0
+                                                property bool moved: false
+
                                                 anchors.fill: parent
                                                 z: 0
                                                 hoverEnabled: true
                                                 cursorShape: root.dragActive ? Qt.ClosedHandCursor : Qt.PointingHandCursor
                                                 preventStealing: true
-                                                drag.target: dragProxy
-                                                drag.threshold: 8
-                                                drag.minimumX: Theme.spacingS
-                                                drag.maximumX: focusScope.width - dragProxy.width - Theme.spacingS
-                                                drag.minimumY: Theme.spacingS
-                                                drag.maximumY: focusScope.height - dragProxy.height - Theme.spacingS
 
                                                 onContainsMouseChanged: {
                                                     if (containsMouse && !root.dragActive)
                                                         root.selectedWindow = windowCard.globalIndex;
                                                 }
-                                                onPressed: mouse => root.beginDrag(windowCard.modelData, windowCard, mouse.x, mouse.y)
+                                                onPressed: mouse => {
+                                                    pressX = mouse.x;
+                                                    pressY = mouse.y;
+                                                    moved = false;
+                                                    root.beginDrag(windowCard.modelData, windowCard, mouse.x, mouse.y);
+                                                }
+                                                onPositionChanged: mouse => {
+                                                    if (!pressed)
+                                                        return;
+                                                    if (!moved) {
+                                                        const deltaX = mouse.x - pressX;
+                                                        const deltaY = mouse.y - pressY;
+                                                        moved = Math.sqrt(deltaX * deltaX + deltaY * deltaY) >= 8;
+                                                        if (moved)
+                                                            root.dragActive = true;
+                                                    }
+                                                    if (!moved)
+                                                        return;
+                                                    const point = mapToItem(focusScope, mouse.x, mouse.y);
+                                                    dragProxy.x = Math.max(Theme.spacingS, Math.min(
+                                                        focusScope.width - dragProxy.width - Theme.spacingS,
+                                                        point.x - dragProxy.dragOffsetX
+                                                    ));
+                                                    dragProxy.y = Math.max(Theme.spacingS, Math.min(
+                                                        focusScope.height - dragProxy.height - Theme.spacingS,
+                                                        point.y - dragProxy.dragOffsetY
+                                                    ));
+                                                    root.dropWorkspaceId = focusScope.workspaceAt(point.x, point.y);
+                                                }
                                                 onReleased: {
-                                                    if (drag.active)
-                                                        dragProxy.Drag.drop();
+                                                    if (moved && root.dropWorkspaceId && root.draggingWindowId) {
+                                                        Macqueen.moveWindowToWorkspace(root.draggingWindowId, root.dropWorkspaceId);
+                                                        root.selectWorkspace(root.dropWorkspaceId);
+                                                    }
                                                     root.endDrag();
                                                 }
                                                 onCanceled: root.endDrag()
                                                 onClicked: {
+                                                    if (moved)
+                                                        return;
                                                     root.selectedWindow = windowCard.globalIndex;
                                                     root.close(true);
                                                 }
@@ -974,11 +1009,6 @@ Scope {
                     border.width: 2
                     border.color: Theme.primary
                     opacity: 0.94
-
-                    Drag.active: root.dragActive
-                    Drag.source: dragProxy
-                    Drag.hotSpot.x: dragOffsetX
-                    Drag.hotSpot.y: dragOffsetY
 
                     Row {
                         anchors {

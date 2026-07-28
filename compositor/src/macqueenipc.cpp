@@ -144,7 +144,11 @@ MacqueenIpc::MacqueenIpc(Workspace *workspace)
 
 MacqueenIpc::~MacqueenIpc()
 {
-    m_workspace->screenEdges()->unreserve(ElectricTopLeft, this);
+    // MacqueenIpc is owned by Workspace and QObject destroys its children only
+    // after Workspace's C++ members, including ScreenEdges, have already been
+    // torn down. Calling screenEdges() here therefore dereferences a destroyed
+    // manager during compositor shutdown. The reservation does not need an
+    // explicit unreserve because both objects share the same lifetime.
     QDBusConnection::sessionBus().unregisterService(m_serviceName);
 }
 

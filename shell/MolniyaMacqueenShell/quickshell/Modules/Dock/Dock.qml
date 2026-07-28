@@ -4,6 +4,7 @@ import QtQuick.Shapes
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
+import Macqueen.Ipc 1.0
 import qs.Common
 import qs.Services
 import qs.Widgets
@@ -250,13 +251,94 @@ Variants {
         readonly property bool shouldHideForWindows: {
             if (!SettingsData.dockSmartAutoHide)
                 return false;
-            if (!CompositorService.isNiri && !CompositorService.isHyprland && !CompositorService.isMango)
+            if (!CompositorService.isMacqueen && !CompositorService.isNiri && !CompositorService.isHyprland && !CompositorService.isMango)
                 return false;
 
             const screenName = dock.modelData?.name ?? "";
             const dockThickness = dockGeometry.motionThickness;
             const screenWidth = dock.screen?.width ?? 0;
             const screenHeight = dock.screen?.height ?? 0;
+
+            if (CompositorService.isMacqueen) {
+                // Keep these properties as explicit dependencies so the binding
+                // is recalculated when a window moves, changes workspace, or a
+                // monitor layout changes.
+                Macqueen.windows;
+                Macqueen.workspaces;
+                Macqueen.outputs;
+
+                const currentWorkspace = Array.from(Macqueen.workspaces || []).find(workspace => workspace.current);
+                if (!currentWorkspace)
+                    return false;
+
+                const output = Array.from(Macqueen.outputs || []).find(candidate => candidate.name === screenName);
+                const screenX = Number(output?.x ?? dock.screen?.geometry?.x ?? 0);
+                const screenY = Number(output?.y ?? dock.screen?.geometry?.y ?? 0);
+                const outputWidth = Number(output?.width ?? screenWidth);
+                const outputHeight = Number(output?.height ?? screenHeight);
+                const safetyGap = Math.max(4, Number(SettingsData.dockSpacing || 0));
+                const bodyWidth = Number(dockBackground.width);
+                const bodyHeight = Number(dockBackground.height);
+                const edgeMargin = Number(dockGeometry.bodyEdgeMargin);
+                let bodyX = (outputWidth - bodyWidth) / 2;
+                let bodyY = (outputHeight - bodyHeight) / 2;
+
+                switch (SettingsData.dockPosition) {
+                case SettingsData.Position.Top:
+                    bodyY = edgeMargin;
+                    break;
+                case SettingsData.Position.Bottom:
+                    bodyY = outputHeight - edgeMargin - bodyHeight;
+                    break;
+                case SettingsData.Position.Left:
+                    bodyX = edgeMargin;
+                    break;
+                case SettingsData.Position.Right:
+                    bodyX = outputWidth - edgeMargin - bodyWidth;
+                    break;
+                }
+
+                const dockRect = {
+                    "x": screenX + bodyX - safetyGap,
+                    "y": screenY + bodyY - safetyGap,
+                    "width": bodyWidth + safetyGap * 2,
+                    "height": bodyHeight + safetyGap * 2
+                };
+
+                if (dockRect.width <= safetyGap * 2 || dockRect.height <= safetyGap * 2)
+                    return false;
+
+                const windows = Array.from(Macqueen.windows || []);
+                for (let i = 0; i < windows.length; i++) {
+                    const win = windows[i];
+                    if (!win || win.minimized || win.skipTaskbar)
+                        continue;
+
+                    const workspaceIds = Array.from(win.workspaces || []);
+                    if (workspaceIds.length > 0 && !workspaceIds.includes(currentWorkspace.id))
+                        continue;
+
+                    const geometry = win.geometry;
+                    if (!geometry)
+                        continue;
+
+                    const winX = Number(geometry.x);
+                    const winY = Number(geometry.y);
+                    const winW = Number(geometry.width);
+                    const winH = Number(geometry.height);
+                    if (!Number.isFinite(winX) || !Number.isFinite(winY) || !Number.isFinite(winW) || !Number.isFinite(winH))
+                        continue;
+
+                    const overlaps = winX < dockRect.x + dockRect.width
+                        && winX + winW > dockRect.x
+                        && winY < dockRect.y + dockRect.height
+                        && winY + winH > dockRect.y;
+                    if (overlaps)
+                        return true;
+                }
+
+                return false;
+            }
 
             if (CompositorService.isNiri) {
                 NiriService.windows;

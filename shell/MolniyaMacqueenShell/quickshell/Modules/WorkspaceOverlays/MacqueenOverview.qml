@@ -190,6 +190,7 @@ Scope {
 
     function open(reason) {
         if (!overviewOpen) {
+            Macqueen.refresh();
             targetScreenName = Macqueen.outputAtCursor();
             selectedWorkspaceId = currentWorkspaceId();
             const activeId = Macqueen.activeWindow && Macqueen.activeWindow.id
@@ -199,9 +200,9 @@ Scope {
             overviewOpen = true;
         }
         if (reason === "alt-tab")
-            selectRelative(1);
+            selectDisplayedRelative(1);
         else if (reason === "alt-shift-tab")
-            selectRelative(-1);
+            selectDisplayedRelative(-1);
     }
 
     function close(activateSelection) {
@@ -236,7 +237,7 @@ Scope {
     function finishDrag() {
         const windowId = draggingWindowId;
         const workspaceId = dropWorkspaceId;
-        const shouldMove = dragActive && windowId !== "" && workspaceId !== "";
+        const shouldMove = windowId !== "" && workspaceId !== "";
         endDrag();
         if (!shouldMove)
             return;
@@ -353,7 +354,7 @@ Scope {
                     event.accepted = true;
                 }
                 Keys.onTabPressed: event => {
-                    root.selectRelative((event.modifiers & Qt.ShiftModifier) ? -1 : 1);
+                    root.selectDisplayedRelative((event.modifiers & Qt.ShiftModifier) ? -1 : 1);
                     event.accepted = true;
                 }
                 Keys.onLeftPressed: event => {
@@ -389,7 +390,8 @@ Scope {
                 }
                 Keys.onReleased: event => {
                     if (event.key === Qt.Key_Alt) {
-                        root.close(true);
+                        if (!root.draggingWindowId)
+                            root.close(true);
                         event.accepted = true;
                     }
                 }
@@ -915,6 +917,10 @@ Scope {
                                                     root.finishDrag();
                                                 }
                                                 onCanceled: root.finishDrag()
+                                                onPressedChanged: {
+                                                    if (!pressed && moved && root.draggingWindowId)
+                                                        root.finishDrag();
+                                                }
                                                 onClicked: {
                                                     if (moved)
                                                         return;

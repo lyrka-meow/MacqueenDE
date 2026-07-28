@@ -73,6 +73,7 @@ build_packages=(
     go
     pkgconf
     plasma-wayland-protocols
+    vulkan-headers
     wayland-protocols
 )
 
@@ -83,7 +84,7 @@ line()
 
 banner()
 {
-    printf '\033[2J\033[H'
+    [[ -t 1 ]] && printf '\033[2J\033[H'
     printf '%s%s\n' "$bold$blue" '  __  __                         ____  _____ '
     printf '%s\n' ' |  \/  | __ _  ___ __ _ _   _|  _ \| ____|'
     printf '%s\n' ' | |\/| |/ _` |/ __/ _` | | | | | | |  _|  '
@@ -107,7 +108,11 @@ fail_step()
 {
     local label=$1
     local rc=$2
-    printf '\r\033[2K  %s✗%s %s\n' "$red" "$reset" "$label" >&2
+    if [[ -t 1 ]]; then
+        printf '\r\033[2K  %s✗%s %s\n' "$red" "$reset" "$label" >&2
+    else
+        printf '  ✗ %s\n' "$label" >&2
+    fi
     printf '\n%sПоследние строки журнала:%s\n' "$yellow" "$reset" >&2
     tail -n 30 "$log_file" >&2 || true
     printf '\nПолный журнал: %s\n' "$log_file" >&2
@@ -120,6 +125,17 @@ run_step()
     shift
     local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
     local frame=0 rc
+
+    if [[ ! -t 1 ]]; then
+        printf '  … %s\n' "$label"
+        set +e
+        "$@" >>"$log_file" 2>&1
+        rc=$?
+        set -e
+        ((rc == 0)) || fail_step "$label" "$rc"
+        printf '  ✓ %s\n' "$label"
+        return
+    fi
 
     printf '  %s%s%s ' "$blue" "${frames[0]}" "$reset"
     printf '%s' "$label"

@@ -24,6 +24,7 @@ Item {
     property var parentScreen: null
 
     readonly property bool isMango: CompositorService.isMango
+    readonly property bool macqueenRailStyle: CompositorService.isMacqueen && !root.isVertical
 
     readonly property real _leftMargin: {
         if (isVertical)
@@ -938,7 +939,7 @@ Item {
                 const borderWidth = (barConfig?.widgetOutlineEnabled ?? false) ? (barConfig?.widgetOutlineThickness ?? 1) : 0;
                 return parent.height + borderWidth * 2;
             }
-            radius: (barConfig?.noBackground ?? false) ? 0 : Theme.cornerRadius
+            radius: (barConfig?.noBackground ?? false) ? 0 : (root.macqueenRailStyle ? height / 2 : Theme.cornerRadius)
             color: "transparent"
             border.width: {
                 if (barConfig?.widgetOutlineEnabled ?? false) {
@@ -968,7 +969,7 @@ Item {
         Rectangle {
             id: background
             anchors.fill: parent
-            radius: (barConfig?.noBackground ?? false) ? 0 : Theme.cornerRadius
+            radius: (barConfig?.noBackground ?? false) ? 0 : (root.macqueenRailStyle ? height / 2 : Theme.cornerRadius)
             color: {
                 if ((barConfig?.noBackground ?? false))
                     return "transparent";
@@ -979,6 +980,8 @@ Item {
                 }
                 return Theme.withAlpha(baseColor, transparency);
             }
+            border.width: root.macqueenRailStyle && !(barConfig?.noBackground ?? false) ? 1 : 0
+            border.color: root.macqueenRailStyle ? Theme.withAlpha(Theme.outline, 0.32) : "transparent"
         }
     }
 
@@ -1074,7 +1077,7 @@ Item {
 
         x: isVertical ? visualBackground.x : (parent.width - implicitWidth) / 2
         y: isVertical ? (parent.height - implicitHeight) / 2 : visualBackground.y
-        spacing: Theme.spacingS
+        spacing: root.macqueenRailStyle ? Theme.spacingXS : Theme.spacingS
         flow: isVertical ? Flow.TopToBottom : Flow.LeftToRight
 
         // mango reports active_tags=0 while the overview is open; surface it as a pill
@@ -1189,6 +1192,17 @@ Item {
                 property bool isOccupied: {
                     if (CompositorService.isHyprland)
                         return Array.from(Hyprland.toplevels?.values || []).some(tl => tl.workspace?.id === modelData?.id);
+                    if (CompositorService.isMacqueen) {
+                        const workspaceId = modelData?.id;
+                        if (!workspaceId)
+                            return false;
+                        return Array.from(Macqueen.windows || []).some(window => {
+                            if (!window || window.skipTaskbar)
+                                return false;
+                            const workspaceIds = window.workspaces || [];
+                            return workspaceIds.length === 0 || workspaceIds.includes(workspaceId);
+                        });
+                    }
                     if (root.isMango)
                         return modelData.clients > 0;
                     if (CompositorService.isNiri)
@@ -1294,8 +1308,16 @@ Item {
                     return (SettingsData.groupWorkspaceApps && (!isActive || SettingsData.groupActiveWorkspaceApps)) ? groupedCount : totalCount;
                 }
 
-                readonly property real baseWidth: root.isVertical ? (SettingsData.showWorkspaceApps ? Math.max(widgetHeight * 0.7, root.appIconSize + Theme.spacingXS * 2) : widgetHeight * 0.5) : (isActive ? Math.max(root.widgetHeight * 1.05, root.appIconSize * 1.6) : Math.max(root.widgetHeight * 0.7, root.appIconSize * 1.2))
-                readonly property real baseHeight: root.isVertical ? (isActive ? Math.max(root.widgetHeight * 1.05, root.appIconSize * 1.6) : Math.max(root.widgetHeight * 0.7, root.appIconSize * 1.2)) : (SettingsData.showWorkspaceApps ? Math.max(widgetHeight * 0.7, root.appIconSize + Theme.spacingXS * 2) : widgetHeight * 0.5)
+                readonly property real baseWidth: root.isVertical
+                    ? (SettingsData.showWorkspaceApps ? Math.max(widgetHeight * 0.7, root.appIconSize + Theme.spacingXS * 2) : widgetHeight * 0.5)
+                    : (root.macqueenRailStyle
+                        ? (isActive ? root.widgetHeight * 1.18 : root.widgetHeight * 0.7)
+                        : (isActive ? Math.max(root.widgetHeight * 1.05, root.appIconSize * 1.6) : Math.max(root.widgetHeight * 0.7, root.appIconSize * 1.2)))
+                readonly property real baseHeight: root.isVertical
+                    ? (isActive ? Math.max(root.widgetHeight * 1.05, root.appIconSize * 1.6) : Math.max(root.widgetHeight * 0.7, root.appIconSize * 1.2))
+                    : (root.macqueenRailStyle
+                        ? root.widgetHeight * 0.62
+                        : (SettingsData.showWorkspaceApps ? Math.max(widgetHeight * 0.7, root.appIconSize + Theme.spacingXS * 2) : widgetHeight * 0.5))
                 readonly property bool hasWorkspaceName: SettingsData.showWorkspaceName && modelData?.name && modelData.name !== ""
                 readonly property bool workspaceNamesEnabled: SettingsData.showWorkspaceName && (CompositorService.isNiri || CompositorService.isSway || CompositorService.isScroll || CompositorService.isMiracle)
                 readonly property real contentImplicitWidth: appIconsLoader.item?.contentWidth ?? 0
@@ -1405,7 +1427,30 @@ Item {
                 readonly property color quickshellIconActiveColor: getContrastingIconColor(activeColor)
                 readonly property color quickshellIconInactiveColor: getContrastingIconColor(unfocusedColor)
 
-                readonly property color requestedColor: isActive ? activeColor : isUrgent ? urgentColor : isPlaceholder ? Theme.surfaceTextLight : isHovered ? Theme.withAlpha(unfocusedColor, 0.7) : isOccupied ? occupiedColor : unfocusedColor
+                readonly property color contentColor: {
+                    if (root.macqueenRailStyle) {
+                        if (isActive)
+                            return Theme.onPrimary;
+                        if (isUrgent)
+                            return Theme.surfaceContainer;
+                        return isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium;
+                    }
+                    return (isActive || isUrgent)
+                        ? Theme.withAlpha(Theme.surfaceContainer, 0.95)
+                        : (isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium);
+                }
+                readonly property color requestedColor: {
+                    if (root.macqueenRailStyle) {
+                        if (isActive)
+                            return activeColor;
+                        if (isUrgent)
+                            return urgentColor;
+                        if (isHovered)
+                            return Theme.withAlpha(activeColor, 0.16);
+                        return "transparent";
+                    }
+                    return isActive ? activeColor : isUrgent ? urgentColor : isPlaceholder ? Theme.surfaceTextLight : isHovered ? Theme.withAlpha(unfocusedColor, 0.7) : isOccupied ? occupiedColor : unfocusedColor;
+                }
 
                 property bool colorAnimationReady: false
 
@@ -1614,7 +1659,7 @@ Item {
                         const borderWidth = (delegateRoot.focusedBorderEnabledForMonitor && isActive && !isPlaceholder) ? delegateRoot.focusedBorderThicknessForMonitor : 0;
                         return delegateRoot.visualHeight + borderWidth * 2;
                     }
-                    radius: Theme.cornerRadius
+                    radius: root.macqueenRailStyle ? height / 2 : Theme.cornerRadius
                     color: "transparent"
                     border.width: (delegateRoot.focusedBorderEnabledForMonitor && isActive && !isPlaceholder) ? delegateRoot.focusedBorderThicknessForMonitor : 0
                     border.color: (delegateRoot.focusedBorderEnabledForMonitor && isActive && !isPlaceholder) ? focusedBorderColor : Theme.withAlpha(focusedBorderColor, 0)
@@ -1649,17 +1694,40 @@ Item {
                 }
 
                 Rectangle {
+                    id: activeGlow
+
+                    visible: root.macqueenRailStyle && isActive && !isPlaceholder
+                    anchors.centerIn: visualContent
+                    width: visualContent.width + 8
+                    height: visualContent.height + 8
+                    radius: height / 2
+                    color: Theme.withAlpha(delegateRoot.activeColor, 0.14)
+                    opacity: 0.9
+
+                    Behavior on width {
+                        NumberAnimation {
+                            duration: Theme.mediumDuration
+                            easing.type: Theme.emphasizedEasing
+                        }
+                    }
+                }
+
+                Rectangle {
                     id: visualContent
                     width: delegateRoot.visualWidth
                     height: delegateRoot.visualHeight
                     x: root.isVertical ? (root.widgetHeight - width) / 2 : (parent.width - width) / 2
                     y: root.isVertical ? (parent.height - height) / 2 : (root.widgetHeight - height) / 2
-                    radius: Theme.cornerRadius
+                    radius: root.macqueenRailStyle ? height / 2 : Theme.cornerRadius
                     color: delegateRoot.displayColor
                     opacity: dragHandler.dragging ? 0.8 : 1.0
 
-                    border.width: dragHandler.dragging ? 2 : (isUrgent ? 2 : (isDropTarget ? 2 : 0))
-                    border.color: dragHandler.dragging ? Theme.primary : (isUrgent ? urgentColor : (isDropTarget ? Theme.primary : Theme.withAlpha(Theme.primary, 0)))
+                    border.width: root.macqueenRailStyle
+                        ? (isActive || isHovered ? 1 : 0)
+                        : (dragHandler.dragging ? 2 : (isUrgent ? 2 : (isDropTarget ? 2 : 0)))
+                    border.color: root.macqueenRailStyle
+                        ? (isActive ? Theme.withAlpha(Theme.onPrimary, 0.34) : Theme.withAlpha(Theme.primary, 0.3))
+                        : (dragHandler.dragging ? Theme.primary : (isUrgent ? urgentColor : (isDropTarget ? Theme.primary : Theme.withAlpha(Theme.primary, 0))))
 
                     transform: Translate {
                         x: root.isVertical ? 0 : (dragHandler.dragging ? dragHandler.dragAxisOffset : 0)
@@ -1701,6 +1769,51 @@ Item {
                         }
                     }
 
+                    Rectangle {
+                        anchors {
+                            horizontalCenter: parent.horizontalCenter
+                            bottom: parent.bottom
+                            bottomMargin: 2
+                        }
+                        visible: root.macqueenRailStyle && isActive && !isPlaceholder
+                        width: Math.min(14, parent.width * 0.38)
+                        height: 2
+                        radius: 1
+                        color: Theme.withAlpha(Theme.onPrimary, 0.82)
+                        z: 3
+                    }
+
+                    Rectangle {
+                        anchors {
+                            right: parent.right
+                            top: parent.top
+                            margins: 3
+                        }
+                        visible: root.macqueenRailStyle && !isActive && isOccupied && !isPlaceholder
+                        width: 4
+                        height: 4
+                        radius: 2
+                        color: delegateRoot.occupiedColor
+                        z: 3
+                    }
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        visible: root.macqueenRailStyle && !appIconsLoader.active
+                        width: isActive ? 14 : 6
+                        height: isActive ? 3 : 6
+                        radius: height / 2
+                        color: isActive ? Theme.onPrimary : (isOccupied ? delegateRoot.occupiedColor : Theme.surfaceTextMedium)
+                        z: 2
+
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: Theme.mediumDuration
+                                easing.type: Theme.emphasizedEasing
+                            }
+                        }
+                    }
+
                     Loader {
                         id: appIconsLoader
                         anchors.fill: parent
@@ -1732,7 +1845,7 @@ Item {
                                             anchors.verticalCenter: parent.verticalCenter
                                             name: loadedIconData?.value ?? ""
                                             size: Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText)
-                                            color: (isActive || isUrgent) ? Theme.withAlpha(Theme.surfaceContainer, 0.95) : isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium
+                                            color: delegateRoot.contentColor
                                             weight: (isActive && !isPlaceholder) ? 500 : 400
                                         }
                                     }
@@ -1746,7 +1859,7 @@ Item {
                                             id: wsText
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: loadedIconData?.value ?? ""
-                                            color: (isActive || isUrgent) ? Theme.withAlpha(Theme.surfaceContainer, 0.95) : isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium
+                                            color: delegateRoot.contentColor
                                             font.pixelSize: Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText)
                                             font.weight: (isActive && !isPlaceholder) ? Math.max(Theme.fontWeight, Font.DemiBold) : Theme.fontWeight
                                         }
@@ -1761,7 +1874,7 @@ Item {
                                             id: wsIndexText
                                             anchors.verticalCenter: parent.verticalCenter
                                             text: loadedHasIcon ? (modelData?.name ?? "") : root.getWorkspaceIndex(modelData, index)
-                                            color: (isActive || isUrgent) ? Theme.withAlpha(Theme.surfaceContainer, 0.95) : isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium
+                                            color: delegateRoot.contentColor
                                             font.pixelSize: Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText)
                                             font.weight: (isActive && !isPlaceholder) ? Math.max(Theme.fontWeight, Font.DemiBold) : Theme.fontWeight
                                         }
@@ -1914,7 +2027,7 @@ Item {
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         name: loadedIconData?.value ?? ""
                                         size: Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText)
-                                        color: (isActive || isUrgent) ? Theme.withAlpha(Theme.surfaceContainer, 0.95) : isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium
+                                        color: delegateRoot.contentColor
                                         weight: (isActive && !isPlaceholder) ? 500 : 400
                                     }
 
@@ -1922,7 +2035,7 @@ Item {
                                         visible: loadedHasIcon && loadedIconData?.type === "text"
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: loadedIconData?.value ?? ""
-                                        color: (isActive || isUrgent) ? Theme.withAlpha(Theme.surfaceContainer, 0.95) : isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium
+                                        color: delegateRoot.contentColor
                                         font.pixelSize: Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText)
                                         font.weight: (isActive && !isPlaceholder) ? Math.max(Theme.fontWeight, Font.DemiBold) : Theme.fontWeight
                                     }
@@ -1931,7 +2044,7 @@ Item {
                                         visible: (SettingsData.showWorkspaceIndex || SettingsData.showWorkspaceName) && !loadedHasIcon
                                         anchors.horizontalCenter: parent.horizontalCenter
                                         text: root.getWorkspaceIndex(modelData, index)
-                                        color: (isActive || isUrgent) ? Theme.withAlpha(Theme.surfaceContainer, 0.95) : isPlaceholder ? Theme.surfaceTextAlpha : Theme.surfaceTextMedium
+                                        color: delegateRoot.contentColor
                                         font.pixelSize: Theme.barTextSize(barThickness, barConfig?.fontScale, barConfig?.maximizeWidgetText)
                                         font.weight: (isActive && !isPlaceholder) ? Math.max(Theme.fontWeight, Font.DemiBold) : Theme.fontWeight
                                     }

@@ -63,6 +63,18 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
 [docs/UPSTREAM.md](docs/UPSTREAM.md). Local configuration and build
 instructions are in [docs/BUILDING.md](docs/BUILDING.md).
 
+## Test in a window
+
+From an existing KDE Wayland or Hyprland session, run:
+
+```bash
+./scripts/run-nested.sh
+```
+
+This opens a 1280x720 nested MacqueenDE session without replacing the host
+desktop portal. Override the size with `MACQUEEN_NESTED_WIDTH` and
+`MACQUEEN_NESTED_HEIGHT`.
+
 ## Start a direct development session
 
 After building the compositor, Quickshell module, and Molniya backend, log out

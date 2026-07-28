@@ -1311,15 +1311,18 @@ Item {
                 readonly property real baseWidth: root.isVertical
                     ? (SettingsData.showWorkspaceApps ? Math.max(widgetHeight * 0.7, root.appIconSize + Theme.spacingXS * 2) : widgetHeight * 0.5)
                     : (root.macqueenRailStyle
-                        ? (isActive ? root.widgetHeight * 1.18 : root.widgetHeight * 0.7)
+                        ? (hasVisibleContent
+                            ? (isActive ? root.widgetHeight * 1.18 : root.widgetHeight * 0.7)
+                            : (isActive ? root.widgetHeight : root.widgetHeight * 0.46))
                         : (isActive ? Math.max(root.widgetHeight * 1.05, root.appIconSize * 1.6) : Math.max(root.widgetHeight * 0.7, root.appIconSize * 1.2)))
                 readonly property real baseHeight: root.isVertical
                     ? (isActive ? Math.max(root.widgetHeight * 1.05, root.appIconSize * 1.6) : Math.max(root.widgetHeight * 0.7, root.appIconSize * 1.2))
                     : (root.macqueenRailStyle
-                        ? root.widgetHeight * 0.62
+                        ? (hasVisibleContent ? root.widgetHeight * 0.62 : root.widgetHeight * 0.44)
                         : (SettingsData.showWorkspaceApps ? Math.max(widgetHeight * 0.7, root.appIconSize + Theme.spacingXS * 2) : widgetHeight * 0.5))
                 readonly property bool hasWorkspaceName: SettingsData.showWorkspaceName && modelData?.name && modelData.name !== ""
                 readonly property bool workspaceNamesEnabled: SettingsData.showWorkspaceName && (CompositorService.isNiri || CompositorService.isSway || CompositorService.isScroll || CompositorService.isMiracle)
+                readonly property bool hasVisibleContent: SettingsData.showWorkspaceApps || SettingsData.showWorkspaceIndex || SettingsData.showWorkspaceName || loadedHasIcon
                 readonly property real contentImplicitWidth: appIconsLoader.item?.contentWidth ?? 0
                 readonly property real contentImplicitHeight: appIconsLoader.item?.contentHeight ?? 0
 
@@ -1441,6 +1444,8 @@ Item {
                 }
                 readonly property color requestedColor: {
                     if (root.macqueenRailStyle) {
+                        if (!hasVisibleContent)
+                            return "transparent";
                         if (isActive)
                             return activeColor;
                         if (isUrgent)
@@ -1696,7 +1701,7 @@ Item {
                 Rectangle {
                     id: activeGlow
 
-                    visible: root.macqueenRailStyle && isActive && !isPlaceholder
+                    visible: root.macqueenRailStyle && delegateRoot.hasVisibleContent && isActive && !isPlaceholder
                     anchors.centerIn: visualContent
                     width: visualContent.width + 8
                     height: visualContent.height + 8
@@ -1775,7 +1780,7 @@ Item {
                             bottom: parent.bottom
                             bottomMargin: 2
                         }
-                        visible: root.macqueenRailStyle && appIconsLoader.active && isActive && !isPlaceholder
+                        visible: root.macqueenRailStyle && delegateRoot.hasVisibleContent && isActive && !isPlaceholder
                         width: Math.min(14, parent.width * 0.38)
                         height: 2
                         radius: 1
@@ -1789,7 +1794,7 @@ Item {
                             top: parent.top
                             margins: 3
                         }
-                        visible: root.macqueenRailStyle && appIconsLoader.active && !isActive && isOccupied && !isPlaceholder
+                        visible: root.macqueenRailStyle && delegateRoot.hasVisibleContent && !isActive && isOccupied && !isPlaceholder
                         width: 4
                         height: 4
                         radius: 2
@@ -1798,29 +1803,80 @@ Item {
                     }
 
                     Rectangle {
+                        id: cometGlow
+
                         anchors.centerIn: parent
-                        visible: root.macqueenRailStyle && !appIconsLoader.active && !isActive
-                        width: 6
-                        height: 6
+                        visible: root.macqueenRailStyle && !delegateRoot.hasVisibleContent && isActive
+                        width: 30
+                        height: 15
                         radius: height / 2
-                        color: isOccupied ? delegateRoot.occupiedColor : Theme.surfaceTextMedium
-                        opacity: isOccupied ? 1 : 0.58
-                        z: 2
+                        color: Theme.withAlpha(delegateRoot.activeColor, 0.2)
+                        z: 1
                     }
 
-                    DankIcon {
+                    Rectangle {
+                        id: cometMarker
+
                         anchors.centerIn: parent
-                        visible: root.macqueenRailStyle && !appIconsLoader.active && isActive
-                        name: "desktop_windows"
-                        size: 12
-                        color: Theme.onPrimary
+                        visible: root.macqueenRailStyle && !delegateRoot.hasVisibleContent
+                        width: isActive ? 23 : 5
+                        height: isActive ? 7 : 5
+                        radius: height / 2
+                        opacity: isActive || isOccupied ? 1 : 0.48
                         z: 2
+
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+
+                            GradientStop {
+                                position: 0
+                                color: isActive
+                                    ? delegateRoot.activeColor
+                                    : (isOccupied ? delegateRoot.occupiedColor : Theme.surfaceTextMedium)
+                            }
+
+                            GradientStop {
+                                position: 1
+                                color: isActive
+                                    ? Theme.blend(delegateRoot.activeColor, Theme.tertiary, 0.36)
+                                    : (isOccupied ? delegateRoot.occupiedColor : Theme.surfaceTextMedium)
+                            }
+                        }
+
+                        Rectangle {
+                            anchors {
+                                left: parent.left
+                                right: parent.right
+                                top: parent.top
+                                leftMargin: 4
+                                rightMargin: 4
+                                topMargin: 1
+                            }
+                            visible: isActive
+                            height: 1
+                            radius: 0.5
+                            color: Theme.withAlpha(Theme.onPrimary, 0.32)
+                        }
+
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: Theme.mediumDuration
+                                easing.type: Theme.emphasizedEasing
+                            }
+                        }
+
+                        Behavior on height {
+                            NumberAnimation {
+                                duration: Theme.mediumDuration
+                                easing.type: Theme.emphasizedEasing
+                            }
+                        }
                     }
 
                     Loader {
                         id: appIconsLoader
                         anchors.fill: parent
-                        active: SettingsData.showWorkspaceApps || SettingsData.showWorkspaceIndex || SettingsData.showWorkspaceName || loadedHasIcon
+                        active: delegateRoot.hasVisibleContent
                         sourceComponent: Item {
                             id: contentRoot
                             readonly property real contentWidth: contentRow.item?.implicitWidth ?? 0

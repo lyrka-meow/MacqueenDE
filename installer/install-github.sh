@@ -365,7 +365,7 @@ main()
 
     printf '\nЖурнал установки: %s\n' "$log_file"
     printf 'Для системных изменений потребуется пароль sudo.\n\n'
-    sudo -v
+    sudo -n true 2>/dev/null || sudo -v
 
     install_runtime_packages
     case "$install_mode" in

@@ -846,16 +846,10 @@ PanelWindow {
         };
     }
 
-    mask: Region {
-        item: clickThroughEnabled ? null : inputMask
-
+    Region {
+        id: clickThroughInputMask
         Region {
-            readonly property var r: barWindow.clickThroughEnabled ? barWindow.sectionRect(barWindow._leftSection, false, barWindow._revealProgress + barWindow.width * 0) : {
-                "x": 0,
-                "y": 0,
-                "w": 0,
-                "h": 0
-            }
+            readonly property var r: barWindow.sectionRect(barWindow._leftSection, false, barWindow._revealProgress + barWindow.width * 0)
             x: r.x
             y: r.y
             width: r.w
@@ -863,12 +857,7 @@ PanelWindow {
         }
 
         Region {
-            readonly property var r: barWindow.clickThroughEnabled ? barWindow.sectionRect(barWindow._centerSection, true, barWindow._revealProgress + barWindow.width * 0) : {
-                "x": 0,
-                "y": 0,
-                "w": 0,
-                "h": 0
-            }
+            readonly property var r: barWindow.sectionRect(barWindow._centerSection, true, barWindow._revealProgress + barWindow.width * 0)
             x: r.x
             y: r.y
             width: r.w
@@ -876,12 +865,7 @@ PanelWindow {
         }
 
         Region {
-            readonly property var r: barWindow.clickThroughEnabled ? barWindow.sectionRect(barWindow._rightSection, false, barWindow._revealProgress + barWindow.width * 0) : {
-                "x": 0,
-                "y": 0,
-                "w": 0,
-                "h": 0
-            }
+            readonly property var r: barWindow.sectionRect(barWindow._rightSection, false, barWindow._revealProgress + barWindow.width * 0)
             x: r.x
             y: r.y
             width: r.w
@@ -889,13 +873,18 @@ PanelWindow {
         }
 
         Region {
-            readonly property bool active: barWindow.clickThroughEnabled && !inputMask.showing
+            readonly property bool active: !inputMask.showing
             x: active ? inputMask.x : 0
             y: active ? inputMask.y : 0
             width: active ? inputMask.width : 0
             height: active ? inputMask.height : 0
         }
     }
+
+    // A null mask means the compositor uses the complete bar surface for
+    // input. Keeping the normal path free of a custom Region also prevents a
+    // stale empty mask after a live QML reload.
+    mask: clickThroughEnabled ? clickThroughInputMask : null
 
     Item {
         id: topBarCore

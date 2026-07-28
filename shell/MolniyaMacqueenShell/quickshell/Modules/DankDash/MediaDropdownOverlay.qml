@@ -68,28 +68,6 @@ Item {
 
     property real _wheelAccum: 0
 
-    // The overlay lives above the dashboard window and therefore receives the
-    // second click before the original lyrics button can. Treat any click
-    // outside the drawer as the toggle-off action.
-    MouseArea {
-        id: lyricsDismissArea
-        anchors.fill: parent
-        z: 1000
-        enabled: root.dropdownType === 4
-        propagateComposedEvents: true
-        onClicked: mouse => {
-            const inside = mouse.x >= lyricsPanel.x
-                        && mouse.x <= lyricsPanel.x + lyricsPanel.width
-                        && mouse.y >= lyricsPanel.y
-                        && mouse.y <= lyricsPanel.y + lyricsPanel.height;
-            if (inside) {
-                mouse.accepted = false;
-                return;
-            }
-            root.closeRequested();
-        }
-    }
-
     function volumeWheel(wheelEvent) {
         if (!volumeAvailable)
             return;
@@ -112,82 +90,8 @@ Item {
             return audioDevicesPanel;
         case 3:
             return playersPanel;
-        case 4:
-            return lyricsPanel;
         default:
             return null;
-        }
-    }
-
-    Rectangle {
-        id: lyricsPanel
-        visible: dropdownType === 4
-        width: 360
-        height: 420
-        x: isRightEdge ? anchorPos.x + Theme.spacingS : anchorPos.x - width - Theme.spacingS
-        y: Math.max(Theme.spacingM, anchorPos.y - height * 0.56)
-        radius: Theme.cornerRadius * 2
-        color: Theme.floatingSurface
-        border.color: Theme.withAlpha(MediaAccentService.accent, 0.45)
-        border.width: 1
-
-        opacity: Theme.isDirectionalEffect ? 1 : (dropdownType === 4 ? 1 : 0)
-        scale: Theme.isDirectionalEffect ? 1 : (dropdownType === 4 ? 1 : Theme.effectScaleCollapsed)
-        transformOrigin: isRightEdge ? Item.Left : Item.Right
-
-        Behavior on opacity {
-            enabled: !Theme.isDirectionalEffect
-            NumberAnimation {
-                duration: Theme.variantDuration(Theme.expressiveDurations.expressiveDefaultSpatial, dropdownType === 4)
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: dropdownType === 4 ? Theme.variantPopoutEnterCurve : Theme.variantPopoutExitCurve
-            }
-        }
-
-        Behavior on scale {
-            enabled: !Theme.isDirectionalEffect
-            NumberAnimation {
-                duration: Theme.variantDuration(Theme.expressiveDurations.expressiveDefaultSpatial, dropdownType === 4)
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: dropdownType === 4 ? Theme.variantPopoutEnterCurve : Theme.variantPopoutExitCurve
-            }
-        }
-
-        ElevationShadow {
-            anchors.fill: parent
-            z: -1
-            level: Theme.elevationLevel3
-            fallbackOffset: 6
-            targetRadius: lyricsPanel.radius
-            targetColor: lyricsPanel.color
-            borderColor: lyricsPanel.border.color
-            borderWidth: lyricsPanel.border.width
-            shadowOpacity: 0.32
-            shadowEnabled: Theme.elevationEnabled
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            anchors.margins: -10
-            hoverEnabled: true
-            onEntered: root.panelAreaEntered()
-            onExited: root.panelAreaExited()
-        }
-
-        DankLyricsView {
-            anchors.fill: parent
-            anchors.margins: Theme.spacingS
-            activePlayer: root.activePlayer
-            currentIndex: lyricsPanel.currentLyricIndex
-            accent: MediaAccentService.accent
-        }
-
-        property int currentLyricIndex: -1
-        Timer {
-            interval: 250
-            repeat: true
-            running: lyricsPanel.visible && !!root.activePlayer
-            onTriggered: lyricsPanel.currentLyricIndex = LyricsService.indexForTime(root.activePlayer?.position || 0)
         }
     }
 

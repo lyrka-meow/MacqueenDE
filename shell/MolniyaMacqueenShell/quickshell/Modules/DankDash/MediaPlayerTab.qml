@@ -34,8 +34,6 @@ Item {
     signal showVolumeDropdown(point pos, var screen, bool rightEdge, var player, var players)
     signal showAudioDevicesDropdown(point pos, var screen, bool rightEdge)
     signal showPlayersDropdown(point pos, var screen, bool rightEdge, var player, var players)
-    signal showLyricsDropdown(point pos, var screen, bool rightEdge, var player)
-    signal toggleLyricsDropdown(point pos, var screen, bool rightEdge, var player, bool wasOpen)
     signal hideDropdowns
     signal dropdownButtonExited
     signal dropdownButtonEntered
@@ -48,6 +46,7 @@ Item {
         volumeExpanded = false;
         devicesExpanded = false;
         playersExpanded = false;
+        lyricsPanelOpen = false;
     }
 
     readonly property bool isRightEdge: {
@@ -253,6 +252,11 @@ Item {
     }
 
     function handleKeyEvent(event) {
+        if (event.key === Qt.Key_Escape && lyricsPanelOpen) {
+            lyricsPanelOpen = false;
+            return true;
+        }
+
         if (!activePlayer)
             return false;
 
@@ -1023,12 +1027,20 @@ Item {
         width: 40
         height: 40
         radius: 20
-        x: Theme.spacingM
+        x: root.lyricsPanelOpen ? lyricsDrawer.x + lyricsDrawer.width + Theme.spacingS : Theme.spacingM
         y: 295
         color: lyricsArea.containsMouse || root.lyricsPanelOpen ? root.accentPressed : Theme.withAlpha(root.accentPressed, 0)
         border.color: root.lyricsPanelOpen ? root.accent : Theme.outlineStrong
         border.width: 1
         z: 100
+
+        Behavior on x {
+            NumberAnimation {
+                duration: Theme.expressiveDurations.expressiveDefaultSpatial
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.variantPopoutEnterCurve
+            }
+        }
 
         DankIcon {
             anchors.centerIn: parent
@@ -1039,16 +1051,100 @@ Item {
 
         MouseArea {
             id: lyricsArea
-            property bool wasOpenOnPress: false
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onPressed: wasOpenOnPress = root.lyricsPanelOpen
             onClicked: {
-                const panelOnRight = false;
-                const screenX = root.popoutX;
-                const screenY = root.popoutY + root.contentOffsetY + lyricsButton.y + lyricsButton.height / 2;
-                root.toggleLyricsDropdown(Qt.point(screenX, screenY), root.targetScreen, panelOnRight, root.activePlayer, wasOpenOnPress);
+                const nextOpen = !root.lyricsPanelOpen;
+                root.hideDropdowns();
+                root.lyricsPanelOpen = nextOpen;
+            }
+        }
+    }
+
+    Rectangle {
+        id: lyricsDrawer
+        width: Math.min(330, root.width * 0.48)
+        height: root.height - Theme.spacingM * 2
+        x: root.lyricsPanelOpen ? Theme.spacingM : -width - Theme.spacingL
+        y: Theme.spacingM
+        z: 99
+        radius: Theme.cornerRadius * 2
+        color: Theme.withAlpha(Theme.floatingSurface, 0.94)
+        border.width: 1
+        border.color: Theme.withAlpha(root.accent, root.lyricsPanelOpen ? 0.48 : 0)
+        opacity: root.lyricsPanelOpen ? 1 : 0
+        enabled: root.lyricsPanelOpen
+        clip: true
+
+        Behavior on x {
+            NumberAnimation {
+                duration: Theme.expressiveDurations.expressiveDefaultSpatial
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: root.lyricsPanelOpen ? Theme.variantPopoutEnterCurve : Theme.variantPopoutExitCurve
+            }
+        }
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Math.round(Theme.expressiveDurations.expressiveDefaultSpatial * Theme.variantOpacityDurationScale)
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        ElevationShadow {
+            anchors.fill: parent
+            z: -1
+            level: Theme.elevationLevel3
+            fallbackOffset: 5
+            targetRadius: lyricsDrawer.radius
+            targetColor: lyricsDrawer.color
+            borderColor: lyricsDrawer.border.color
+            borderWidth: lyricsDrawer.border.width
+            shadowOpacity: 0.3
+            shadowEnabled: Theme.elevationEnabled
+        }
+
+        Rectangle {
+            width: 3
+            height: parent.height * 0.22
+            anchors.left: parent.left
+            anchors.leftMargin: 1
+            anchors.verticalCenter: parent.verticalCenter
+            radius: 2
+            color: root.accent
+        }
+
+        DankLyricsView {
+            anchors.fill: parent
+            activePlayer: root.activePlayer
+            currentIndex: root.lyricIndex
+            accent: root.accent
+        }
+
+        Rectangle {
+            width: 32
+            height: 32
+            radius: 16
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.margins: Theme.spacingS
+            z: 3
+            color: closeLyricsArea.containsMouse ? Theme.withAlpha(root.accent, 0.18) : Theme.withAlpha(Theme.surfaceContainerHighest, 0.72)
+
+            DankIcon {
+                anchors.centerIn: parent
+                name: "close"
+                size: 17
+                color: Theme.surfaceText
+            }
+
+            MouseArea {
+                id: closeLyricsArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.lyricsPanelOpen = false
             }
         }
     }

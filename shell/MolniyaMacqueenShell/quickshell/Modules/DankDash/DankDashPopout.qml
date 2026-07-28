@@ -111,24 +111,6 @@ DankPopout {
         __dropdownType = 3;
     }
 
-    function __showLyricsDropdown(pos, rightEdge, player) {
-        __overlayUnmountTimer.stop();
-        __overlayMounted = true;
-        __dropdownAnchor = pos;
-        __dropdownRightEdge = rightEdge;
-        __dropdownPlayer = Qt.binding(() => MprisController.activePlayer);
-        __dropdownType = 4;
-    }
-
-    function __toggleLyricsDropdown(pos, rightEdge, player, wasOpen) {
-        if (wasOpen) {
-            __hideDropdowns();
-            return;
-        }
-        __hideDropdowns();
-        __showLyricsDropdown(pos, rightEdge, player);
-    }
-
     function __hideDropdowns() {
         __volumeCloseTimer.stop();
         __dropdownType = 0;
@@ -453,7 +435,6 @@ DankPopout {
                         asynchronous: true
                         sourceComponent: Component {
                             MediaPlayerTab {
-                                lyricsPanelOpen: root.__dropdownType === 4
                                 targetScreen: root.screen
                                 popoutX: root.alignedX
                                 popoutY: root.alignedY
@@ -475,12 +456,6 @@ DankPopout {
                                 }
                                 onShowPlayersDropdown: (pos, screen, rightEdge, player, players) => {
                                     root.__showPlayersDropdown(pos, rightEdge, player, players);
-                                }
-                                onShowLyricsDropdown: (pos, screen, rightEdge, player) => {
-                                    root.__showLyricsDropdown(pos, rightEdge, player);
-                                }
-                                onToggleLyricsDropdown: (pos, screen, rightEdge, player, wasOpen) => {
-                                    root.__toggleLyricsDropdown(pos, rightEdge, player, wasOpen);
                                 }
                                 onHideDropdowns: root.__hideDropdowns()
                                 onDropdownButtonExited: root.__startCloseTimer()

@@ -39,15 +39,11 @@ ShellRoot {
 
     Loader {
         id: shellCoreLoader
-        asynchronous: true
+        asynchronous: false
         source: "ShellCore.qml"
-        onLoaded: dmsShellLoader.setSource("DMSShell.qml", {
-            core: item
-        })
     }
 
-    Loader {
-        id: dmsShellLoader
-        asynchronous: true
+    DMSShell {
+        core: shellCoreLoader.item
     }
 }

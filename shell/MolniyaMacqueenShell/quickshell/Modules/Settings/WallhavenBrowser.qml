@@ -23,7 +23,7 @@ SettingsCard {
             WallhavenService.search("", 1);
     }
 
-    Connections {
+    readonly property Connections wallhavenConnection: Connections {
         target: WallhavenService
 
         function onWallpaperDownloaded(path) {

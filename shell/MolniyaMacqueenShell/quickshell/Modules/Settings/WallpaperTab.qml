@@ -14,6 +14,7 @@ Item {
     LayoutMirroring.childrenInherit: true
 
     property var parentModal: null
+    property bool onlineGalleryOpen: false
     property string selectedMonitorName: {
         var screens = Quickshell.screens;
         return screens.length > 0 ? screens[0].name : "";
@@ -250,7 +251,6 @@ Item {
                             anchors.left: parent.left
                             spacing: Theme.spacingS
                             layoutDirection: I18n.isRtl ? Qt.RightToLeft : Qt.LeftToRight
-                            visible: root.currentWallpaper !== ""
 
                             DankActionButton {
                                 buttonSize: 32
@@ -284,6 +284,17 @@ Item {
                                         WallpaperCyclingService.cycleNextManually();
                                     }
                                 }
+                            }
+
+                            DankButton {
+                                text: I18n.tr("Online wallpapers")
+                                iconName: "travel_explore"
+                                iconSize: Theme.iconSizeSmall
+                                buttonHeight: 32
+                                horizontalPadding: Theme.spacingM
+                                backgroundColor: root.onlineGalleryOpen ? Theme.primary : Theme.surfaceContainerHigh
+                                textColor: root.onlineGalleryOpen ? Theme.onPrimary : Theme.surfaceText
+                                onClicked: root.onlineGalleryOpen = !root.onlineGalleryOpen
                             }
                         }
                     }
@@ -1224,6 +1235,15 @@ Item {
                 }
             }
 
+            WallhavenBrowser {
+                visible: root.onlineGalleryOpen
+                onCloseRequested: root.onlineGalleryOpen = false
+                onApplyWallpaper: path => {
+                    root.applyOnlineWallpaper(path);
+                    root.onlineGalleryOpen = false;
+                }
+            }
+
             SettingsCard {
                 tab: "wallpaper"
                 tags: ["external", "disable", "swww", "hyprpaper", "swaybg"]
@@ -1279,6 +1299,15 @@ Item {
         mainWallpaperBrowserLoader.active = true;
         if (mainWallpaperBrowserLoader.item)
             mainWallpaperBrowserLoader.item.open();
+    }
+
+    function applyOnlineWallpaper(path) {
+        if (!path)
+            return;
+        if (SessionData.perMonitorWallpaper)
+            SessionData.setMonitorWallpaper(selectedMonitorName, path);
+        else
+            SessionData.setWallpaper(path);
     }
 
     function openLightWallpaperBrowser() {

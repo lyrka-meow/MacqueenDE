@@ -48,6 +48,7 @@ cleanup()
 trap cleanup EXIT
 
 runtime_packages=(
+    curl
     sddm
     kwin
     spectacle

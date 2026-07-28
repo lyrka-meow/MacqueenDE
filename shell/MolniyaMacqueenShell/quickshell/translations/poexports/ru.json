@@ -8489,6 +8489,45 @@
   "WPA2 password": {
     "WPA2 password": ""
   },
+  "Could not download this wallpaper": {
+    "Could not download this wallpaper": "Не удалось скачать эти обои"
+  },
+  "Could not load online wallpapers. Check your connection.": {
+    "Could not load online wallpapers. Check your connection.": "Не удалось загрузить онлайн-обои. Проверьте подключение."
+  },
+  "Download and apply": {
+    "Download and apply": "Скачать и применить"
+  },
+  "Downloading…": {
+    "Downloading…": "Скачивание…"
+  },
+  "Loading wallpapers…": {
+    "Loading wallpapers…": "Загружаем обои…"
+  },
+  "Mountains, space, minimalism…": {
+    "Mountains, space, minimalism…": "Горы, космос, минимализм…"
+  },
+  "Nothing found": {
+    "Nothing found": "Ничего не найдено"
+  },
+  "Online wallpapers": {
+    "Online wallpapers": "Онлайн-обои"
+  },
+  "Only safe content is shown.": {
+    "Only safe content is shown.": "Отображается только безопасный контент."
+  },
+  "Page": {
+    "Page": "Страница"
+  },
+  "Search and install wallpapers without leaving settings. Only safe content is shown.": {
+    "Search and install wallpapers without leaving settings. Only safe content is shown.": "Ищите и устанавливайте обои прямо в настройках. Отображается только безопасный контент."
+  },
+  "Selected:": {
+    "Selected:": "Выбрано:"
+  },
+  "Wallhaven returned an invalid response": {
+    "Wallhaven returned an invalid response": "Wallhaven вернул некорректный ответ"
+  },
   "Wallpaper": {
     "Wallpaper": "Обои"
   },

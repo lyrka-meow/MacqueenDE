@@ -1,6 +1,5 @@
 import Macqueen.Ipc
 import QtQuick
-import QtQuick.Controls as QQC2
 import Quickshell
 import Quickshell.Wayland
 import qs.Common
@@ -11,15 +10,63 @@ Scope {
 
     property bool overviewOpen: false
     property int selectedWindow: -1
-    property string draggingWindowId: ""
+    property string selectedWorkspaceId: ""
     property string targetScreenName: ""
 
+    property bool dragActive: false
+    property string draggingWindowId: ""
+    property string draggingWindowTitle: ""
+    property string draggingWindowIcon: ""
+
     readonly property var visibleWindows: Macqueen.windows.filter(window => !window.skipTaskbar)
-    readonly property int maximumWorkspaceWindowCount: {
-        let maximum = 0;
-        for (const workspace of Macqueen.workspaces)
-            maximum = Math.max(maximum, windowsForWorkspace(workspace.id).length);
-        return maximum;
+    readonly property var selectedWorkspace: {
+        for (const workspace of Macqueen.workspaces) {
+            if (workspace.id === selectedWorkspaceId)
+                return workspace;
+        }
+        return Macqueen.workspaces.length > 0 ? Macqueen.workspaces[0] : null;
+    }
+    readonly property var displayedWindows: {
+        if (!selectedWorkspace)
+            return [];
+        return visibleWindows.filter(window => windowBelongsToWorkspace(window, selectedWorkspace.id));
+    }
+    readonly property var selectedWindowData: selectedWindow >= 0 && selectedWindow < visibleWindows.length
+        ? visibleWindows[selectedWindow]
+        : null
+
+    component KeyHint: Row {
+        property string keyText: ""
+        property string label: ""
+
+        spacing: Theme.spacingXS
+
+        Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            implicitWidth: keyLabel.implicitWidth + Theme.spacingS * 2
+            implicitHeight: 24
+            radius: 7
+            color: Theme.surfaceContainerHighest
+            border.width: 1
+            border.color: Theme.outline
+
+            StyledText {
+                id: keyLabel
+
+                anchors.centerIn: parent
+                text: parent.parent.keyText
+                color: Theme.surfaceText
+                font.pixelSize: Theme.fontSizeSmall
+                font.weight: Font.DemiBold
+            }
+        }
+
+        StyledText {
+            anchors.verticalCenter: parent.verticalCenter
+            text: parent.label
+            color: Theme.surfaceVariantText
+            font.pixelSize: Theme.fontSizeSmall
+        }
     }
 
     function targetScreen() {
@@ -30,8 +77,58 @@ Scope {
         return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null;
     }
 
+    function uiText(english, russian) {
+        return I18n._lang === "ru" ? russian : english;
+    }
+
+    function windowCountText(count) {
+        if (I18n._lang === "ru")
+            return count + " окн.";
+        return count + " " + (count === 1 ? "window" : "windows");
+    }
+
+    function currentWorkspaceId() {
+        for (const workspace of Macqueen.workspaces) {
+            if (workspace.current)
+                return workspace.id;
+        }
+        return Macqueen.workspaces.length > 0 ? Macqueen.workspaces[0].id : "";
+    }
+
+    function workspaceIndex(workspaceId) {
+        return Macqueen.workspaces.findIndex(workspace => workspace.id === workspaceId);
+    }
+
+    function windowBelongsToWorkspace(window, workspaceId) {
+        const workspaceIds = window.workspaces || [];
+        // KWin reports an empty desktop list for windows pinned to all desktops.
+        return workspaceIds.length === 0 || workspaceIds.includes(workspaceId);
+    }
+
     function windowsForWorkspace(workspaceId) {
-        return visibleWindows.filter(window => (window.workspaces || []).includes(workspaceId));
+        return visibleWindows.filter(window => windowBelongsToWorkspace(window, workspaceId));
+    }
+
+    function preferredWorkspaceForWindow(window) {
+        if (!window)
+            return currentWorkspaceId();
+        if (selectedWorkspaceId && windowBelongsToWorkspace(window, selectedWorkspaceId))
+            return selectedWorkspaceId;
+        const workspaceIds = window.workspaces || [];
+        for (const workspace of Macqueen.workspaces) {
+            if (workspaceIds.includes(workspace.id))
+                return workspace.id;
+        }
+        return currentWorkspaceId();
+    }
+
+    function setSelectedWindow(index) {
+        if (visibleWindows.length === 0) {
+            selectedWindow = -1;
+            return;
+        }
+        selectedWindow = (index + visibleWindows.length) % visibleWindows.length;
+        selectedWorkspaceId = preferredWorkspaceForWindow(visibleWindows[selectedWindow]);
     }
 
     function selectRelative(offset) {
@@ -39,17 +136,66 @@ Scope {
             selectedWindow = -1;
             return;
         }
-        const currentId = Macqueen.activeWindow?.id || "";
-        if (selectedWindow < 0)
-            selectedWindow = Math.max(0, visibleWindows.findIndex(window => window.id === currentId));
-        selectedWindow = (selectedWindow + offset + visibleWindows.length) % visibleWindows.length;
+        if (selectedWindow < 0) {
+            const activeId = Macqueen.activeWindow && Macqueen.activeWindow.id
+                ? Macqueen.activeWindow.id
+                : "";
+            selectedWindow = visibleWindows.findIndex(window => window.id === activeId);
+            if (selectedWindow < 0)
+                selectedWindow = 0;
+        }
+        setSelectedWindow(selectedWindow + offset);
+    }
+
+    function selectDisplayedRelative(offset) {
+        if (displayedWindows.length === 0) {
+            selectedWindow = -1;
+            return;
+        }
+        const selectedId = selectedWindowData && selectedWindowData.id
+            ? selectedWindowData.id
+            : "";
+        let localIndex = displayedWindows.findIndex(window => window.id === selectedId);
+        if (localIndex < 0)
+            localIndex = offset > 0 ? -1 : 0;
+        localIndex = (localIndex + offset + displayedWindows.length) % displayedWindows.length;
+        selectedWindow = visibleWindows.findIndex(window => window.id === displayedWindows[localIndex].id);
+    }
+
+    function selectWorkspaceRelative(offset) {
+        if (Macqueen.workspaces.length === 0)
+            return;
+        let index = workspaceIndex(selectedWorkspaceId);
+        if (index < 0)
+            index = 0;
+        index = (index + offset + Macqueen.workspaces.length) % Macqueen.workspaces.length;
+        selectedWorkspaceId = Macqueen.workspaces[index].id;
+        const workspaceWindows = windowsForWorkspace(selectedWorkspaceId);
+        if (workspaceWindows.length > 0)
+            selectedWindow = visibleWindows.findIndex(window => window.id === workspaceWindows[0].id);
+        else
+            selectedWindow = -1;
+    }
+
+    function selectWorkspace(workspaceId) {
+        selectedWorkspaceId = workspaceId;
+        if (selectedWindowData && windowBelongsToWorkspace(selectedWindowData, workspaceId))
+            return;
+        const workspaceWindows = windowsForWorkspace(workspaceId);
+        selectedWindow = workspaceWindows.length > 0
+            ? visibleWindows.findIndex(window => window.id === workspaceWindows[0].id)
+            : -1;
     }
 
     function open(reason) {
         if (!overviewOpen) {
             targetScreenName = Macqueen.outputAtCursor();
+            selectedWorkspaceId = currentWorkspaceId();
+            const activeId = Macqueen.activeWindow && Macqueen.activeWindow.id
+                ? Macqueen.activeWindow.id
+                : "";
+            selectedWindow = visibleWindows.findIndex(window => window.id === activeId);
             overviewOpen = true;
-            selectedWindow = visibleWindows.findIndex(window => window.id === (Macqueen.activeWindow?.id || ""));
         }
         if (reason === "alt-tab")
             selectRelative(1);
@@ -58,10 +204,31 @@ Scope {
     }
 
     function close(activateSelection) {
-        if (activateSelection && selectedWindow >= 0 && selectedWindow < visibleWindows.length)
-            Macqueen.activateWindow(visibleWindows[selectedWindow].id);
+        if (activateSelection && selectedWindowData)
+            Macqueen.activateWindow(selectedWindowData.id);
         overviewOpen = false;
+        endDrag();
+    }
+
+    function beginDrag(windowData, sourceItem, mouseX, mouseY) {
+        const point = sourceItem.mapToItem(focusScope, 0, 0);
+        draggingWindowId = windowData.id;
+        draggingWindowTitle = windowData.title || windowData.appId;
+        draggingWindowIcon = sourceItem.iconPath || "";
+        dragProxy.width = sourceItem.width;
+        dragProxy.height = sourceItem.height;
+        dragProxy.x = point.x;
+        dragProxy.y = point.y;
+        dragProxy.dragOffsetX = mouseX;
+        dragProxy.dragOffsetY = mouseY;
+        dragActive = true;
+    }
+
+    function endDrag() {
+        dragActive = false;
         draggingWindowId = "";
+        draggingWindowTitle = "";
+        draggingWindowIcon = "";
     }
 
     Connections {
@@ -72,6 +239,24 @@ Scope {
                 root.close(false);
             else
                 root.open(reason);
+        }
+
+        function onWindowsChanged() {
+            if (!root.overviewOpen)
+                return;
+            if (root.visibleWindows.length === 0) {
+                root.selectedWindow = -1;
+                return;
+            }
+            if (root.selectedWindow >= root.visibleWindows.length)
+                root.selectedWindow = root.visibleWindows.length - 1;
+        }
+
+        function onWorkspacesChanged() {
+            if (!root.overviewOpen)
+                return;
+            if (root.workspaceIndex(root.selectedWorkspaceId) < 0)
+                root.selectedWorkspaceId = root.currentWorkspaceId();
         }
     }
 
@@ -100,7 +285,7 @@ Scope {
 
             Rectangle {
                 anchors.fill: parent
-                color: Theme.withAlpha("#000000", 0.62)
+                color: Theme.withAlpha("#08070b", 0.48)
 
                 MouseArea {
                     anchors.fill: parent
@@ -114,16 +299,26 @@ Scope {
                 anchors.fill: parent
                 focus: true
 
+                readonly property int gridColumns: switcher.width >= 1000
+                    ? 4
+                    : (switcher.width >= 760 ? 3 : 2)
+
                 Keys.onEscapePressed: event => {
                     root.close(false);
                     event.accepted = true;
                 }
                 Keys.onReturnPressed: event => {
-                    root.close(true);
+                    if (root.selectedWindowData)
+                        root.close(true);
+                    else if (root.selectedWorkspace)
+                        Macqueen.activateWorkspace(root.selectedWorkspace.id);
                     event.accepted = true;
                 }
                 Keys.onEnterPressed: event => {
-                    root.close(true);
+                    if (root.selectedWindowData)
+                        root.close(true);
+                    else if (root.selectedWorkspace)
+                        Macqueen.activateWorkspace(root.selectedWorkspace.id);
                     event.accepted = true;
                 }
                 Keys.onTabPressed: event => {
@@ -131,12 +326,35 @@ Scope {
                     event.accepted = true;
                 }
                 Keys.onLeftPressed: event => {
-                    root.selectRelative(-1);
+                    root.selectDisplayedRelative(-1);
                     event.accepted = true;
                 }
                 Keys.onRightPressed: event => {
-                    root.selectRelative(1);
+                    root.selectDisplayedRelative(1);
                     event.accepted = true;
+                }
+                Keys.onUpPressed: event => {
+                    root.selectDisplayedRelative(-focusScope.gridColumns);
+                    event.accepted = true;
+                }
+                Keys.onDownPressed: event => {
+                    root.selectDisplayedRelative(focusScope.gridColumns);
+                    event.accepted = true;
+                }
+                Keys.onPressed: event => {
+                    if (event.key === Qt.Key_PageUp) {
+                        root.selectWorkspaceRelative(-1);
+                        event.accepted = true;
+                    } else if (event.key === Qt.Key_PageDown) {
+                        root.selectWorkspaceRelative(1);
+                        event.accepted = true;
+                    } else if (event.key >= Qt.Key_1 && event.key <= Qt.Key_9) {
+                        const workspaceIndex = event.key - Qt.Key_1;
+                        if (workspaceIndex < Macqueen.workspaces.length) {
+                            root.selectWorkspace(Macqueen.workspaces[workspaceIndex].id);
+                            event.accepted = true;
+                        }
+                    }
                 }
                 Keys.onReleased: event => {
                     if (event.key === Qt.Key_Alt) {
@@ -147,258 +365,647 @@ Scope {
 
                 Component.onCompleted: forceActiveFocus()
 
-                Column {
+                WindowBlur {
+                    targetWindow: panel
+                    blurX: switcher.x
+                    blurY: switcher.y
+                    blurWidth: switcher.width
+                    blurHeight: switcher.height
+                    blurRadius: switcher.radius
+                }
+
+                Rectangle {
+                    id: switcher
+
+                    readonly property real preferredWidth: root.displayedWindows.length <= 2
+                        ? 700
+                        : (root.displayedWindows.length <= 6 ? 920 : 1120)
+
                     anchors.centerIn: parent
-                    width: Math.min(parent.width - Theme.spacingXL * 2, 1400)
-                    spacing: Theme.spacingL
+                    width: Math.max(520, Math.min(parent.width - Theme.spacingXL * 2, preferredWidth))
+                    height: Math.min(parent.height - Theme.spacingXL * 2, contentColumn.implicitHeight + Theme.spacingL * 2)
+                    radius: Theme.cornerRadius + 6
+                    color: Theme.withAlpha(Theme.surfaceContainer, 0.94)
+                    border.width: 1
+                    border.color: Theme.withAlpha(Theme.outline, 0.9)
+                    clip: true
 
-                    Row {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: Theme.spacingM
-
-                        DankIcon {
-                            name: "overview"
-                            size: 28
-                            color: Theme.primary
-                        }
-
-                        StyledText {
-                            text: I18n.tr("Macqueen Overview")
-                            color: Theme.surfaceText
-                            font.pixelSize: Theme.fontSizeXLarge
-                            font.weight: Font.DemiBold
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: mouse => {
+                            mouse.accepted = true;
                         }
                     }
 
-                    Grid {
-                        id: workspaceGrid
+                    Column {
+                        id: contentColumn
 
-                        width: parent.width
-                        columns: Math.max(1, Math.min(SettingsData.overviewColumns, Macqueen.workspaces.length))
+                        anchors {
+                            left: parent.left
+                            right: parent.right
+                            top: parent.top
+                            margins: Theme.spacingL
+                        }
                         spacing: Theme.spacingM
 
-                        Repeater {
-                            model: Macqueen.workspaces
+                        Item {
+                            width: parent.width
+                            height: 48
 
-                            delegate: Rectangle {
-                                id: workspaceCard
-
-                                required property var modelData
-                                readonly property var workspaceWindows: root.windowsForWorkspace(modelData.id)
-                                readonly property real cardWidth: (workspaceGrid.width - workspaceGrid.spacing * (workspaceGrid.columns - 1)) / workspaceGrid.columns
-                                readonly property int requiredWindowRows: Math.max(1, Math.ceil(root.maximumWorkspaceWindowCount / 2))
-                                readonly property real desiredCardHeight: Theme.spacingXL * 2 + requiredWindowRows * 56 + Math.max(0, requiredWindowRows - 1) * Theme.spacingS + Theme.spacingM * 3 + 34
-
-                                width: cardWidth
-                                height: Math.max(220, Math.min(panel.height - 240, desiredCardHeight))
-                                radius: Theme.cornerRadius
-                                color: Theme.surfaceContainer
-                                border.width: modelData.current ? 3 : 1
-                                border.color: modelData.current ? Theme.primary : Theme.outline
-
-                                DropArea {
-                                    anchors.fill: parent
-                                    onDropped: {
-                                        if (root.draggingWindowId)
-                                            Macqueen.moveWindowToWorkspace(root.draggingWindowId, workspaceCard.modelData.id);
-                                        root.draggingWindowId = "";
-                                    }
+                            Row {
+                                anchors {
+                                    left: parent.left
+                                    verticalCenter: parent.verticalCenter
                                 }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    onClicked: {
-                                        Macqueen.activateWorkspace(workspaceCard.modelData.id);
-                                        root.close(false);
-                                    }
-                                }
-
-                                StyledText {
-                                    anchors.left: parent.left
-                                    anchors.top: parent.top
-                                    anchors.margins: Theme.spacingM
-                                    text: workspaceCard.modelData.name || workspaceCard.modelData.position
-                                    color: workspaceCard.modelData.current ? Theme.primary : Theme.surfaceText
-                                    font.pixelSize: Theme.fontSizeMedium
-                                    font.weight: Font.DemiBold
-                                }
+                                spacing: Theme.spacingM
 
                                 Rectangle {
-                                    id: workspaceButton
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: 42
+                                    height: 42
+                                    radius: 12
+                                    color: Theme.primaryContainer
 
-                                    anchors {
-                                        left: parent.left
-                                        right: parent.right
-                                        bottom: parent.bottom
-                                        margins: Theme.spacingM
-                                    }
-                                    height: 34
-                                    radius: Theme.cornerRadius
-                                    color: workspaceButtonMouse.containsMouse
-                                        ? Theme.primaryContainer
-                                        : (workspaceCard.modelData.current ? Theme.surfaceContainerHigh : Theme.surfaceContainerHighest)
-                                    border.width: 1
-                                    border.color: workspaceCard.modelData.current ? Theme.primary : Theme.outline
-
-                                    StyledText {
+                                    DankIcon {
                                         anchors.centerIn: parent
-                                        text: workspaceCard.modelData.current ? I18n.tr("Current workspace") : I18n.tr("Switch to workspace")
-                                        color: workspaceCard.modelData.current ? Theme.primary : Theme.surfaceText
-                                        font.pixelSize: Theme.fontSizeSmall
-                                        font.weight: Font.Medium
-                                    }
-
-                                    MouseArea {
-                                        id: workspaceButtonMouse
-
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            Macqueen.activateWorkspace(workspaceCard.modelData.id);
-                                            root.close(false);
-                                        }
+                                        name: "overview"
+                                        size: 24
+                                        color: Theme.primary
                                     }
                                 }
 
-                                Flickable {
-                                    id: windowViewport
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 1
 
-                                    anchors {
-                                        left: parent.left
-                                        right: parent.right
-                                        top: parent.top
-                                        bottom: workspaceButton.top
-                                        margins: Theme.spacingM
-                                        topMargin: Theme.spacingXL * 2
-                                        bottomMargin: Theme.spacingS
-                                    }
-                                    clip: true
-                                    contentWidth: width
-                                    contentHeight: windowGrid.implicitHeight
-                                    boundsBehavior: Flickable.StopAtBounds
-
-                                    QQC2.ScrollBar.vertical: QQC2.ScrollBar {
-                                        policy: windowViewport.contentHeight > windowViewport.height ? QQC2.ScrollBar.AlwaysOn : QQC2.ScrollBar.AsNeeded
+                                    StyledText {
+                                        text: root.uiText("Window switcher", "Переключатель окон")
+                                        color: Theme.surfaceText
+                                        font.pixelSize: Theme.fontSizeXLarge
+                                        font.weight: Font.DemiBold
                                     }
 
-                                    Grid {
-                                        id: windowGrid
+                                    StyledText {
+                                        text: {
+                                            const workspaceName = root.selectedWorkspace && root.selectedWorkspace.name
+                                                ? root.selectedWorkspace.name
+                                                : root.uiText("Workspace", "Рабочий стол");
+                                            const count = root.displayedWindows.length;
+                                            return workspaceName + "  •  " + root.windowCountText(count);
+                                        }
+                                        color: Theme.surfaceVariantText
+                                        font.pixelSize: Theme.fontSizeSmall
+                                    }
+                                }
+                            }
 
-                                        width: windowViewport.width
-                                        columns: 2
-                                        spacing: Theme.spacingS
+                            Rectangle {
+                                anchors {
+                                    right: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                implicitWidth: outputLabel.implicitWidth + Theme.spacingM * 2
+                                height: 30
+                                radius: 10
+                                color: Theme.surfaceContainerHigh
+                                border.width: 1
+                                border.color: Theme.outline
 
-                                        Repeater {
-                                            model: workspaceCard.workspaceWindows
+                                StyledText {
+                                    id: outputLabel
 
-                                            delegate: Rectangle {
-                                                id: windowCard
+                                    anchors.centerIn: parent
+                                    text: root.targetScreenName || root.uiText("Current display", "Текущий монитор")
+                                    color: Theme.surfaceVariantText
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    font.weight: Font.Medium
+                                }
+                            }
+                        }
 
-                                                required property var modelData
-                                                readonly property int globalIndex: root.visibleWindows.findIndex(window => window.id === modelData.id)
-                                                readonly property var entry: DesktopEntries.heuristicLookup(Paths.moddedAppId(modelData.appId || ""))
-                                                readonly property string iconPath: Paths.getAppIcon(modelData.appId || "", entry) || Quickshell.iconPath("application-x-executable", "image-missing")
+                        Flickable {
+                            id: workspaceViewport
 
-                                                width: (windowGrid.width - windowGrid.spacing * (windowGrid.columns - 1)) / windowGrid.columns
-                                                height: 56
-                                                radius: Theme.cornerRadius
-                                                color: globalIndex === root.selectedWindow ? Theme.primaryContainer : Theme.surfaceContainerHigh
-                                                border.width: globalIndex === root.selectedWindow ? 2 : 1
-                                                border.color: globalIndex === root.selectedWindow ? Theme.primary : Theme.outline
+                            width: parent.width
+                            height: 54
+                            contentWidth: workspaceRow.implicitWidth
+                            contentHeight: height
+                            clip: true
+                            interactive: contentWidth > width
+                            boundsBehavior: Flickable.StopAtBounds
 
-                                                Drag.active: dragArea.drag.active
-                                                Drag.source: windowCard
-                                                Drag.hotSpot.x: width / 2
-                                                Drag.hotSpot.y: height / 2
+                            Row {
+                                id: workspaceRow
 
-                                                function liftForDrag() {
-                                                    const point = windowCard.mapToItem(focusScope, 0, 0);
-                                                    windowCard.parent = focusScope;
-                                                    windowCard.x = point.x;
-                                                    windowCard.y = point.y;
-                                                    windowCard.z = 1000;
+                                height: parent.height
+                                spacing: Theme.spacingS
+
+                                Repeater {
+                                    model: Macqueen.workspaces
+
+                                    delegate: Rectangle {
+                                        id: workspaceChip
+
+                                        required property var modelData
+                                        readonly property bool selected: modelData.id === root.selectedWorkspaceId
+                                        readonly property int windowCount: root.windowsForWorkspace(modelData.id).length
+
+                                        width: Math.max(150, Math.min(210, workspaceViewport.width / Math.max(1, Math.min(4, Macqueen.workspaces.length)) - Theme.spacingS))
+                                        height: 50
+                                        radius: 14
+                                        color: workspaceDrop.containsDrag
+                                            ? Theme.primaryContainer
+                                            : (selected ? Theme.primaryContainer : Theme.surfaceContainerHigh)
+                                        border.width: selected || workspaceDrop.containsDrag ? 2 : 1
+                                        border.color: selected || workspaceDrop.containsDrag ? Theme.primary : Theme.outline
+
+                                        DropArea {
+                                            id: workspaceDrop
+
+                                            anchors.fill: parent
+                                            onEntered: root.selectedWorkspaceId = workspaceChip.modelData.id
+                                            onDropped: {
+                                                if (root.draggingWindowId)
+                                                    Macqueen.moveWindowToWorkspace(root.draggingWindowId, workspaceChip.modelData.id);
+                                                root.selectWorkspace(workspaceChip.modelData.id);
+                                                root.endDrag();
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                Macqueen.activateWorkspace(workspaceChip.modelData.id);
+                                                root.close(false);
+                                            }
+                                        }
+
+                                        Row {
+                                            anchors {
+                                                fill: parent
+                                                margins: Theme.spacingS
+                                            }
+                                            spacing: Theme.spacingS
+
+                                            Rectangle {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                width: 30
+                                                height: 30
+                                                radius: 9
+                                                color: workspaceChip.selected ? Theme.primary : Theme.surfaceContainerHighest
+
+                                                StyledText {
+                                                    anchors.centerIn: parent
+                                                    text: workspaceChip.modelData.position
+                                                    color: workspaceChip.selected ? Theme.onPrimary : Theme.surfaceText
+                                                    font.pixelSize: Theme.fontSizeSmall
+                                                    font.weight: Font.Bold
+                                                }
+                                            }
+
+                                            Column {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                width: workspaceChip.width - 82
+                                                spacing: 1
+
+                                                StyledText {
+                                                    width: parent.width
+                                                    text: workspaceChip.modelData.name || root.uiText("Workspace", "Рабочий стол") + " " + workspaceChip.modelData.position
+                                                    color: workspaceChip.selected ? Theme.primary : Theme.surfaceText
+                                                    font.pixelSize: Theme.fontSizeSmall
+                                                    font.weight: Font.DemiBold
+                                                    wrapMode: Text.NoWrap
+                                                    elide: Text.ElideRight
                                                 }
 
-                                                function restoreAfterDrag() {
-                                                    windowCard.parent = windowGrid;
-                                                    windowCard.x = 0;
-                                                    windowCard.y = 0;
-                                                    windowCard.z = 0;
+                                                StyledText {
+                                                    width: parent.width
+                                                    text: workspaceChip.modelData.current
+                                                        ? root.uiText("Current workspace", "Текущий стол")
+                                                        : root.windowCountText(workspaceChip.windowCount)
+                                                    color: Theme.surfaceVariantText
+                                                    font.pixelSize: Theme.fontSizeSmall
+                                                    wrapMode: Text.NoWrap
+                                                    elide: Text.ElideRight
                                                 }
+                                            }
 
-                                                Row {
-                                                    anchors.fill: parent
-                                                    anchors.margins: Theme.spacingS
-                                                    spacing: Theme.spacingS
-
-                                                    Image {
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        width: 32
-                                                        height: 32
-                                                        source: windowCard.iconPath
-                                                        sourceSize: Qt.size(32, 32)
-                                                    }
-
-                                                    Column {
-                                                        anchors.verticalCenter: parent.verticalCenter
-                                                        width: parent.width - 40
-
-                                                        StyledText {
-                                                            width: parent.width
-                                                            text: windowCard.modelData.title || windowCard.modelData.appId
-                                                            color: Theme.surfaceText
-                                                            font.pixelSize: Theme.fontSizeSmall
-                                                            font.weight: Font.Medium
-                                                            wrapMode: Text.NoWrap
-                                                            maximumLineCount: 1
-                                                            elide: Text.ElideRight
-                                                        }
-
-                                                        StyledText {
-                                                            width: parent.width
-                                                            text: windowCard.modelData.appId
-                                                            color: Theme.surfaceVariantText
-                                                            font.pixelSize: Theme.fontSizeSmall
-                                                            wrapMode: Text.NoWrap
-                                                            maximumLineCount: 1
-                                                            elide: Text.ElideRight
-                                                        }
-                                                    }
-                                                }
-
-                                                MouseArea {
-                                                    id: dragArea
-
-                                                    anchors.fill: parent
-                                                    hoverEnabled: true
-                                                    drag.target: windowCard
-                                                    onPressed: {
-                                                        root.draggingWindowId = windowCard.modelData.id;
-                                                        windowCard.liftForDrag();
-                                                    }
-                                                    onReleased: {
-                                                        windowCard.Drag.drop();
-                                                        windowCard.restoreAfterDrag();
-                                                    }
-                                                    onClicked: {
-                                                        root.selectedWindow = windowCard.globalIndex;
-                                                        root.close(true);
-                                                    }
-                                                }
+                                            Rectangle {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                width: 8
+                                                height: 8
+                                                radius: 4
+                                                color: workspaceChip.modelData.current ? Theme.primary : "transparent"
                                             }
                                         }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    StyledText {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: I18n.tr("Alt+Tab or arrows to select • Enter to open • drag windows between workspaces • Esc to close")
-                        color: Theme.surfaceVariantText
-                        font.pixelSize: Theme.fontSizeSmall
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: Theme.outline
+                            opacity: 0.65
+                        }
+
+                        Item {
+                            width: parent.width
+                            height: 34
+
+                            Row {
+                                anchors {
+                                    left: parent.left
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                spacing: Theme.spacingS
+
+                                StyledText {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: root.uiText("Windows", "Окна")
+                                    color: Theme.surfaceText
+                                    font.pixelSize: Theme.fontSizeMedium
+                                    font.weight: Font.DemiBold
+                                }
+
+                                Rectangle {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: countLabel.implicitWidth + Theme.spacingS * 2
+                                    height: 22
+                                    radius: 8
+                                    color: Theme.surfaceContainerHighest
+
+                                    StyledText {
+                                        id: countLabel
+
+                                        anchors.centerIn: parent
+                                        text: root.displayedWindows.length
+                                        color: Theme.surfaceVariantText
+                                        font.pixelSize: Theme.fontSizeSmall
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                id: switchWorkspaceButton
+
+                                anchors {
+                                    right: parent.right
+                                    verticalCenter: parent.verticalCenter
+                                }
+                                visible: root.selectedWorkspace && !root.selectedWorkspace.current
+                                implicitWidth: switchWorkspaceLabel.implicitWidth + Theme.spacingL * 2
+                                height: 32
+                                radius: 10
+                                color: switchWorkspaceMouse.containsMouse ? Theme.primary : Theme.primaryContainer
+
+                                StyledText {
+                                    id: switchWorkspaceLabel
+
+                                    anchors.centerIn: parent
+                                    text: root.uiText("Open workspace", "Перейти на стол")
+                                    color: switchWorkspaceMouse.containsMouse ? Theme.onPrimary : Theme.primary
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    font.weight: Font.DemiBold
+                                }
+
+                                MouseArea {
+                                    id: switchWorkspaceMouse
+
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        Macqueen.activateWorkspace(root.selectedWorkspace.id);
+                                        root.close(false);
+                                    }
+                                }
+                            }
+                        }
+
+                        Item {
+                            id: windowArea
+
+                            width: parent.width
+                            height: Math.max(92, Math.min(windowGrid.implicitHeight, focusScope.height - 285))
+
+                            Flickable {
+                                id: windowViewport
+
+                                anchors.fill: parent
+                                contentWidth: width
+                                contentHeight: windowGrid.implicitHeight
+                                clip: true
+                                boundsBehavior: Flickable.StopAtBounds
+
+                                Grid {
+                                    id: windowGrid
+
+                                    width: windowViewport.width
+                                    columns: focusScope.gridColumns
+                                    spacing: Theme.spacingS
+
+                                    Repeater {
+                                        model: root.displayedWindows
+
+                                        delegate: Rectangle {
+                                            id: windowCard
+
+                                            required property var modelData
+                                            readonly property int globalIndex: root.visibleWindows.findIndex(window => window.id === modelData.id)
+                                            readonly property bool selected: globalIndex === root.selectedWindow
+                                            readonly property var entry: DesktopEntries.heuristicLookup(Paths.moddedAppId(modelData.appId || ""))
+                                            readonly property string iconPath: Paths.getAppIcon(modelData.appId || "", entry) || Quickshell.iconPath("application-x-executable", "image-missing")
+
+                                            width: (windowGrid.width - windowGrid.spacing * (windowGrid.columns - 1)) / windowGrid.columns
+                                            height: 78
+                                            radius: 14
+                                            color: selected
+                                                ? Theme.primaryContainer
+                                                : (windowCardMouse.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh)
+                                            border.width: selected ? 2 : 1
+                                            border.color: selected ? Theme.primary : Theme.outline
+                                            opacity: modelData.minimized && !selected ? 0.72 : 1
+
+                                            Behavior on color {
+                                                ColorAnimation {
+                                                    duration: 100
+                                                }
+                                            }
+
+                                            Rectangle {
+                                                anchors {
+                                                    left: parent.left
+                                                    top: parent.top
+                                                    bottom: parent.bottom
+                                                    leftMargin: 5
+                                                    topMargin: 12
+                                                    bottomMargin: 12
+                                                }
+                                                width: 4
+                                                radius: 2
+                                                color: windowCard.selected ? Theme.primary : "transparent"
+                                            }
+
+                                            Row {
+                                                z: 1
+                                                anchors {
+                                                    fill: parent
+                                                    margins: Theme.spacingM
+                                                    leftMargin: Theme.spacingM + 4
+                                                }
+                                                spacing: Theme.spacingM
+
+                                                Rectangle {
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    width: 42
+                                                    height: 42
+                                                    radius: 11
+                                                    color: Theme.surfaceContainerHighest
+
+                                                    Image {
+                                                        anchors.centerIn: parent
+                                                        width: 30
+                                                        height: 30
+                                                        source: windowCard.iconPath
+                                                        sourceSize: Qt.size(30, 30)
+                                                        fillMode: Image.PreserveAspectFit
+                                                    }
+                                                }
+
+                                                Column {
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    width: parent.width - 42 - closeWindowButton.width - parent.spacing * 2
+                                                    spacing: 3
+
+                                                    StyledText {
+                                                        width: parent.width
+                                                        text: windowCard.modelData.title || windowCard.modelData.appId || root.uiText("Untitled window", "Окно без названия")
+                                                        color: Theme.surfaceText
+                                                        font.pixelSize: Theme.fontSizeMedium
+                                                        font.weight: Font.DemiBold
+                                                        wrapMode: Text.NoWrap
+                                                        maximumLineCount: 1
+                                                        elide: Text.ElideRight
+                                                    }
+
+                                                    StyledText {
+                                                        width: parent.width
+                                                        text: {
+                                                            let detail = windowCard.modelData.appId || root.uiText("Application", "Приложение");
+                                                            if (windowCard.modelData.output && windowCard.modelData.output !== root.targetScreenName)
+                                                                detail += "  •  " + windowCard.modelData.output;
+                                                            if (windowCard.modelData.minimized)
+                                                                detail += "  •  " + root.uiText("Minimized", "Свёрнуто");
+                                                            return detail;
+                                                        }
+                                                        color: Theme.surfaceVariantText
+                                                        font.pixelSize: Theme.fontSizeSmall
+                                                        wrapMode: Text.NoWrap
+                                                        maximumLineCount: 1
+                                                        elide: Text.ElideRight
+                                                    }
+                                                }
+
+                                                Rectangle {
+                                                    id: closeWindowButton
+
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    width: 28
+                                                    height: 28
+                                                    radius: 9
+                                                    color: closeWindowMouse.containsMouse ? Theme.errorContainer : "transparent"
+                                                    opacity: windowCardMouse.containsMouse || windowCard.selected ? 1 : 0
+                                                    visible: windowCard.modelData.closeable
+
+                                                    DankIcon {
+                                                        anchors.centerIn: parent
+                                                        name: "close"
+                                                        size: 16
+                                                        color: closeWindowMouse.containsMouse ? Theme.error : Theme.surfaceVariantText
+                                                    }
+
+                                                    MouseArea {
+                                                        id: closeWindowMouse
+
+                                                        anchors.fill: parent
+                                                        hoverEnabled: true
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        onClicked: mouse => {
+                                                            Macqueen.closeWindow(windowCard.modelData.id);
+                                                            mouse.accepted = true;
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            MouseArea {
+                                                id: windowCardMouse
+
+                                                anchors.fill: parent
+                                                z: 0
+                                                hoverEnabled: true
+                                                cursorShape: root.dragActive ? Qt.ClosedHandCursor : Qt.PointingHandCursor
+                                                preventStealing: true
+                                                drag.target: dragProxy
+                                                drag.threshold: 8
+                                                drag.minimumX: Theme.spacingS
+                                                drag.maximumX: focusScope.width - dragProxy.width - Theme.spacingS
+                                                drag.minimumY: Theme.spacingS
+                                                drag.maximumY: focusScope.height - dragProxy.height - Theme.spacingS
+
+                                                onContainsMouseChanged: {
+                                                    if (containsMouse && !root.dragActive)
+                                                        root.selectedWindow = windowCard.globalIndex;
+                                                }
+                                                onPressed: mouse => root.beginDrag(windowCard.modelData, windowCard, mouse.x, mouse.y)
+                                                onReleased: {
+                                                    if (drag.active)
+                                                        dragProxy.Drag.drop();
+                                                    root.endDrag();
+                                                }
+                                                onCanceled: root.endDrag()
+                                                onClicked: {
+                                                    root.selectedWindow = windowCard.globalIndex;
+                                                    root.close(true);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Column {
+                                anchors.centerIn: parent
+                                visible: root.displayedWindows.length === 0
+                                spacing: Theme.spacingS
+
+                                DankIcon {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    name: "view-grid"
+                                    size: 32
+                                    color: Theme.surfaceVariantText
+                                }
+
+                                StyledText {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: root.uiText("No windows on this workspace", "На этом рабочем столе нет окон")
+                                    color: Theme.surfaceText
+                                    font.pixelSize: Theme.fontSizeMedium
+                                    font.weight: Font.DemiBold
+                                }
+
+                                StyledText {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: root.uiText("Choose another workspace above", "Выберите другой рабочий стол сверху")
+                                    color: Theme.surfaceVariantText
+                                    font.pixelSize: Theme.fontSizeSmall
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: Theme.outline
+                            opacity: 0.65
+                        }
+
+                        Column {
+                            width: parent.width
+                            spacing: Theme.spacingS
+
+                            StyledText {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: root.uiText(
+                                    "Click a window to open • drag it onto a workspace to move",
+                                    "Нажмите окно — открыть • перетащите на рабочий стол — переместить"
+                                )
+                                color: Theme.surfaceVariantText
+                                font.pixelSize: Theme.fontSizeSmall
+                            }
+
+                            Row {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: Theme.spacingL
+
+                                KeyHint {
+                                    keyText: "Alt + Tab"
+                                    label: root.uiText("next", "листать")
+                                }
+
+                                KeyHint {
+                                    keyText: "← ↑ ↓ →"
+                                    label: root.uiText("navigate", "выбор")
+                                }
+
+                                KeyHint {
+                                    keyText: "PgUp / PgDn"
+                                    label: root.uiText("workspace", "столы")
+                                }
+
+                                KeyHint {
+                                    keyText: "Enter"
+                                    label: root.uiText("open", "открыть")
+                                }
+
+                                KeyHint {
+                                    keyText: "Esc"
+                                    label: root.uiText("close", "закрыть")
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: dragProxy
+
+                    property real dragOffsetX: 0
+                    property real dragOffsetY: 0
+
+                    visible: root.dragActive
+                    z: 1000
+                    radius: 14
+                    color: Theme.primaryContainer
+                    border.width: 2
+                    border.color: Theme.primary
+                    opacity: 0.94
+
+                    Drag.active: root.dragActive
+                    Drag.source: dragProxy
+                    Drag.hotSpot.x: dragOffsetX
+                    Drag.hotSpot.y: dragOffsetY
+
+                    Row {
+                        anchors {
+                            fill: parent
+                            margins: Theme.spacingM
+                        }
+                        spacing: Theme.spacingM
+
+                        Image {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 32
+                            height: 32
+                            source: root.draggingWindowIcon
+                            sourceSize: Qt.size(32, 32)
+                            fillMode: Image.PreserveAspectFit
+                        }
+
+                        StyledText {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: parent.width - 44
+                            text: root.draggingWindowTitle
+                            color: Theme.surfaceText
+                            font.pixelSize: Theme.fontSizeMedium
+                            font.weight: Font.DemiBold
+                            wrapMode: Text.NoWrap
+                            elide: Text.ElideRight
+                        }
                     }
                 }
             }

@@ -893,6 +893,8 @@ Scope {
                                             DragHandler {
                                                 id: windowDragHandler
 
+                                                property bool gestureStarted: false
+
                                                 target: null
                                                 acceptedButtons: Qt.LeftButton
 
@@ -915,6 +917,7 @@ Scope {
 
                                                 onActiveChanged: {
                                                     if (active) {
+                                                        gestureStarted = true;
                                                         windowCard.dragOccurred = true;
                                                         root.beginDrag(
                                                             windowCard.modelData,
@@ -924,7 +927,8 @@ Scope {
                                                         );
                                                         root.dragActive = true;
                                                         updatePosition();
-                                                    } else {
+                                                    } else if (gestureStarted) {
+                                                        gestureStarted = false;
                                                         root.finishDrag();
                                                     }
                                                 }

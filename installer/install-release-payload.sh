@@ -9,10 +9,27 @@ source_root="$payload_root/opt/macqueende"
     echo "Invalid MacqueenDE release payload." >&2
     exit 1
 }
+[[ -x "$source_root/installer/macqueende-manager" ]] || {
+    echo "Invalid MacqueenDE release payload: manager is missing." >&2
+    exit 1
+}
 
 sudo install -d /opt
 new_root="/opt/macqueende.new.$$"
 sudo cp -a "$source_root" "$new_root"
+
+install_method=${MACQUEENDE_INSTALL_METHOD:-binary}
+install_version=${MACQUEENDE_INSTALL_VERSION:-$(cat "$source_root/VERSION")}
+source_commit=${MACQUEENDE_SOURCE_COMMIT:-}
+build_packages=${MACQUEENDE_BUILD_PACKAGES:-}
+{
+    printf 'METHOD=%s\n' "$install_method"
+    printf 'VERSION=%s\n' "$install_version"
+    printf 'SOURCE_COMMIT=%s\n' "$source_commit"
+    printf 'BUILD_PACKAGES=%s\n' "$build_packages"
+    printf 'INSTALLED_AT=%s\n' "$(date --iso-8601=seconds)"
+} | sudo tee "$new_root/INSTALL_INFO" >/dev/null
+
 if [[ -e /opt/macqueende ]]; then
     backup_root="/opt/macqueende.previous.$(date +%Y%m%d-%H%M%S)"
     sudo mv /opt/macqueende "$backup_root"
@@ -24,6 +41,8 @@ sudo mv "$new_root" /opt/macqueende
     printf '%s\n' 'export MACQUEENDE_ROOT=/opt/macqueende'
     printf '%s\n' 'exec /opt/macqueende/start-macqueende "$@"'
 } | sudo install -Dm755 /dev/stdin /usr/bin/start-macqueende
+sudo install -Dm755 /opt/macqueende/installer/macqueende-manager \
+    /usr/bin/macqueende-manager
 sed 's|Exec=/usr/local/bin/start-macqueende|Exec=/usr/bin/start-macqueende|' \
     /opt/macqueende/session/macqueende.desktop |
     sudo install -Dm644 /dev/stdin /usr/share/wayland-sessions/macqueende.desktop
@@ -35,5 +54,6 @@ sed 's|@MACQUEENDE_ROOT@|/opt/macqueende|g' \
         /usr/share/applications/org.macqueen.portal.desktop
 
 echo "MacqueenDE installed. Log out and select MacqueenDE in SDDM."
+echo "Manage it later with: macqueende-manager"
 [[ -z ${backup_root:-} ]] ||
     echo "Previous installation kept at $backup_root."

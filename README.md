@@ -8,7 +8,7 @@ The project is an alpha preview. It installs as a separate desktop session and
 does not replace the system KWin package. Keep another working session
 available while testing it.
 
-## Install the Arch Linux binary preview
+## Install on Arch Linux
 
 On Arch Linux x86_64:
 
@@ -16,14 +16,27 @@ On Arch Linux x86_64:
 curl -fsSL https://raw.githubusercontent.com/lyrka-meow/MacqueenDE/main/installer/install-github.sh | bash
 ```
 
-Log out, select **MacqueenDE** in SDDM, and log in. The installer downloads a
-checksummed GitHub Release into `/opt/macqueende`.
+The terminal menu offers two installation methods:
 
-To uninstall while preserving user configuration:
+1. Build the current `main` branch from source.
+2. Download the checksummed binary from the permanent `rolling` release.
+
+Package-manager and compiler output is written to
+`~/.local/state/macqueende/`; the terminal only shows installation stages and
+actionable errors. After installation, log out, select **MacqueenDE** in SDDM,
+and log in.
+
+Use the installed terminal manager to view the version and live component
+status, check for updates, switch between source and binary builds, or remove
+MacqueenDE:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/lyrka-meow/MacqueenDE/main/installer/uninstall-release.sh | bash
+macqueende-manager
 ```
+
+Removal preserves user configuration. For source installations, the manager
+also asks pacman to remove build tools that were absent before MacqueenDE was
+installed, provided no other installed package needs them.
 
 The repository keeps one rolling binary release. New builds replace the assets
 inside the existing `rolling` release instead of creating release history.

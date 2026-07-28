@@ -40,6 +40,7 @@ mkdir -p "$payload/build/compositor" \
          "$payload/build/portal" \
          "$payload/build/macqueen-screenshot" \
          "$payload/build/quickshell-macqueen" \
+         "$payload/installer" \
          "$payload/shell/MolniyaMacqueenShell/core/bin" \
          "$payload/shell/MolniyaMacqueenShell"
 
@@ -57,6 +58,10 @@ cp -a "$repo_root/shell/MolniyaMacqueenShell/dank-qml-common" \
       "$payload/shell/MolniyaMacqueenShell/"
 cp -a "$repo_root/config" "$repo_root/session" "$repo_root/start-macqueende" \
       "$payload/"
+install -Dm755 "$repo_root/installer/macqueende-manager" \
+    "$payload/installer/macqueende-manager"
+install -Dm755 "$repo_root/installer/uninstall-release.sh" \
+    "$payload/installer/uninstall-release.sh"
 
 # Remove build-only helpers and shrink debug builds without changing runtime files.
 find "$payload/build" -type f -perm -u+x -exec strip --strip-unneeded {} + 2>/dev/null || true

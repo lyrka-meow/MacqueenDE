@@ -233,6 +233,22 @@ Scope {
         dropWorkspaceId = "";
     }
 
+    function finishDrag() {
+        const windowId = draggingWindowId;
+        const workspaceId = dropWorkspaceId;
+        const shouldMove = dragActive && windowId !== "" && workspaceId !== "";
+        endDrag();
+        if (!shouldMove)
+            return;
+
+        const moved = Macqueen.moveWindowToWorkspace(windowId, workspaceId);
+        console.info("MacqueenOverview: move window", windowId, "to", workspaceId, "result:", moved);
+        if (moved) {
+            selectedWorkspaceId = workspaceId;
+            selectedWindow = visibleWindows.findIndex(window => window.id === windowId);
+        }
+    }
+
     Connections {
         target: Macqueen
 
@@ -587,9 +603,11 @@ Scope {
 
                                                 StyledText {
                                                     width: parent.width
-                                                    text: workspaceChip.modelData.current
-                                                        ? root.uiText("Current workspace", "Текущий стол")
-                                                        : root.windowCountText(workspaceChip.windowCount)
+                                                    text: workspaceChip.dropTarget
+                                                        ? root.uiText("Release to move", "Отпустите — переместить")
+                                                        : (workspaceChip.modelData.current
+                                                            ? root.uiText("Current workspace", "Текущий стол")
+                                                            : root.windowCountText(workspaceChip.windowCount))
                                                     color: Theme.surfaceVariantText
                                                     font.pixelSize: Theme.fontSizeSmall
                                                     wrapMode: Text.NoWrap
@@ -894,13 +912,9 @@ Scope {
                                                     root.dropWorkspaceId = focusScope.workspaceAt(point.x, point.y);
                                                 }
                                                 onReleased: {
-                                                    if (moved && root.dropWorkspaceId && root.draggingWindowId) {
-                                                        Macqueen.moveWindowToWorkspace(root.draggingWindowId, root.dropWorkspaceId);
-                                                        root.selectWorkspace(root.dropWorkspaceId);
-                                                    }
-                                                    root.endDrag();
+                                                    root.finishDrag();
                                                 }
-                                                onCanceled: root.endDrag()
+                                                onCanceled: root.finishDrag()
                                                 onClicked: {
                                                     if (moved)
                                                         return;

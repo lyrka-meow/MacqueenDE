@@ -36,6 +36,7 @@ namespace KWin
 
 static bool s_loadingDesktopSettings = false;
 static const double GESTURE_SWITCH_THRESHOLD = .25;
+static constexpr int s_defaultDesktopCount = 5;
 
 static QString generateDesktopId()
 {
@@ -690,7 +691,7 @@ void VirtualDesktopManager::load()
     }
 
     KConfigGroup group(m_config, QStringLiteral("Desktops"));
-    const int n = group.readEntry("Number", 1);
+    const int n = group.readEntry("Number", s_defaultDesktopCount);
     setCount(n);
 
     for (int i = 1; i <= n; i++) {

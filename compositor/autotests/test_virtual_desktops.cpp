@@ -302,11 +302,11 @@ void TestVirtualDesktops::load()
     // no config yet, load should not change anything
     vds->load();
     QCOMPARE(vds->count(), (uint)0);
-    // empty config should create one desktop
+    // Macqueen starts with five useful workspaces on a clean profile.
     KSharedConfig::Ptr config = KSharedConfig::openConfig(QString(), KConfig::SimpleConfig);
     vds->setConfig(config);
     vds->load();
-    QCOMPARE(vds->count(), (uint)1);
+    QCOMPARE(vds->count(), (uint)5);
     // setting a sensible number
     config->group(QStringLiteral("Desktops")).writeEntry("Number", 4);
     vds->load();

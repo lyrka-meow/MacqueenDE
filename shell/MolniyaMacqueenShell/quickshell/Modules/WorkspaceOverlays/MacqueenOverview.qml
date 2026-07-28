@@ -870,39 +870,33 @@ Scope {
                                             MouseArea {
                                                 id: windowCardMouse
 
-                                                property real pressX: 0
-                                                property real pressY: 0
-                                                property bool moved: false
-
                                                 anchors.fill: parent
                                                 z: 0
                                                 hoverEnabled: true
                                                 cursorShape: root.dragActive ? Qt.ClosedHandCursor : Qt.PointingHandCursor
-                                                preventStealing: true
 
                                                 onContainsMouseChanged: {
                                                     if (containsMouse && !root.dragActive)
                                                         root.selectedWindow = windowCard.globalIndex;
                                                 }
-                                                onPressed: mouse => {
-                                                    pressX = mouse.x;
-                                                    pressY = mouse.y;
-                                                    moved = false;
-                                                    root.beginDrag(windowCard.modelData, windowCard, mouse.x, mouse.y);
+                                                onClicked: {
+                                                    root.selectedWindow = windowCard.globalIndex;
+                                                    root.close(true);
                                                 }
-                                                onPositionChanged: mouse => {
-                                                    if (!pressed)
-                                                        return;
-                                                    if (!moved) {
-                                                        const deltaX = mouse.x - pressX;
-                                                        const deltaY = mouse.y - pressY;
-                                                        moved = Math.sqrt(deltaX * deltaX + deltaY * deltaY) >= 8;
-                                                        if (moved)
-                                                            root.dragActive = true;
-                                                    }
-                                                    if (!moved)
-                                                        return;
-                                                    const point = mapToItem(focusScope, mouse.x, mouse.y);
+                                            }
+
+                                            DragHandler {
+                                                id: windowDragHandler
+
+                                                target: null
+                                                acceptedButtons: Qt.LeftButton
+
+                                                function updatePosition() {
+                                                    const point = windowCard.mapToItem(
+                                                        focusScope,
+                                                        centroid.position.x,
+                                                        centroid.position.y
+                                                    );
                                                     dragProxy.x = Math.max(Theme.spacingS, Math.min(
                                                         focusScope.width - dragProxy.width - Theme.spacingS,
                                                         point.x - dragProxy.dragOffsetX
@@ -913,19 +907,24 @@ Scope {
                                                     ));
                                                     root.dropWorkspaceId = focusScope.workspaceAt(point.x, point.y);
                                                 }
-                                                onReleased: {
-                                                    root.finishDrag();
-                                                }
-                                                onCanceled: root.finishDrag()
-                                                onPressedChanged: {
-                                                    if (!pressed && moved && root.draggingWindowId)
+
+                                                onActiveChanged: {
+                                                    if (active) {
+                                                        root.beginDrag(
+                                                            windowCard.modelData,
+                                                            windowCard,
+                                                            windowCard.width / 2,
+                                                            windowCard.height / 2
+                                                        );
+                                                        root.dragActive = true;
+                                                        updatePosition();
+                                                    } else if (root.draggingWindowId) {
                                                         root.finishDrag();
+                                                    }
                                                 }
-                                                onClicked: {
-                                                    if (moved)
-                                                        return;
-                                                    root.selectedWindow = windowCard.globalIndex;
-                                                    root.close(true);
+                                                onCentroidChanged: {
+                                                    if (active)
+                                                        updatePosition();
                                                 }
                                             }
                                         }

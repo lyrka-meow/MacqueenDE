@@ -1189,20 +1189,21 @@ Item {
                         return modelData?.id === root.currentWorkspace;
                     return modelData === root.currentWorkspace;
                 }
+                readonly property int macqueenWindowCount: {
+                    if (!CompositorService.isMacqueen || !modelData?.id)
+                        return 0;
+                    return Array.from(Macqueen.windows || []).filter(window => {
+                        if (!window || window.skipTaskbar)
+                            return false;
+                        const workspaceIds = window.workspaces || [];
+                        return workspaceIds.length === 0 || workspaceIds.includes(modelData.id);
+                    }).length;
+                }
                 property bool isOccupied: {
                     if (CompositorService.isHyprland)
                         return Array.from(Hyprland.toplevels?.values || []).some(tl => tl.workspace?.id === modelData?.id);
-                    if (CompositorService.isMacqueen) {
-                        const workspaceId = modelData?.id;
-                        if (!workspaceId)
-                            return false;
-                        return Array.from(Macqueen.windows || []).some(window => {
-                            if (!window || window.skipTaskbar)
-                                return false;
-                            const workspaceIds = window.workspaces || [];
-                            return workspaceIds.length === 0 || workspaceIds.includes(workspaceId);
-                        });
-                    }
+                    if (CompositorService.isMacqueen)
+                        return macqueenWindowCount > 0;
                     if (root.isMango)
                         return modelData.clients > 0;
                     if (CompositorService.isNiri)
@@ -1313,12 +1314,12 @@ Item {
                     : (root.macqueenRailStyle
                         ? (hasVisibleContent
                             ? (isActive ? root.widgetHeight * 1.18 : root.widgetHeight * 0.7)
-                            : (isActive ? root.widgetHeight : root.widgetHeight * 0.46))
+                            : (isActive ? root.widgetHeight * 1.12 : root.widgetHeight * 0.68))
                         : (isActive ? Math.max(root.widgetHeight * 1.05, root.appIconSize * 1.6) : Math.max(root.widgetHeight * 0.7, root.appIconSize * 1.2)))
                 readonly property real baseHeight: root.isVertical
                     ? (isActive ? Math.max(root.widgetHeight * 1.05, root.appIconSize * 1.6) : Math.max(root.widgetHeight * 0.7, root.appIconSize * 1.2))
                     : (root.macqueenRailStyle
-                        ? (hasVisibleContent ? root.widgetHeight * 0.62 : root.widgetHeight * 0.44)
+                        ? (hasVisibleContent ? root.widgetHeight * 0.62 : (isActive ? root.widgetHeight * 0.68 : root.widgetHeight * 0.56))
                         : (SettingsData.showWorkspaceApps ? Math.max(widgetHeight * 0.7, root.appIconSize + Theme.spacingXS * 2) : widgetHeight * 0.5))
                 readonly property bool hasWorkspaceName: SettingsData.showWorkspaceName && modelData?.name && modelData.name !== ""
                 readonly property bool workspaceNamesEnabled: SettingsData.showWorkspaceName && (CompositorService.isNiri || CompositorService.isSway || CompositorService.isScroll || CompositorService.isMiracle)
@@ -1444,8 +1445,15 @@ Item {
                 }
                 readonly property color requestedColor: {
                     if (root.macqueenRailStyle) {
-                        if (!hasVisibleContent)
-                            return "transparent";
+                        if (!hasVisibleContent) {
+                            if (isActive)
+                                return Theme.withAlpha(activeColor, 0.18);
+                            if (isUrgent)
+                                return Theme.withAlpha(urgentColor, 0.2);
+                            if (isHovered)
+                                return Theme.withAlpha(activeColor, 0.1);
+                            return Theme.withAlpha(Theme.surfaceContainerHighest, isOccupied ? 0.42 : 0.24);
+                        }
                         if (isActive)
                             return activeColor;
                         if (isUrgent)
@@ -1701,12 +1709,12 @@ Item {
                 Rectangle {
                     id: activeGlow
 
-                    visible: root.macqueenRailStyle && delegateRoot.hasVisibleContent && isActive && !isPlaceholder
+                    visible: root.macqueenRailStyle && isActive && !isPlaceholder
                     anchors.centerIn: visualContent
                     width: visualContent.width + 8
                     height: visualContent.height + 8
                     radius: height / 2
-                    color: Theme.withAlpha(delegateRoot.activeColor, 0.14)
+                    color: Theme.withAlpha(delegateRoot.activeColor, delegateRoot.hasVisibleContent ? 0.14 : 0.1)
                     opacity: 0.9
 
                     Behavior on width {
@@ -1728,10 +1736,12 @@ Item {
                     opacity: dragHandler.dragging ? 0.8 : 1.0
 
                     border.width: root.macqueenRailStyle
-                        ? (isActive || isHovered ? 1 : 0)
+                        ? (isActive ? 1.5 : 1)
                         : (dragHandler.dragging ? 2 : (isUrgent ? 2 : (isDropTarget ? 2 : 0)))
                     border.color: root.macqueenRailStyle
-                        ? (isActive ? Theme.withAlpha(Theme.onPrimary, 0.34) : Theme.withAlpha(Theme.primary, 0.3))
+                        ? (isActive
+                            ? Theme.withAlpha(delegateRoot.activeColor, 0.92)
+                            : Theme.withAlpha(Theme.outline, isHovered ? 0.72 : (isOccupied ? 0.5 : 0.3)))
                         : (dragHandler.dragging ? Theme.primary : (isUrgent ? urgentColor : (isDropTarget ? Theme.primary : Theme.withAlpha(Theme.primary, 0))))
 
                     transform: Translate {
@@ -1802,74 +1812,58 @@ Item {
                         z: 3
                     }
 
-                    Rectangle {
-                        id: cometGlow
+                    Item {
+                        id: miniDesktopPreview
 
-                        anchors.centerIn: parent
-                        visible: root.macqueenRailStyle && !delegateRoot.hasVisibleContent && isActive
-                        width: 30
-                        height: 15
-                        radius: height / 2
-                        color: Theme.withAlpha(delegateRoot.activeColor, 0.2)
-                        z: 1
-                    }
+                        readonly property int previewCount: Math.min(3, delegateRoot.macqueenWindowCount)
 
-                    Rectangle {
-                        id: cometMarker
-
-                        anchors.centerIn: parent
+                        anchors {
+                            fill: parent
+                            margins: isActive ? 5 : 4
+                        }
                         visible: root.macqueenRailStyle && !delegateRoot.hasVisibleContent
-                        width: isActive ? 23 : 5
-                        height: isActive ? 7 : 5
-                        radius: height / 2
-                        opacity: isActive || isOccupied ? 1 : 0.48
                         z: 2
 
-                        gradient: Gradient {
-                            orientation: Gradient.Horizontal
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 2
 
-                            GradientStop {
-                                position: 0
-                                color: isActive
-                                    ? delegateRoot.activeColor
-                                    : (isOccupied ? delegateRoot.occupiedColor : Theme.surfaceTextMedium)
-                            }
+                            Repeater {
+                                model: miniDesktopPreview.previewCount
 
-                            GradientStop {
-                                position: 1
-                                color: isActive
-                                    ? Theme.blend(delegateRoot.activeColor, Theme.tertiary, 0.36)
-                                    : (isOccupied ? delegateRoot.occupiedColor : Theme.surfaceTextMedium)
+                                Rectangle {
+                                    required property int index
+
+                                    width: Math.max(3, (miniDesktopPreview.width - Math.max(0, miniDesktopPreview.previewCount - 1) * 2) / Math.max(1, miniDesktopPreview.previewCount))
+                                    height: miniDesktopPreview.height * (index % 2 === 0 ? 0.72 : 0.52)
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    radius: 2
+                                    color: isActive ? delegateRoot.activeColor : delegateRoot.occupiedColor
+                                    opacity: isActive ? 1 : 0.72
+                                }
                             }
                         }
 
                         Rectangle {
+                            anchors.centerIn: parent
+                            visible: miniDesktopPreview.previewCount === 0
+                            width: isActive ? 12 : 7
+                            height: 2
+                            radius: 1
+                            color: isActive ? delegateRoot.activeColor : Theme.surfaceTextMedium
+                            opacity: isActive ? 0.9 : 0.4
+                        }
+
+                        Rectangle {
                             anchors {
-                                left: parent.left
                                 right: parent.right
                                 top: parent.top
-                                leftMargin: 4
-                                rightMargin: 4
-                                topMargin: 1
                             }
-                            visible: isActive
-                            height: 1
-                            radius: 0.5
-                            color: Theme.withAlpha(Theme.onPrimary, 0.32)
-                        }
-
-                        Behavior on width {
-                            NumberAnimation {
-                                duration: Theme.mediumDuration
-                                easing.type: Theme.emphasizedEasing
-                            }
-                        }
-
-                        Behavior on height {
-                            NumberAnimation {
-                                duration: Theme.mediumDuration
-                                easing.type: Theme.emphasizedEasing
-                            }
+                            visible: delegateRoot.macqueenWindowCount > 3
+                            width: 3
+                            height: 3
+                            radius: 1.5
+                            color: delegateRoot.activeColor
                         }
                     }
 

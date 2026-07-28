@@ -234,23 +234,6 @@ Scope {
         dropWorkspaceId = "";
     }
 
-    function finishDrag() {
-        const windowId = draggingWindowId;
-        const workspaceId = dropWorkspaceId;
-        const shouldMove = windowId !== "" && workspaceId !== "";
-        console.info("MacqueenOverview: finish drag", windowId, workspaceId, "move:", shouldMove);
-        endDrag();
-        if (!shouldMove)
-            return;
-
-        const moved = Macqueen.moveWindowToWorkspace(windowId, workspaceId);
-        console.info("MacqueenOverview: move window", windowId, "to", workspaceId, "result:", moved);
-        if (moved) {
-            selectedWorkspaceId = workspaceId;
-            selectedWindow = visibleWindows.findIndex(window => window.id === windowId);
-        }
-    }
-
     Connections {
         target: Macqueen
 
@@ -391,7 +374,7 @@ Scope {
                 }
                 Keys.onReleased: event => {
                     if (event.key === Qt.Key_Alt) {
-                        if (!root.draggingWindowId)
+                        if (!root.dragActive)
                             root.close(true);
                         event.accepted = true;
                     }
@@ -894,6 +877,8 @@ Scope {
                                                 id: windowDragHandler
 
                                                 property bool gestureStarted: false
+                                                property string draggedWindowId: ""
+                                                property string targetWorkspaceId: ""
 
                                                 target: null
                                                 acceptedButtons: Qt.LeftButton
@@ -912,12 +897,15 @@ Scope {
                                                         focusScope.height - dragProxy.height - Theme.spacingS,
                                                         point.y - dragProxy.dragOffsetY
                                                     ));
-                                                    root.dropWorkspaceId = focusScope.workspaceAt(point.x, point.y);
+                                                    targetWorkspaceId = focusScope.workspaceAt(point.x, point.y);
+                                                    root.dropWorkspaceId = targetWorkspaceId;
                                                 }
 
                                                 onActiveChanged: {
                                                     if (active) {
                                                         gestureStarted = true;
+                                                        draggedWindowId = windowCard.modelData.id || "";
+                                                        targetWorkspaceId = "";
                                                         windowCard.dragOccurred = true;
                                                         root.beginDrag(
                                                             windowCard.modelData,
@@ -929,7 +917,19 @@ Scope {
                                                         updatePosition();
                                                     } else if (gestureStarted) {
                                                         gestureStarted = false;
-                                                        root.finishDrag();
+                                                        const windowId = draggedWindowId;
+                                                        const workspaceId = targetWorkspaceId;
+                                                        draggedWindowId = "";
+                                                        targetWorkspaceId = "";
+                                                        root.endDrag();
+                                                        if (windowId !== "" && workspaceId !== "") {
+                                                            const moved = Macqueen.moveWindowToWorkspace(windowId, workspaceId);
+                                                            console.info("MacqueenOverview: move window", windowId, "to", workspaceId, "result:", moved);
+                                                            if (moved) {
+                                                                root.selectedWorkspaceId = workspaceId;
+                                                                root.selectedWindow = root.visibleWindows.findIndex(window => window.id === windowId);
+                                                            }
+                                                        }
                                                     }
                                                 }
                                                 onCentroidChanged: {

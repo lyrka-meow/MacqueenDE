@@ -1581,6 +1581,8 @@ Item {
                                 MangoService.switchToTag(root.screenName, modelData.tag);
                             } else if ((CompositorService.isSway || CompositorService.isScroll || CompositorService.isMiracle) && modelData?.num !== undefined) {
                                 root.dispatchSwayWorkspace(modelData);
+                            } else if (CompositorService.isMacqueen && modelData?.id) {
+                                Macqueen.activateWorkspace(modelData.id);
                             }
                         } else if (mouse.button === Qt.RightButton) {
                             if (CompositorService.isNiri) {

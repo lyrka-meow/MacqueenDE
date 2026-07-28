@@ -20,6 +20,7 @@ required=(
     build/compositor/bin/kwin/plugins/screenshot.so
     build/portal/bin/xdg-desktop-portal-macqueen
     build/macqueen-screenshot/bin/macqueen-screenshot
+    build/quickshell-macqueen/libquickshell-macqueen.so
     build/quickshell-macqueen/Macqueen/Ipc/qmldir
     shell/MolniyaMacqueenShell/core/bin/dms
 )
@@ -46,6 +47,8 @@ cp -a "$repo_root/build/compositor/bin" "$payload/build/compositor/"
 cp -a "$repo_root/build/portal/bin" "$payload/build/portal/"
 cp -a "$repo_root/build/macqueen-screenshot/bin" "$payload/build/macqueen-screenshot/"
 cp -a "$repo_root/build/quickshell-macqueen/Macqueen" "$payload/build/quickshell-macqueen/"
+cp -a "$repo_root/build/quickshell-macqueen/libquickshell-macqueen.so" \
+      "$payload/build/quickshell-macqueen/"
 cp -a "$repo_root/shell/MolniyaMacqueenShell/core/bin/dms" \
       "$payload/shell/MolniyaMacqueenShell/core/bin/"
 cp -a "$repo_root/shell/MolniyaMacqueenShell/quickshell" \
@@ -59,6 +62,17 @@ cp -a "$repo_root/config" "$repo_root/session" "$repo_root/start-macqueende" \
 find "$payload/build" -type f -perm -u+x -exec strip --strip-unneeded {} + 2>/dev/null || true
 find "$payload/build" -type f -name '*.so*' -exec strip --strip-unneeded {} + 2>/dev/null || true
 strip --strip-unneeded "$payload/shell/MolniyaMacqueenShell/core/bin/dms" 2>/dev/null || true
+
+module_plugin="$payload/build/quickshell-macqueen/Macqueen/Ipc/libquickshell-macqueenplugin.so"
+if missing=$(
+    LD_LIBRARY_PATH="$payload/build/quickshell-macqueen" \
+        ldd "$module_plugin" |
+        awk '/not found/ {print}'
+); [[ -n "$missing" ]]; then
+    printf 'release contains an unloadable Macqueen QML plugin:\n%s\n' \
+        "$missing" >&2
+    exit 1
+fi
 
 install -Dm755 "$repo_root/installer/install-release-payload.sh" \
     "$stage/install.sh"

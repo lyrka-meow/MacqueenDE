@@ -70,7 +70,7 @@ fi
 export MACQUEENDE_ROOT="$repo_root"
 export QT_PLUGIN_PATH="$qt_plugins${QT_PLUGIN_PATH:+:$QT_PLUGIN_PATH}"
 export QML2_IMPORT_PATH="$qml_module${QML2_IMPORT_PATH:+:$QML2_IMPORT_PATH}"
-export LD_LIBRARY_PATH="$repo_root/build/compositor/bin${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export LD_LIBRARY_PATH="$repo_root/build/compositor/bin:$repo_root/build/quickshell-macqueen${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export XDG_CURRENT_DESKTOP=MacqueenDE
 export XDG_SESSION_DESKTOP=MacqueenDE
 export XDG_SESSION_TYPE=wayland

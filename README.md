@@ -25,6 +25,9 @@ To uninstall while preserving user configuration:
 curl -fsSL https://raw.githubusercontent.com/lyrka-meow/MacqueenDE/main/installer/uninstall-release.sh | bash
 ```
 
+The repository keeps one rolling binary release. New builds replace the assets
+inside the existing `rolling` release instead of creating release history.
+
 ## Project goals
 
 - Keep the mature rendering, input, display, XWayland, and effects foundations

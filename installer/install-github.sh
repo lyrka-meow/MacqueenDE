@@ -40,7 +40,17 @@ asset_url=$(curl -fsSL \
     exit 1
 }
 
-echo "Downloading $(basename "$asset_url")..."
+asset_name=$(basename "$asset_url")
+archive_suffix="-$arch.tar.zst"
+expected_version=${asset_name#macqueende-}
+expected_version=${expected_version%"$archive_suffix"}
+[[ "$asset_name" == macqueende-*"$archive_suffix" &&
+   -n "$expected_version" ]] || {
+    echo "Invalid MacqueenDE release asset name: $asset_name" >&2
+    exit 1
+}
+
+echo "Downloading $asset_name..."
 curl -fL --progress-bar "$asset_url" -o "$tmp_dir/macqueende.tar.zst"
 curl -fsSL "$asset_url.sha256" -o "$tmp_dir/macqueende.tar.zst.sha256"
 (
@@ -51,11 +61,8 @@ curl -fsSL "$asset_url.sha256" -o "$tmp_dir/macqueende.tar.zst.sha256"
 tar --zstd -xf "$tmp_dir/macqueende.tar.zst" -C "$tmp_dir"
 "$tmp_dir/install.sh"
 
-if [[ -n "$release_tag" ]]; then
-    expected_version=${release_tag#v}
-    installed_version=$(cat /opt/macqueende/VERSION 2>/dev/null || true)
-    [[ "$installed_version" == "$expected_version" ]] || {
-        echo "Installed version mismatch: expected $expected_version, got ${installed_version:-unknown}" >&2
-        exit 1
-    }
-fi
+installed_version=$(cat /opt/macqueende/VERSION 2>/dev/null || true)
+[[ "$installed_version" == "$expected_version" ]] || {
+    echo "Installed version mismatch: expected $expected_version, got ${installed_version:-unknown}" >&2
+    exit 1
+}

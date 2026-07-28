@@ -19,7 +19,11 @@ if [[ -e /opt/macqueende ]]; then
 fi
 sudo mv "$new_root" /opt/macqueende
 
-sudo install -Dm755 /opt/macqueende/start-macqueende /usr/bin/start-macqueende
+{
+    printf '%s\n' '#!/usr/bin/env bash'
+    printf '%s\n' 'export MACQUEENDE_ROOT=/opt/macqueende'
+    printf '%s\n' 'exec /opt/macqueende/start-macqueende "$@"'
+} | sudo install -Dm755 /dev/stdin /usr/bin/start-macqueende
 sed 's|Exec=/usr/local/bin/start-macqueende|Exec=/usr/bin/start-macqueende|' \
     /opt/macqueende/session/macqueende.desktop |
     sudo install -Dm644 /dev/stdin /usr/share/wayland-sessions/macqueende.desktop

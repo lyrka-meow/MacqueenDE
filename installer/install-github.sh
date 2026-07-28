@@ -19,7 +19,7 @@ command -v pacman >/dev/null 2>&1 || {
     echo "MacqueenDE installer currently supports Arch Linux only." >&2
     exit 1
 }
-[[ -r /dev/tty ]] || {
+[[ -n "$requested_mode" || -r /dev/tty ]] || {
     echo "MacqueenDE installer requires an interactive terminal." >&2
     exit 1
 }

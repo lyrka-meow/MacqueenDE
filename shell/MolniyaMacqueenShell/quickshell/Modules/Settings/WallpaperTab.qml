@@ -1235,12 +1235,19 @@ Item {
                 }
             }
 
-            WallhavenBrowser {
-                visible: root.onlineGalleryOpen
-                onCloseRequested: root.onlineGalleryOpen = false
-                onApplyWallpaper: path => {
-                    root.applyOnlineWallpaper(path);
-                    root.onlineGalleryOpen = false;
+            Loader {
+                id: onlineGalleryLoader
+                width: parent.width
+                height: item ? item.height : 0
+                active: root.onlineGalleryOpen
+                visible: active
+
+                sourceComponent: WallhavenBrowser {
+                    onCloseRequested: root.onlineGalleryOpen = false
+                    onApplyWallpaper: path => {
+                        root.applyOnlineWallpaper(path);
+                        root.onlineGalleryOpen = false;
+                    }
                 }
             }
 

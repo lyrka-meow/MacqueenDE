@@ -168,6 +168,31 @@ Item {
         Qt.callLater(() => waylandToplevel.activate());
         return true;
     }
+
+    function activateOrMinimizeToplevel(toplevel) {
+        if (!toplevel)
+            return;
+
+        if (toplevel.activated && !toplevel.minimized) {
+            CompositorService.setToplevelMinimized(toplevel, true);
+            return;
+        }
+
+        if (restoreSpecialWorkspaceWindow(toplevel))
+            return;
+
+        CompositorService.activateToplevel(toplevel);
+    }
+
+    function activeGroupedToplevel() {
+        const groupedToplevels = getGroupedToplevels();
+        for (let i = 0; i < groupedToplevels.length; i++) {
+            if (groupedToplevels[i]?.activated)
+                return groupedToplevels[i];
+        }
+        return null;
+    }
+
     onIsHoveredChanged: {
         if (mouseArea.pressed || dragging)
             return;
@@ -311,11 +336,7 @@ Item {
                 break;
             case "window":
                 const windowToplevel = getToplevelObject();
-                if (windowToplevel) {
-                    if (restoreSpecialWorkspaceWindow(windowToplevel))
-                        return;
-                    windowToplevel.activate();
-                }
+                activateOrMinimizeToplevel(windowToplevel);
                 break;
             case "grouped":
                 if (appData.windowCount === 0) {
@@ -338,11 +359,9 @@ Item {
                     SessionService.launchDesktopEntry(groupedEntry);
                 } else if (appData.windowCount === 1) {
                     const groupedToplevel = getToplevelObject();
-                    if (groupedToplevel) {
-                        if (restoreSpecialWorkspaceWindow(groupedToplevel))
-                            return;
-                        groupedToplevel.activate();
-                    }
+                    activateOrMinimizeToplevel(groupedToplevel);
+                } else if (activeGroupedToplevel()) {
+                    CompositorService.setToplevelMinimized(activeGroupedToplevel(), true);
                 } else if (contextMenu) {
                     const shouldHidePin = appData.appId === "org.quickshell" || appData.appId === "org.macqueende.molniya";
                     contextMenu.showForButton(root, appData, root.height + 25, shouldHidePin, cachedDesktopEntry, parentDockScreen, dockApps);

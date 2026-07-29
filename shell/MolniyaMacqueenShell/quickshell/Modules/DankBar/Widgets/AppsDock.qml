@@ -884,8 +884,13 @@ BasePill {
                                         SessionService.launchDesktopEntry(desktopEntry);
                                 }
                             } else if (modelData.windowCount === 1) {
-                                if (modelData.allWindows[0].toplevel)
-                                    modelData.allWindows[0].toplevel.activate();
+                                if (modelData.allWindows[0].toplevel) {
+                                    const onlyToplevel = modelData.allWindows[0].toplevel;
+                                    if (onlyToplevel.activated && !onlyToplevel.minimized)
+                                        CompositorService.setToplevelMinimized(onlyToplevel, true);
+                                    else
+                                        CompositorService.activateToplevel(onlyToplevel);
+                                }
                             } else {
                                 let currentIndex = -1;
                                 for (var i = 0; i < modelData.allWindows.length; i++) {
@@ -894,8 +899,12 @@ BasePill {
                                         break;
                                     }
                                 }
-                                const nextIndex = (currentIndex + 1) % modelData.allWindows.length;
-                                modelData.allWindows[nextIndex].toplevel.activate();
+                                if (currentIndex >= 0) {
+                                    CompositorService.setToplevelMinimized(modelData.allWindows[currentIndex].toplevel, true);
+                                } else {
+                                    const nextIndex = (currentIndex + 1) % modelData.allWindows.length;
+                                    CompositorService.activateToplevel(modelData.allWindows[nextIndex].toplevel);
+                                }
                             }
                         }
                     }

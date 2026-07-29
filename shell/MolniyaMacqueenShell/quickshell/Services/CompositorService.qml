@@ -181,6 +181,42 @@ Singleton {
         sortDebounceTimer.restart();
     }
 
+    function setToplevelMinimized(toplevel, minimized) {
+        if (!toplevel)
+            return false;
+
+        try {
+            // Macqueen snapshots expose an IPC-backed function. Native
+            // foreign-toplevel objects expose a writable minimized property.
+            if (typeof toplevel.setMinimized === "function") {
+                toplevel.setMinimized(minimized);
+            } else {
+                toplevel.minimized = minimized;
+            }
+            return true;
+        } catch (e) {
+            log.warn("failed to change toplevel minimized state:", e);
+            return false;
+        }
+    }
+
+    function activateToplevel(toplevel) {
+        if (!toplevel || typeof toplevel.activate !== "function")
+            return false;
+
+        // Explicitly restore first: not every compositor restores a minimized
+        // window as a side effect of the activation request.
+        setToplevelMinimized(toplevel, false);
+        Qt.callLater(() => {
+            try {
+                toplevel.activate();
+            } catch (e) {
+                log.warn("failed to activate toplevel:", e);
+            }
+        });
+        return true;
+    }
+
     Connections {
         target: ToplevelManager.toplevels
         function onValuesChanged() {

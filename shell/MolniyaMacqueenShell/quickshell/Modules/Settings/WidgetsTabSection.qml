@@ -1491,6 +1491,62 @@ Column {
                     width: parent.width
                     height: 32
                     radius: Theme.cornerRadius
+                    color: trayCollapseArea.containsMouse ? Theme.primaryHover : Theme.withAlpha(Theme.primaryHover, 0)
+
+                    Row {
+                        anchors.left: parent.left
+                        anchors.leftMargin: Theme.spacingS
+                        anchors.right: trayCollapseToggle.left
+                        anchors.rightMargin: Theme.spacingS
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.spacingS
+                        clip: true
+
+                        DankIcon {
+                            name: "unfold_less"
+                            size: 16
+                            color: Theme.surfaceText
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        StyledText {
+                            text: I18n.tr("Collapsible Tray")
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.surfaceText
+                            font.weight: Font.Normal
+                            anchors.verticalCenter: parent.verticalCenter
+                            elide: Text.ElideRight
+                            maximumLineCount: 1
+                            width: parent.width - 16 - Theme.spacingS
+                        }
+                    }
+
+                    DankToggle {
+                        id: trayCollapseToggle
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.spacingS
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 40
+                        height: 20
+                        checked: trayContextMenu.currentWidgetData?.trayCollapseAll ?? true
+                    }
+
+                    MouseArea {
+                        id: trayCollapseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            const newValue = !(trayContextMenu.currentWidgetData?.trayCollapseAll ?? true);
+                            root.overflowSettingChanged(trayContextMenu.sectionId, trayContextMenu.widgetIndex, "trayCollapseAll", newValue);
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 32
+                    radius: Theme.cornerRadius
                     color: trayOverflowArea.containsMouse ? Theme.primaryHover : Theme.withAlpha(Theme.primaryHover, 0)
 
                     Row {

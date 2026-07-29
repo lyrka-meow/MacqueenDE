@@ -20,7 +20,8 @@ BasePill {
     property string section: "right"
     property bool isAtBottom: false
     property bool isAutoHideBar: false
-    property bool useOverflowPopup: !widgetData?.trayUseInlineExpansion
+    property bool collapseAllItems: widgetData?.trayCollapseAll ?? true
+    property bool useOverflowPopup: !collapseAllItems && !widgetData?.trayUseInlineExpansion
     property bool useSingleLineOverflowPopup: widgetData?.trayPopupSingleLine ?? SettingsData.trayPopupSingleLine
     property bool useAutomaticOverflow: widgetData?.trayAutoOverflow ?? SettingsData.trayAutoOverflow
     property int configuredMaxVisibleItems: widgetData?.trayMaxVisibleItems ?? SettingsData.trayMaxVisibleItems
@@ -151,6 +152,9 @@ BasePill {
     readonly property var allSortedTrayItemKeys: allSortedTrayItems.map(item => getTrayItemKey(item))
     readonly property var visibleSortedTrayItems: allSortedTrayItems.filter(item => !SessionData.isHiddenTrayId(root.getTrayItemKey(item)))
     readonly property int automaticVisibleItemLimit: {
+        if (root.collapseAllItems)
+            return 0;
+
         if (!root.useAutomaticOverflow)
             return root.visibleSortedTrayItems.length;
 
@@ -435,6 +439,8 @@ BasePill {
 
     property bool menuOpen: false
     property var currentTrayMenu: null
+
+    onCollapseAllItemsChanged: menuOpen = false
 
     content: Component {
         Item {

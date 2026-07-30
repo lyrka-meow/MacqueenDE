@@ -1025,7 +1025,13 @@ Item {
                         width: Theme.snap(29, root.dpr)
                         height: Theme.snap(Math.max(20, root.widgetHeight - 1), root.dpr)
                         radius: Theme.snap(9, root.dpr)
-                        color: macqueenWorkspaceCell.active ? Theme.primary : "transparent"
+                        color: {
+                            if (macqueenWorkspaceCell.active)
+                                return Theme.primary;
+                            if (macqueenWorkspaceMouse.containsMouse)
+                                return Theme.withAlpha(Theme.surfaceText, 0.08);
+                            return "transparent";
+                        }
 
                         Behavior on color {
                             ColorAnimation {

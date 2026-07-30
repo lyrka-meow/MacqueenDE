@@ -48,13 +48,12 @@ DankPopout {
         const valid = __tabPresentation[id] !== undefined && !__isActionTab(id) && (id !== "weather" || SettingsData.weatherEnabled);
         const nextId = valid ? id : "overview";
         if (!shouldBeVisible)
-            positioning = nextId === "media" ? "leftCenter" : "center";
+            positioning = "center";
         currentTabId = nextId;
     }
 
     function prepareForTrigger(triggerSource, mode) {
-        const source = String(triggerSource || "");
-        positioning = source.endsWith("-media") ? "leftCenter" : "center";
+        positioning = "center";
     }
 
     function __cycleTab(dir) {

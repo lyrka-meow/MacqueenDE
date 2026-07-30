@@ -653,10 +653,25 @@ Item {
                 SettingsToggleRow {
                     text: I18n.tr("Auto-hide")
                     description: I18n.tr("Automatically hide the bar when the pointer moves away")
-                    checked: selectedBarConfig?.autoHide ?? false
+                    checked: (selectedBarConfig?.autoHide ?? false) && !(selectedBarConfig?.showOnWindowsOpen ?? false)
                     onToggled: toggled => {
                         SettingsData.updateBarConfig(selectedBarId, {
-                            autoHide: toggled
+                            autoHide: toggled,
+                            showOnWindowsOpen: false
+                        });
+                        notifyHorizontalBarChange();
+                    }
+                }
+
+                SettingsToggleRow {
+                    visible: CompositorService.isMacqueen || CompositorService.isNiri || CompositorService.isHyprland || CompositorService.isMango
+                    text: I18n.tr("Intelligent Auto-hide")
+                    description: I18n.tr("Hide the bar only while a window overlaps its area")
+                    checked: (selectedBarConfig?.autoHide ?? false) && (selectedBarConfig?.showOnWindowsOpen ?? false)
+                    onToggled: toggled => {
+                        SettingsData.updateBarConfig(selectedBarId, {
+                            autoHide: toggled,
+                            showOnWindowsOpen: toggled
                         });
                         notifyHorizontalBarChange();
                     }
@@ -709,19 +724,6 @@ Item {
                                 autoHideStrict: toggled
                             });
                             notifyHorizontalBarChange();
-                        }
-                    }
-
-                    SettingsToggleRow {
-                        width: parent.width - parent.leftPadding
-                        visible: CompositorService.isNiri || CompositorService.isHyprland || CompositorService.isMango
-                        text: I18n.tr("Hide When Windows Open")
-                        description: I18n.tr("Show the bar only when no windows are open")
-                        checked: selectedBarConfig?.showOnWindowsOpen ?? false
-                        onToggled: toggled => {
-                            SettingsData.updateBarConfig(selectedBarId, {
-                                showOnWindowsOpen: toggled
-                            });
                         }
                     }
                 }

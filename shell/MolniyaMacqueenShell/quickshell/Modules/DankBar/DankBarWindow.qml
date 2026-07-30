@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
+import Macqueen.Ipc 1.0
 import qs.Common
 import qs.Services
 
@@ -479,7 +480,80 @@ PanelWindow {
             shouldHideForWindows = false;
             return;
         }
-        if (!CompositorService.isNiri && !CompositorService.isHyprland && !CompositorService.isMango) {
+        if (!CompositorService.isMacqueen && !CompositorService.isNiri && !CompositorService.isHyprland && !CompositorService.isMango) {
+            shouldHideForWindows = false;
+            return;
+        }
+
+        if (CompositorService.isMacqueen) {
+            const currentWorkspace = Array.from(Macqueen.workspaces || []).find(workspace => workspace.current);
+            if (!currentWorkspace) {
+                shouldHideForWindows = false;
+                return;
+            }
+
+            const output = Array.from(Macqueen.outputs || []).find(candidate => candidate.name === screenName);
+            const screenX = Number(output?.x ?? barWindow.screen?.geometry?.x ?? 0);
+            const screenY = Number(output?.y ?? barWindow.screen?.geometry?.y ?? 0);
+            const screenWidth = Number(output?.width ?? barWindow.screen?.width ?? 0);
+            const screenHeight = Number(output?.height ?? barWindow.screen?.height ?? 0);
+            const zoneThickness = Math.max(1, Number(barWindow.effectiveBarThickness)
+                + Number(barWindow.effectiveSpacing)
+                + Number(barConfig?.bottomGap ?? 0));
+            const pos = barConfig?.position ?? SettingsData.Position.Top;
+            let panelRect = {
+                "x": screenX,
+                "y": screenY,
+                "width": screenWidth,
+                "height": zoneThickness
+            };
+
+            switch (pos) {
+            case SettingsData.Position.Bottom:
+                panelRect.y = screenY + screenHeight - zoneThickness;
+                break;
+            case SettingsData.Position.Left:
+                panelRect.width = zoneThickness;
+                panelRect.height = screenHeight;
+                break;
+            case SettingsData.Position.Right:
+                panelRect.x = screenX + screenWidth - zoneThickness;
+                panelRect.width = zoneThickness;
+                panelRect.height = screenHeight;
+                break;
+            }
+
+            const windows = Array.from(Macqueen.windows || []);
+            for (let i = 0; i < windows.length; i++) {
+                const win = windows[i];
+                if (!win || win.minimized || win.skipTaskbar)
+                    continue;
+
+                const workspaceIds = Array.from(win.workspaces || []);
+                if (workspaceIds.length > 0 && !workspaceIds.includes(currentWorkspace.id))
+                    continue;
+
+                const geometry = win.geometry;
+                if (!geometry)
+                    continue;
+
+                const winX = Number(geometry.x);
+                const winY = Number(geometry.y);
+                const winW = Number(geometry.width);
+                const winH = Number(geometry.height);
+                if (!Number.isFinite(winX) || !Number.isFinite(winY) || !Number.isFinite(winW) || !Number.isFinite(winH))
+                    continue;
+
+                const overlaps = winX < panelRect.x + panelRect.width
+                    && winX + winW > panelRect.x
+                    && winY < panelRect.y + panelRect.height
+                    && winY + winH > panelRect.y;
+                if (overlaps) {
+                    shouldHideForWindows = true;
+                    return;
+                }
+            }
+
             shouldHideForWindows = false;
             return;
         }
@@ -728,6 +802,23 @@ PanelWindow {
         target: CompositorService
         function onToplevelsChanged() {
             barWindow._updateHasMaximizedToplevel();
+            barWindow._updateShouldHideForWindows();
+        }
+    }
+
+    Connections {
+        target: Macqueen
+        enabled: CompositorService.isMacqueen
+
+        function onWindowsChanged() {
+            barWindow._updateShouldHideForWindows();
+        }
+
+        function onWorkspacesChanged() {
+            barWindow._updateShouldHideForWindows();
+        }
+
+        function onOutputsChanged() {
             barWindow._updateShouldHideForWindows();
         }
     }
@@ -995,7 +1086,7 @@ PanelWindow {
                 return true;
 
             const showOnWindowsSetting = barConfig?.showOnWindowsOpen ?? false;
-            if (showOnWindowsSetting && autoHide && (CompositorService.isNiri || CompositorService.isHyprland || CompositorService.isMango)) {
+            if (showOnWindowsSetting && autoHide && (CompositorService.isMacqueen || CompositorService.isNiri || CompositorService.isHyprland || CompositorService.isMango)) {
                 if (barWindow.shouldHideForWindows)
                     return hoverReveal || popoutPinsReveal || revealSticky || ipcReveal;
                 return true;

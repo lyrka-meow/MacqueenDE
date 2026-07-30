@@ -3752,6 +3752,9 @@
   "Hide Delay": {
     "Hide Delay": "Задержка скрытия"
   },
+  "Hide the bar only while a window overlaps its area": {
+    "Hide the bar only while a window overlaps its area": "Скрывать панель, только когда окно перекрывает её область"
+  },
   "Hide Indicators": {
     "Hide Indicators": "Скрыть индикаторы"
   },

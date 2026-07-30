@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Effects
-import QtQuick.Layouts
 import Quickshell.Services.Mpris
 import Quickshell.Widgets
 import qs.Common
@@ -68,6 +67,7 @@ Item {
 
     property bool isSwitching: false
     property int lyricIndex: -1
+    readonly property int lyricDisplayIndex: lyricIndex >= 0 ? lyricIndex : (LyricsService.hasLyrics ? 0 : -1)
 
     function updateLyrics() {
         if (!activePlayer) {
@@ -126,7 +126,7 @@ Item {
     }
 
     implicitWidth: SettingsData.showWeekNumber ? 736 : 700
-    implicitHeight: playerContent.height + playerContent.anchors.topMargin * 2
+    implicitHeight: 410
 
     Connections {
         target: activePlayer
@@ -393,8 +393,8 @@ Item {
         Rectangle {
             anchors.fill: parent
             radius: Theme.cornerRadius
-            color: Theme.surface
-            opacity: 0.3
+            color: "#080607"
+            opacity: 0.74
         }
     }
 
@@ -409,7 +409,7 @@ Item {
         radius: Theme.cornerRadius
         color: "transparent"
         antialiasing: true
-        opacity: front ? 0.7 : 0
+        opacity: front ? 0.48 : 0
 
         Behavior on opacity {
             NumberAnimation {
@@ -467,675 +467,455 @@ Item {
     }
 
     Item {
+        id: playerStage
         anchors.fill: parent
-        clip: false
-        visible: !_noneAvailable && (!showNoPlayerNow)
-        ColumnLayout {
-            id: playerContent
-            width: 484
-            height: 370
-            spacing: Theme.spacingXS
-            anchors.top: parent.top
-            anchors.topMargin: 20
-            anchors.horizontalCenter: parent.horizontalCenter
+        visible: !_noneAvailable && !showNoPlayerNow
 
-            Item {
-                width: parent.width
-                height: 200
-                clip: false
-
-                DankAlbumArt {
-                    width: Math.min(parent.width * 0.8, parent.height * 0.95)
-                    height: width
-                    anchors.centerIn: parent
-                    activePlayer: root.activePlayer
-                }
-            }
-
-            // Song Info and Controls Section
-            Item {
-                width: parent.width
-                Layout.fillHeight: true
-
-                Column {
-                    id: songInfo
-                    width: parent.width
-                    spacing: Theme.spacingXS
-                    anchors.top: parent.top
-                    anchors.horizontalCenter: parent.horizontalCenter
-
-                    StyledText {
-                        text: MprisController.stableTitle || I18n.tr("Unknown Track")
-                        font.pixelSize: Theme.fontSizeLarge
-                        font.weight: Font.Bold
-                        color: Theme.surfaceText
-                        width: parent.width
-                        horizontalAlignment: Text.AlignHCenter
-                        elide: Text.ElideRight
-                        wrapMode: Text.WordWrap
-                        maximumLineCount: 2
-                    }
-
-                    StyledText {
-                        text: MprisController.stableArtist || I18n.tr("Unknown Artist")
-                        font.pixelSize: Theme.fontSizeMedium
-                        color: Theme.surfaceTextMedium
-                        width: parent.width
-                        horizontalAlignment: Text.AlignHCenter
-                        elide: Text.ElideRight
-                        wrapMode: Text.WordWrap
-                        maximumLineCount: 1
-                    }
-
-                    StyledText {
-                        text: activePlayer?.trackAlbum || ""
-                        font.pixelSize: Theme.fontSizeSmall
-                        color: Theme.surfaceTextSecondary
-                        width: parent.width
-                        horizontalAlignment: Text.AlignHCenter
-                        elide: Text.ElideRight
-                        wrapMode: Text.WordWrap
-                        maximumLineCount: 1
-                        // Reserve the line so late album metadata doesn't shift the seekbar.
-                        height: Math.max(implicitHeight, Theme.fontSizeSmall * 1.4)
-                    }
-                }
-
-                Item {
-                    id: seekbarContainer
-                    width: parent.width
-                    anchors.top: songInfo.bottom
-                    anchors.bottom: playbackControls.top
-                    anchors.horizontalCenter: parent.horizontalCenter
-
-                    Column {
-                        width: parent.width
-                        spacing: Theme.spacingXXS
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        anchors.verticalCenter: parent.verticalCenter
-                        anchors.verticalCenterOffset: parent.height * 0.2
-
-                        DankSeekbar {
-                            width: parent.width * 0.8
-                            height: 20
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            activePlayer: root.activePlayer
-                            isSeeking: root.isSeeking
-                            onIsSeekingChanged: root.isSeeking = isSeeking
-                        }
-
-                        Item {
-                            width: parent.width * 0.8
-                            height: 16
-                            anchors.horizontalCenter: parent.horizontalCenter
-
-                            StyledText {
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: {
-                                    if (!activePlayer)
-                                        return "0:00";
-                                    const rawPos = Math.max(0, activePlayer.position || 0);
-                                    const pos = stableLength ? rawPos % Math.max(1, stableLength) : rawPos;
-                                    const minutes = Math.floor(pos / 60);
-                                    const seconds = Math.floor(pos % 60);
-                                    const timeStr = minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
-                                    return timeStr;
-                                }
-                                font.pixelSize: Theme.fontSizeSmall
-                                color: Theme.surfaceVariantText
-                            }
-
-                            StyledText {
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: {
-                                    if (!activePlayer || stableLength <= 0)
-                                        return "--:--";
-                                    const dur = stableLength;
-                                    const minutes = Math.floor(dur / 60);
-                                    const seconds = Math.floor(dur % 60);
-                                    return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
-                                }
-                                font.pixelSize: Theme.fontSizeSmall
-                                color: Theme.surfaceVariantText
-                            }
-                        }
-                    }
-                }
-
-                Item {
-                    id: playbackControls
-                    width: parent.width
-                    height: 50
-                    anchors.bottom: parent.bottom
-
-                    Row {
-                        anchors.centerIn: parent
-                        spacing: Theme.spacingM
-                        height: parent.height
-
-                        Item {
-                            width: 50
-                            height: 50
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: activePlayer && activePlayer.shuffleSupported
-
-                            Rectangle {
-                                width: 40
-                                height: 40
-                                radius: 20
-                                anchors.centerIn: parent
-                                color: shuffleArea.containsMouse ? root.accentHover : Theme.withAlpha(root.accent, 0)
-
-                                DankIcon {
-                                    anchors.centerIn: parent
-                                    name: "shuffle"
-                                    size: 20
-                                    color: activePlayer && activePlayer.shuffle ? root.accent : Theme.surfaceText
-                                }
-
-                                MouseArea {
-                                    id: shuffleArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (activePlayer && activePlayer.canControl && activePlayer.shuffleSupported) {
-                                            activePlayer.shuffle = !activePlayer.shuffle;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        Item {
-                            width: 50
-                            height: 50
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Rectangle {
-                                width: 40
-                                height: 40
-                                radius: 20
-                                anchors.centerIn: parent
-                                color: prevBtnArea.containsMouse ? Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency) : Theme.withAlpha(Theme.surfaceContainerHigh, 0)
-
-                                DankIcon {
-                                    anchors.centerIn: parent
-                                    name: "skip_previous"
-                                    size: 24
-                                    color: Theme.surfaceText
-                                }
-
-                                MouseArea {
-                                    id: prevBtnArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: MprisController.previousOrRewind()
-                                }
-                            }
-                        }
-
-                        Item {
-                            width: 50
-                            height: 50
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Rectangle {
-                                width: 50
-                                height: 50
-                                radius: 25
-                                anchors.centerIn: parent
-                                color: root.accent
-
-                                DankIcon {
-                                    anchors.centerIn: parent
-                                    name: activePlayer && activePlayer.playbackState === MprisPlaybackState.Playing ? "pause" : "play_arrow"
-                                    size: 28
-                                    color: root.onAccent
-                                    weight: 500
-                                }
-
-                                StateLayer {
-                                    id: playPauseArea
-                                    disabled: !root.activePlayer || !root.activePlayer.canTogglePlaying
-                                    stateColor: root.onAccent
-                                    cornerRadius: parent.radius
-                                    onClicked: root.activePlayer.togglePlaying()
-                                }
-
-                                ElevationShadow {
-                                    anchors.fill: parent
-                                    z: -1
-                                    level: Theme.elevationLevel1
-                                    fallbackOffset: 1
-                                    targetRadius: parent.radius
-                                    targetColor: parent.color
-                                    shadowOpacity: Theme.elevationLevel1 && Theme.elevationLevel1.alpha !== undefined ? Theme.elevationLevel1.alpha : 0.2
-                                    shadowEnabled: Theme.elevationEnabled
-                                }
-                            }
-                        }
-
-                        Item {
-                            width: 50
-                            height: 50
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Rectangle {
-                                width: 40
-                                height: 40
-                                radius: 20
-                                anchors.centerIn: parent
-                                color: nextBtnArea.containsMouse ? Theme.withAlpha(Theme.surfaceContainerHigh, Theme.popupTransparency) : Theme.withAlpha(Theme.surfaceContainerHigh, 0)
-
-                                DankIcon {
-                                    anchors.centerIn: parent
-                                    name: "skip_next"
-                                    size: 24
-                                    color: Theme.surfaceText
-                                }
-
-                                MouseArea {
-                                    id: nextBtnArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: MprisController.next()
-                                }
-                            }
-                        }
-
-                        Item {
-                            width: 50
-                            height: 50
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: activePlayer && activePlayer.loopSupported
-
-                            Rectangle {
-                                width: 40
-                                height: 40
-                                radius: 20
-                                anchors.centerIn: parent
-                                color: repeatArea.containsMouse ? root.accentHover : Theme.withAlpha(root.accent, 0)
-
-                                DankIcon {
-                                    anchors.centerIn: parent
-                                    name: {
-                                        if (!activePlayer)
-                                            return "repeat";
-                                        switch (activePlayer.loopState) {
-                                        case MprisLoopState.Track:
-                                            return "repeat_one";
-                                        case MprisLoopState.Playlist:
-                                            return "repeat";
-                                        default:
-                                            return "repeat";
-                                        }
-                                    }
-                                    size: 20
-                                    color: activePlayer && activePlayer.loopState !== MprisLoopState.None ? root.accent : Theme.surfaceText
-                                }
-
-                                MouseArea {
-                                    id: repeatArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (activePlayer && activePlayer.canControl && activePlayer.loopSupported) {
-                                            switch (activePlayer.loopState) {
-                                            case MprisLoopState.None:
-                                                activePlayer.loopState = MprisLoopState.Playlist;
-                                                break;
-                                            case MprisLoopState.Playlist:
-                                                activePlayer.loopState = MprisLoopState.Track;
-                                                break;
-                                            case MprisLoopState.Track:
-                                                activePlayer.loopState = MprisLoopState.None;
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    Rectangle {
-        id: playerSelectorButton
-        width: 40
-        height: 40
-        radius: 20
-        x: isRightEdge ? Theme.spacingM : parent.width - 40 - Theme.spacingM
-        y: 185
-        color: playerSelectorArea.containsMouse || playersExpanded ? root.accentPressed : Theme.withAlpha(root.accentPressed, 0)
-        border.color: Theme.outlineStrong
-        border.width: 1
-        z: 100
-        visible: (allPlayers?.length || 0) >= 1
-
-        DankIcon {
-            anchors.centerIn: parent
-            name: "assistant_device"
-            size: 18
-            color: Theme.surfaceText
-        }
-
-        MouseArea {
-            id: playerSelectorArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                if (playersExpanded) {
-                    const players = (root.allPlayers || []).filter(p => p && !MprisController.isIdle(p));
-                    if (players.length > 1) {
-                        let currentIndex = -1;
-                        for (let i = 0; i < players.length; i++) {
-                            if (players[i] === root.activePlayer) {
-                                currentIndex = i;
-                                break;
-                            }
-                        }
-                        const nextIndex = (currentIndex + 1) % players.length;
-                        MprisController.setActivePlayer(players[nextIndex]);
-                    }
-                    return;
-                }
-                hideDropdowns();
-                playersExpanded = true;
-                const buttonsOnRight = !isRightEdge;
-                const btnY = playerSelectorButton.y + playerSelectorButton.height / 2;
-                const screenX = buttonsOnRight ? (popoutX + popoutWidth) : popoutX;
-                const screenY = popoutY + contentOffsetY + btnY;
-                showPlayersDropdown(Qt.point(screenX, screenY), targetScreen, buttonsOnRight, activePlayer, allPlayers);
-            }
-            onEntered: {
-                dropdownButtonEntered();
-                if (playersExpanded)
-                    return;
-                hideDropdowns();
-                playersExpanded = true;
-                const buttonsOnRight = !isRightEdge;
-                const btnY = playerSelectorButton.y + playerSelectorButton.height / 2;
-                const screenX = buttonsOnRight ? (popoutX + popoutWidth) : popoutX;
-                const screenY = popoutY + contentOffsetY + btnY;
-                showPlayersDropdown(Qt.point(screenX, screenY), targetScreen, buttonsOnRight, activePlayer, allPlayers);
-            }
-            onExited: {
-                if (playersExpanded)
-                    dropdownButtonExited();
-            }
-        }
-    }
-
-    Rectangle {
-        id: volumeButton
-        width: 40
-        height: 40
-        radius: 20
-        x: isRightEdge ? Theme.spacingM : parent.width - 40 - Theme.spacingM
-        y: 130
-        color: volumeButtonArea.containsMouse && volumeAvailable || volumeExpanded ? root.accentPressed : Theme.withAlpha(root.accentPressed, 0)
-        border.color: volumeAvailable ? Theme.outlineStrong : Theme.outlineMedium
-        border.width: 1
-        z: 101
-        enabled: volumeAvailable
-
-        property real previousVolume: 0.0
-
-        DankIcon {
-            anchors.centerIn: parent
-            name: getVolumeIcon()
-            size: 18
-            color: volumeAvailable && currentVolume > 0 ? root.accent : Theme.withAlpha(Theme.surfaceText, volumeAvailable ? 1.0 : 0.5)
-        }
-
-        MouseArea {
-            id: volumeButtonArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onEntered: {
-                dropdownButtonEntered();
-                if (volumeExpanded)
-                    return;
-                hideDropdowns();
-                volumeExpanded = true;
-                const buttonsOnRight = !isRightEdge;
-                const btnY = volumeButton.y + volumeButton.height / 2;
-                const screenX = buttonsOnRight ? (popoutX + popoutWidth) : popoutX;
-                const screenY = popoutY + contentOffsetY + btnY;
-                showVolumeDropdown(Qt.point(screenX, screenY), targetScreen, buttonsOnRight, activePlayer, allPlayers);
-            }
-            onExited: {
-                if (volumeExpanded)
-                    dropdownButtonExited();
-            }
-            onClicked: {
-                toggleMute();
-            }
-            property real wheelAccum: 0
-            onWheel: wheelEvent => {
-                wheelEvent.accepted = true;
-                wheelAccum += wheelEvent.angleDelta.y;
-                const notches = wheelAccum > 0 ? Math.floor(wheelAccum / 120) : Math.ceil(wheelAccum / 120);
-                if (notches === 0)
-                    return;
-                wheelAccum -= notches * 120;
-                root.adjustVolume(notches * AudioService.wheelVolumeStep);
-            }
-        }
-    }
-
-    Rectangle {
-        id: audioDevicesButton
-        width: 40
-        height: 40
-        radius: 20
-        x: isRightEdge ? Theme.spacingM : parent.width - 40 - Theme.spacingM
-        y: 240
-        color: audioDevicesArea.containsMouse || devicesExpanded ? root.accentPressed : Theme.withAlpha(root.accentPressed, 0)
-        border.color: Theme.outlineStrong
-        border.width: 1
-        z: 100
-
-        DankIcon {
-            anchors.centerIn: parent
-            name: "speaker"
-            size: 18
-            color: Theme.surfaceText
-        }
-
-        MouseArea {
-            id: audioDevicesArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            onPressed: mouse => {
-                if (mouse.button === Qt.RightButton) {
-                    mouse.accepted = true;
-                }
-            }
-            onWheel: wheelEvent => {
-                const delta = wheelEvent.angleDelta.y;
-                if (delta !== 0) {
-                    AudioService.cycleAudioOutputDirection(delta < 0);
-                    wheelEvent.accepted = true;
-                }
-            }
-            onClicked: mouse => {
-                if (mouse.button === Qt.RightButton) {
-                    if (AudioService.sink?.audio) {
-                        SessionData.suppressOSDTemporarily();
-                        AudioService.sink.audio.muted = !AudioService.sink.audio.muted;
-                    }
-                    return;
-                }
-                if (devicesExpanded) {
-                    const sinks = AudioService.getAvailableSinks();
-                    if (sinks && sinks.length > 1) {
-                        let currentIndex = -1;
-                        for (let i = 0; i < sinks.length; i++) {
-                            if (sinks[i]?.name === AudioService.sink?.name) {
-                                currentIndex = i;
-                                break;
-                            }
-                        }
-                        const nextIndex = (currentIndex + 1) % sinks.length;
-                        AudioService.setSink(sinks[nextIndex]);
-                    }
-                    return;
-                }
-                hideDropdowns();
-                devicesExpanded = true;
-                const buttonsOnRight = !isRightEdge;
-                const btnY = audioDevicesButton.y + audioDevicesButton.height / 2;
-                const screenX = buttonsOnRight ? (popoutX + popoutWidth) : popoutX;
-                const screenY = popoutY + contentOffsetY + btnY;
-                showAudioDevicesDropdown(Qt.point(screenX, screenY), targetScreen, buttonsOnRight);
-            }
-            onEntered: {
-                dropdownButtonEntered();
-                if (devicesExpanded)
-                    return;
-                hideDropdowns();
-                devicesExpanded = true;
-                const buttonsOnRight = !isRightEdge;
-                const btnY = audioDevicesButton.y + audioDevicesButton.height / 2;
-                const screenX = buttonsOnRight ? (popoutX + popoutWidth) : popoutX;
-                const screenY = popoutY + contentOffsetY + btnY;
-                showAudioDevicesDropdown(Qt.point(screenX, screenY), targetScreen, buttonsOnRight);
-            }
-            onExited: {
-                if (devicesExpanded)
-                    dropdownButtonExited();
-            }
-        }
-    }
-
-    Rectangle {
-        id: lyricsButton
-        width: 38
-        height: 38
-        radius: 19
-        x: root.lyricsPanelOpen ? lyricsDrawer.x + lyricsDrawer.width + Theme.spacingXS : Theme.spacingM
-        y: Math.round((root.height - height) / 2)
-        color: lyricsArea.containsMouse || root.lyricsPanelOpen ? Theme.withAlpha(root.accent, 0.18) : Theme.withAlpha(Theme.surfaceContainerHighest, 0.34)
-        border.color: root.lyricsPanelOpen ? Theme.withAlpha(root.accent, 0.72) : Theme.outlineStrong
-        border.width: 1
-        z: 100
-
-        Behavior on x {
-            NumberAnimation {
-                duration: Theme.expressiveDurations.expressiveDefaultSpatial
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Theme.variantPopoutEnterCurve
-            }
-        }
-
-        DankIcon {
-            anchors.centerIn: parent
-            name: "lyrics"
-            size: 18
-            color: LyricsService.hasLyrics ? root.accent : Theme.surfaceText
-        }
-
-        MouseArea {
-            id: lyricsArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                const nextOpen = !root.lyricsPanelOpen;
-                root.hideDropdowns();
-                root.lyricsPanelOpen = nextOpen;
-            }
-        }
-    }
-
-    Rectangle {
-        id: lyricsDrawer
-        width: Math.min(316, root.width * 0.455)
-        height: root.height - Theme.spacingS * 2
-        x: root.lyricsPanelOpen ? Theme.spacingS : -width - Theme.spacingL
-        y: Theme.spacingS
-        z: 99
-        radius: Theme.cornerRadius * 1.55
-        color: Theme.withAlpha(Theme.floatingSurface, 0.9)
-        border.width: 1
-        border.color: Theme.withAlpha(root.accent, root.lyricsPanelOpen ? 0.26 : 0)
-        opacity: root.lyricsPanelOpen ? 1 : 0
-        enabled: root.lyricsPanelOpen
-        clip: true
-
-        Behavior on x {
-            NumberAnimation {
-                duration: Theme.expressiveDurations.expressiveDefaultSpatial
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: root.lyricsPanelOpen ? Theme.variantPopoutEnterCurve : Theme.variantPopoutExitCurve
-            }
-        }
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: Math.round(Theme.expressiveDurations.expressiveDefaultSpatial * Theme.variantOpacityDurationScale)
-                easing.type: Easing.OutCubic
-            }
-        }
-
-        ElevationShadow {
-            anchors.fill: parent
-            z: -1
-            level: Theme.elevationLevel3
-            fallbackOffset: 5
-            targetRadius: lyricsDrawer.radius
-            targetColor: lyricsDrawer.color
-            borderColor: lyricsDrawer.border.color
-            borderWidth: lyricsDrawer.border.width
-            shadowOpacity: 0.3
-            shadowEnabled: Theme.elevationEnabled
-        }
-
-        DankLyricsView {
-            anchors.fill: parent
+        DankAlbumArt {
+            id: albumArt
+            x: 35
+            y: 22
+            width: 220
+            height: 220
+            albumSize: 154
             activePlayer: root.activePlayer
-            currentIndex: root.lyricIndex
-            accent: root.accent
+        }
+
+        Row {
+            id: playbackControls
+            x: 64
+            y: root.height - 79
+            spacing: 13
+
+            Rectangle {
+                width: 40
+                height: 40
+                radius: 20
+                anchors.verticalCenter: parent.verticalCenter
+                color: prevBtnArea.containsMouse ? Theme.withAlpha(Theme.surfaceContainerHigh, 0.92) : Theme.withAlpha(Theme.surfaceContainerHigh, 0.72)
+
+                DankIcon {
+                    anchors.centerIn: parent
+                    name: "skip_previous"
+                    size: 22
+                    color: Theme.surfaceText
+                }
+
+                MouseArea {
+                    id: prevBtnArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: MprisController.previousOrRewind()
+                }
+            }
+
+            Rectangle {
+                width: 54
+                height: 54
+                radius: 18
+                anchors.verticalCenter: parent.verticalCenter
+                color: root.accent
+
+                DankIcon {
+                    anchors.centerIn: parent
+                    name: activePlayer && activePlayer.playbackState === MprisPlaybackState.Playing ? "pause" : "play_arrow"
+                    size: 28
+                    color: root.onAccent
+                    weight: 600
+                }
+
+                StateLayer {
+                    disabled: !root.activePlayer || !root.activePlayer.canTogglePlaying
+                    stateColor: root.onAccent
+                    cornerRadius: parent.radius
+                    onClicked: root.activePlayer.togglePlaying()
+                }
+
+                ElevationShadow {
+                    anchors.fill: parent
+                    z: -1
+                    level: Theme.elevationLevel2
+                    fallbackOffset: 4
+                    targetRadius: parent.radius
+                    targetColor: parent.color
+                    shadowOpacity: 0.36
+                    shadowEnabled: Theme.elevationEnabled
+                }
+            }
+
+            Rectangle {
+                width: 40
+                height: 40
+                radius: 20
+                anchors.verticalCenter: parent.verticalCenter
+                color: nextBtnArea.containsMouse ? Theme.withAlpha(Theme.surfaceContainerHigh, 0.92) : Theme.withAlpha(Theme.surfaceContainerHigh, 0.72)
+
+                DankIcon {
+                    anchors.centerIn: parent
+                    name: "skip_next"
+                    size: 22
+                    color: Theme.surfaceText
+                }
+
+                MouseArea {
+                    id: nextBtnArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: MprisController.next()
+                }
+            }
+        }
+
+        Item {
+            id: trackDetails
+            x: 286
+            y: 39
+            width: root.width - x - 75
+            height: root.height - 69
+
+            StyledText {
+                id: trackTitle
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                text: MprisController.stableTitle || I18n.tr("Unknown Track")
+                font.pixelSize: 25
+                font.weight: Font.Bold
+                color: Theme.surfaceText
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+
+            StyledText {
+                id: trackArtist
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: trackTitle.bottom
+                anchors.topMargin: 4
+                text: MprisController.stableArtist || I18n.tr("Unknown Artist")
+                font.pixelSize: 12
+                font.weight: Font.Medium
+                color: root.accent
+                elide: Text.ElideRight
+                maximumLineCount: 1
+            }
+
+            Column {
+                id: inlineLyrics
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: trackArtist.bottom
+                anchors.topMargin: 17
+                height: 165
+                spacing: 0
+
+                Repeater {
+                    model: 5
+
+                    Item {
+                        required property int index
+                        readonly property int sourceIndex: root.lyricDisplayIndex + index - 2
+                        readonly property bool currentLine: index === 2
+                        readonly property var lyricLine: sourceIndex >= 0 && sourceIndex < LyricsService.lines.length
+                            ? LyricsService.lines[sourceIndex]
+                            : null
+                        width: inlineLyrics.width
+                        height: 33
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 3
+                            height: 18
+                            radius: 2
+                            color: root.accent
+                            visible: parent.currentLine && !!parent.lyricLine
+                        }
+
+                        StyledText {
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.leftMargin: parent.currentLine && parent.lyricLine ? 10 : 0
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: {
+                                if (parent.lyricLine)
+                                    return parent.lyricLine.text || "♪";
+                                if (!parent.currentLine)
+                                    return "";
+                                if (LyricsService.loading)
+                                    return I18n.tr("Loading lyrics…");
+                                return LyricsService.error || I18n.tr("Lyrics not found");
+                            }
+                            font.pixelSize: parent.currentLine ? 19 : 13
+                            font.weight: parent.currentLine ? Font.DemiBold : Font.Normal
+                            color: parent.currentLine ? Theme.surfaceText : Theme.surfaceTextSecondary
+                            opacity: parent.currentLine ? 1 : (parent.index === 1 || parent.index === 3 ? 0.56 : 0.36)
+                            elide: Text.ElideRight
+                            maximumLineCount: 1
+
+                            Behavior on opacity { NumberAnimation { duration: 180 } }
+                            Behavior on color { ColorAnimation { duration: 180 } }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            enabled: !!parent.lyricLine && !!root.activePlayer?.canSeek
+                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: root.activePlayer.position = parent.lyricLine.time + 0.01
+                        }
+                    }
+                }
+            }
+
+            DankSeekbar {
+                id: seekbar
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: timeLabels.top
+                anchors.bottomMargin: 2
+                height: 20
+                activePlayer: root.activePlayer
+                isSeeking: root.isSeeking
+                onIsSeekingChanged: root.isSeeking = isSeeking
+            }
+
+            Item {
+                id: timeLabels
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: 18
+
+                StyledText {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: {
+                        if (!activePlayer)
+                            return "0:00";
+                        const rawPos = Math.max(0, activePlayer.position || 0);
+                        const pos = stableLength ? rawPos % Math.max(1, stableLength) : rawPos;
+                        const minutes = Math.floor(pos / 60);
+                        const seconds = Math.floor(pos % 60);
+                        return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+                    }
+                    font.pixelSize: 10
+                    color: Theme.surfaceVariantText
+                }
+
+                StyledText {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: {
+                        if (!activePlayer || stableLength <= 0)
+                            return "--:--";
+                        const minutes = Math.floor(stableLength / 60);
+                        const seconds = Math.floor(stableLength % 60);
+                        return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+                    }
+                    font.pixelSize: 10
+                    color: Theme.surfaceVariantText
+                }
+            }
         }
 
         Rectangle {
-            width: 30
-            height: 30
-            radius: 15
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.topMargin: 11
-            anchors.rightMargin: 11
-            z: 3
-            color: closeLyricsArea.containsMouse ? Theme.withAlpha(root.accent, 0.18) : Theme.withAlpha(Theme.surfaceContainerHighest, 0.4)
+            id: playerSelectorButton
+            width: 42
+            height: 42
+            radius: 21
+            x: root.width - width - 14
+            y: 134
+            z: 100
+            visible: (allPlayers?.length || 0) >= 1
+            color: playerSelectorArea.containsMouse || playersExpanded ? root.accentHover : Theme.withAlpha(root.accent, 0.54)
 
             DankIcon {
                 anchors.centerIn: parent
-                name: "close"
-                size: 16
-                color: closeLyricsArea.containsMouse ? root.accent : Theme.surfaceTextSecondary
+                name: "queue_music"
+                size: 19
+                color: root.onAccent
             }
 
             MouseArea {
-                id: closeLyricsArea
+                id: playerSelectorArea
                 anchors.fill: parent
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: root.lyricsPanelOpen = false
+                onClicked: {
+                    if (playersExpanded) {
+                        const players = (root.allPlayers || []).filter(p => p && !MprisController.isIdle(p));
+                        if (players.length > 1) {
+                            let currentIndex = players.indexOf(root.activePlayer);
+                            MprisController.setActivePlayer(players[(currentIndex + 1) % players.length]);
+                        }
+                        return;
+                    }
+                    hideDropdowns();
+                    playersExpanded = true;
+                    const buttonsOnRight = !isRightEdge;
+                    showPlayersDropdown(Qt.point(buttonsOnRight ? popoutX + popoutWidth : popoutX,
+                                                  popoutY + contentOffsetY + playerSelectorButton.y + playerSelectorButton.height / 2),
+                                        targetScreen, buttonsOnRight, activePlayer, allPlayers);
+                }
+                onEntered: {
+                    dropdownButtonEntered();
+                    if (playersExpanded)
+                        return;
+                    hideDropdowns();
+                    playersExpanded = true;
+                    const buttonsOnRight = !isRightEdge;
+                    showPlayersDropdown(Qt.point(buttonsOnRight ? popoutX + popoutWidth : popoutX,
+                                                  popoutY + contentOffsetY + playerSelectorButton.y + playerSelectorButton.height / 2),
+                                        targetScreen, buttonsOnRight, activePlayer, allPlayers);
+                }
+                onExited: {
+                    if (playersExpanded)
+                        dropdownButtonExited();
+                }
+            }
+        }
+
+        Rectangle {
+            id: volumeButton
+            width: 42
+            height: 42
+            radius: 21
+            x: root.width - width - 14
+            y: 184
+            z: 101
+            enabled: volumeAvailable
+            color: volumeButtonArea.containsMouse || volumeExpanded
+                ? "#352526"
+                : "#241a1b"
+            border.width: 1
+            border.color: Theme.withAlpha(Theme.surfaceText, 0.05)
+
+            property real previousVolume: 0.0
+
+            DankIcon {
+                anchors.centerIn: parent
+                name: currentVolume <= 0 ? "volume_off" : (currentVolume <= 0.5 ? "volume_down" : "volume_up")
+                size: 18
+                color: volumeAvailable ? Theme.surfaceText : Theme.surfaceTextSecondary
+            }
+
+            MouseArea {
+                id: volumeButtonArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onEntered: {
+                    dropdownButtonEntered();
+                    if (volumeExpanded)
+                        return;
+                    hideDropdowns();
+                    volumeExpanded = true;
+                    const buttonsOnRight = !isRightEdge;
+                    showVolumeDropdown(Qt.point(buttonsOnRight ? popoutX + popoutWidth : popoutX,
+                                                 popoutY + contentOffsetY + volumeButton.y + volumeButton.height / 2),
+                                       targetScreen, buttonsOnRight, activePlayer, allPlayers);
+                }
+                onExited: {
+                    if (volumeExpanded)
+                        dropdownButtonExited();
+                }
+                onClicked: toggleMute()
+                property real wheelAccum: 0
+                onWheel: wheelEvent => {
+                    wheelEvent.accepted = true;
+                    wheelAccum += wheelEvent.angleDelta.y;
+                    const notches = wheelAccum > 0 ? Math.floor(wheelAccum / 120) : Math.ceil(wheelAccum / 120);
+                    if (notches === 0)
+                        return;
+                    wheelAccum -= notches * 120;
+                    root.adjustVolume(notches * AudioService.wheelVolumeStep);
+                }
+            }
+        }
+
+        Rectangle {
+            id: audioDevicesButton
+            width: 42
+            height: 42
+            radius: 21
+            x: root.width - width - 14
+            y: 234
+            z: 100
+            color: audioDevicesArea.containsMouse || devicesExpanded
+                ? "#352526"
+                : "#241a1b"
+            border.width: 1
+            border.color: Theme.withAlpha(Theme.surfaceText, 0.05)
+
+            DankIcon {
+                anchors.centerIn: parent
+                name: "speaker"
+                size: 18
+                color: Theme.surfaceText
+            }
+
+            MouseArea {
+                id: audioDevicesArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onPressed: mouse => {
+                    if (mouse.button === Qt.RightButton)
+                        mouse.accepted = true;
+                }
+                onWheel: wheelEvent => {
+                    if (wheelEvent.angleDelta.y !== 0) {
+                        AudioService.cycleAudioOutputDirection(wheelEvent.angleDelta.y < 0);
+                        wheelEvent.accepted = true;
+                    }
+                }
+                onClicked: mouse => {
+                    if (mouse.button === Qt.RightButton) {
+                        if (AudioService.sink?.audio) {
+                            SessionData.suppressOSDTemporarily();
+                            AudioService.sink.audio.muted = !AudioService.sink.audio.muted;
+                        }
+                        return;
+                    }
+                    if (devicesExpanded) {
+                        const sinks = AudioService.getAvailableSinks();
+                        if (sinks && sinks.length > 1) {
+                            let currentIndex = -1;
+                            for (let i = 0; i < sinks.length; i++) {
+                                if (sinks[i]?.name === AudioService.sink?.name) {
+                                    currentIndex = i;
+                                    break;
+                                }
+                            }
+                            AudioService.setSink(sinks[(currentIndex + 1) % sinks.length]);
+                        }
+                        return;
+                    }
+                    hideDropdowns();
+                    devicesExpanded = true;
+                    const buttonsOnRight = !isRightEdge;
+                    showAudioDevicesDropdown(Qt.point(buttonsOnRight ? popoutX + popoutWidth : popoutX,
+                                                       popoutY + contentOffsetY + audioDevicesButton.y + audioDevicesButton.height / 2),
+                                             targetScreen, buttonsOnRight);
+                }
+                onEntered: {
+                    dropdownButtonEntered();
+                    if (devicesExpanded)
+                        return;
+                    hideDropdowns();
+                    devicesExpanded = true;
+                    const buttonsOnRight = !isRightEdge;
+                    showAudioDevicesDropdown(Qt.point(buttonsOnRight ? popoutX + popoutWidth : popoutX,
+                                                       popoutY + contentOffsetY + audioDevicesButton.y + audioDevicesButton.height / 2),
+                                             targetScreen, buttonsOnRight);
+                }
+                onExited: {
+                    if (devicesExpanded)
+                        dropdownButtonExited();
+                }
             }
         }
     }

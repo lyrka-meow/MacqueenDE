@@ -11,6 +11,7 @@ FocusScope {
     property int tabHeight: 56
     property bool showIcons: true
     property bool equalWidthTabs: true
+    property bool activeIconPill: false
     property bool enableArrowNavigation: true
     property Item nextFocusTarget: null
     property Item previousFocusTarget: null
@@ -123,6 +124,17 @@ FocusScope {
                 width: tabBar.equalWidthTabs ? (tabBar.width - tabBar.spacing * Math.max(0, tabRepeater.count - 1)) / Math.max(1, tabRepeater.count) : Math.max(contentCol.implicitWidth + Theme.spacingXL, 64)
                 height: tabBar.tabHeight
 
+                Rectangle {
+                    width: 56
+                    height: 28
+                    radius: height / 2
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    anchors.topMargin: 0
+                    color: Theme.withAlpha(Theme.primary, 0.32)
+                    visible: tabBar.activeIconPill && tabItem.isActive && tabItem.hasIcon
+                }
+
                 Column {
                     id: contentCol
                     anchors.centerIn: parent
@@ -132,7 +144,9 @@ FocusScope {
                         name: modelData.icon || ""
                         anchors.horizontalCenter: parent.horizontalCenter
                         size: Theme.iconSize
-                        color: tabItem.isActive ? Theme.primary : Theme.surfaceText
+                        color: tabItem.isActive
+                            ? (tabBar.activeIconPill ? Theme.surfaceText : Theme.primary)
+                            : Theme.surfaceText
                         visible: hasIcon
                     }
 
@@ -224,6 +238,11 @@ FocusScope {
     }
 
     function updateIndicator() {
+        if (activeIconPill) {
+            indicator.visible = false;
+            indicator.initialSetupComplete = false;
+            return;
+        }
         if (tabRepeater.count === 0 || currentIndex < 0 || currentIndex >= tabRepeater.count) {
             indicator.visible = false;
             indicator.initialSetupComplete = false;

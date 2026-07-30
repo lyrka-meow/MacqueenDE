@@ -881,10 +881,15 @@ PanelWindow {
         }
     }
 
-    // A null mask means the compositor uses the complete bar surface for
-    // input. Keeping the normal path free of a custom Region also prevents a
-    // stale empty mask after a live QML reload.
-    mask: clickThroughEnabled ? clickThroughInputMask : null
+    Region {
+        id: barBandInputMask
+        item: inputMask
+    }
+
+    // The window is deliberately larger than the visible bar so its shadow
+    // has room to render. Never let that transparent shadow buffer consume
+    // pointer input from the titlebar of a maximized window underneath it.
+    mask: clickThroughEnabled ? clickThroughInputMask : barBandInputMask
 
     Item {
         id: topBarCore

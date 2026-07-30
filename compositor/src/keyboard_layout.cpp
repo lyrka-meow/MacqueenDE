@@ -44,7 +44,26 @@ void KeyboardLayout::init()
     switchKeyboardAction->setObjectName(QStringLiteral("Switch to Next Keyboard Layout"));
     switchKeyboardAction->setProperty("componentName", QStringLiteral("KDE Keyboard Layout Switcher"));
     switchKeyboardAction->setProperty("componentDisplayName", i18n("Keyboard Layout Switcher"));
-    KGlobalAccel::self()->setGlobalShortcut(switchKeyboardAction, QKeySequence(Qt::META | Qt::ALT | Qt::Key_K));
+    const QKeySequence altShiftShortcut(QStringLiteral("Alt+Shift"));
+    const QKeySequence legacyShortcut(Qt::META | Qt::ALT | Qt::Key_K);
+    const QList<QKeySequence> macqueenShortcuts{
+        altShiftShortcut,
+        legacyShortcut,
+    };
+    KGlobalAccel::self()->setGlobalShortcut(
+        switchKeyboardAction,
+        macqueenShortcuts);
+
+    // alpha.14 and older registered Meta+Alt+K as the only default. Migrate
+    // that untouched legacy value so updating users receive Alt+Shift too,
+    // while preserving any genuinely customized shortcut.
+    const QList<QKeySequence> loadedShortcuts = KGlobalAccel::self()->shortcut(switchKeyboardAction);
+    if (loadedShortcuts.size() == 1 && loadedShortcuts.constFirst() == legacyShortcut) {
+        KGlobalAccel::self()->setShortcut(
+            switchKeyboardAction,
+            macqueenShortcuts,
+            KGlobalAccel::NoAutoloading);
+    }
 
     connect(switchKeyboardAction, &QAction::triggered, this, &KeyboardLayout::switchToNextLayout);
 

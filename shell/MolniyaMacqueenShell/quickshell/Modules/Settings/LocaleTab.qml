@@ -150,6 +150,16 @@ Item {
                         wrapMode: Text.WordWrap
                     }
 
+                    StyledText {
+                        visible: Macqueen.keyboardLayouts.length > 1
+                        width: parent.width
+                        text: "Alt+Shift — переключить раскладку"
+                        color: Theme.primary
+                        font.pixelSize: Theme.fontSizeSmall
+                        font.weight: Font.Medium
+                        wrapMode: Text.WordWrap
+                    }
+
                     Repeater {
                         model: Macqueen.keyboardLayouts
 

@@ -118,7 +118,7 @@ const DMS_ACTIONS = [
     { id: "spawn dms ipc call niri screenshot", label: "Screenshot: Interactive", compositor: "niri" },
     { id: "spawn dms ipc call niri screenshotScreen", label: "Screenshot: Full Screen", compositor: "niri" },
     { id: "spawn dms ipc call niri screenshotWindow", label: "Screenshot: Window", compositor: "niri" },
-    { id: "spawn dms ipc call macqueen-screenshot capture", label: "Macqueen: Interactive Screenshot", compositor: "macqueen" },
+    { id: "spawn dms ipc call flameshot capture", label: "Flameshot: Interactive Screenshot", compositor: "macqueen" },
     { id: "spawn dms ipc call hypr toggleOverview", label: "Hyprland: Toggle Overview", compositor: "hyprland" },
     { id: "spawn dms ipc call hypr openOverview", label: "Hyprland: Open Overview", compositor: "hyprland" },
     { id: "spawn dms ipc call hypr closeOverview", label: "Hyprland: Close Overview", compositor: "hyprland" },

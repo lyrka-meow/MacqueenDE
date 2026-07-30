@@ -59,7 +59,7 @@ MacqueenIpc::MacqueenIpc(Workspace *workspace)
 {
     m_screenshotAction = new QAction(this);
     m_screenshotAction->setObjectName(QStringLiteral("MacqueenInteractiveScreenshot"));
-    m_screenshotAction->setText(QStringLiteral("Interactive Screenshot"));
+    m_screenshotAction->setText(QStringLiteral("Flameshot Screenshot"));
     KGlobalAccel::self()->setGlobalShortcut(
         m_screenshotAction,
         {

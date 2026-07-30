@@ -19,7 +19,6 @@ required=(
     build/compositor/bin/libkwin.so.6.7.3
     build/compositor/bin/kwin/plugins/screenshot.so
     build/portal/bin/xdg-desktop-portal-macqueen
-    build/macqueen-screenshot/bin/macqueen-screenshot
     build/quickshell-macqueen/libquickshell-macqueen.so
     build/quickshell-macqueen/Macqueen/Ipc/qmldir
     shell/MolniyaMacqueenShell/core/bin/dms
@@ -38,7 +37,6 @@ if [[ -e "$stage" ]]; then
 fi
 mkdir -p "$payload/build/compositor" \
          "$payload/build/portal" \
-         "$payload/build/macqueen-screenshot" \
          "$payload/build/quickshell-macqueen" \
          "$payload/installer" \
          "$payload/shell/MolniyaMacqueenShell/core/bin" \
@@ -46,7 +44,6 @@ mkdir -p "$payload/build/compositor" \
 
 cp -a "$repo_root/build/compositor/bin" "$payload/build/compositor/"
 cp -a "$repo_root/build/portal/bin" "$payload/build/portal/"
-cp -a "$repo_root/build/macqueen-screenshot/bin" "$payload/build/macqueen-screenshot/"
 cp -a "$repo_root/build/quickshell-macqueen/Macqueen" "$payload/build/quickshell-macqueen/"
 cp -a "$repo_root/build/quickshell-macqueen/libquickshell-macqueen.so" \
       "$payload/build/quickshell-macqueen/"

@@ -22,11 +22,13 @@ install_method=${MACQUEENDE_INSTALL_METHOD:-binary}
 install_version=${MACQUEENDE_INSTALL_VERSION:-$(cat "$source_root/VERSION")}
 source_commit=${MACQUEENDE_SOURCE_COMMIT:-}
 build_packages=${MACQUEENDE_BUILD_PACKAGES:-}
+managed_flameshot=${MACQUEENDE_MANAGED_FLAMESHOT:-0}
 {
     printf 'METHOD=%s\n' "$install_method"
     printf 'VERSION=%s\n' "$install_version"
     printf 'SOURCE_COMMIT=%s\n' "$source_commit"
     printf 'BUILD_PACKAGES=%s\n' "$build_packages"
+    printf 'MANAGED_FLAMESHOT=%s\n' "$managed_flameshot"
     printf 'INSTALLED_AT=%s\n' "$(date --iso-8601=seconds)"
 } | sudo tee "$new_root/INSTALL_INFO" >/dev/null
 

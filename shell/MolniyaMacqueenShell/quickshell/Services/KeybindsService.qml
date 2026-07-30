@@ -352,8 +352,8 @@ Singleton {
                 "binds": {
                     "Screenshot": [{
                         "key": Macqueen.screenshotShortcut,
-                        "action": "spawn dms ipc call macqueen-screenshot capture",
-                        "desc": "Interactive Screenshot",
+                        "action": "spawn dms ipc call flameshot capture",
+                        "desc": "Flameshot Screenshot",
                         "source": "dms-default",
                         "hasDefault": true
                     }]

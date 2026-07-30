@@ -25,7 +25,6 @@ const static QString s_waylandInterfaceName = QStringLiteral("X-KDE-Wayland-Inte
 const static QString s_dbusRestrictedInterfaceName = QStringLiteral("X-KDE-DBUS-Restricted-Interfaces");
 const static QString s_macqueenPortalExecutable = QStringLiteral("xdg-desktop-portal-macqueen");
 const static QString s_spectacleExecutable = QStringLiteral("spectacle");
-const static QString s_macqueenScreenshotExecutable = QStringLiteral("macqueen-screenshot");
 
 static bool isMacqueenPortal(const QString &executablePath)
 {
@@ -36,8 +35,7 @@ static bool isTrustedScreenshotClient(const QString &executablePath)
 {
     const QString executableName = QFileInfo(executablePath).fileName();
     return executableName == s_macqueenPortalExecutable
-        || executableName == s_spectacleExecutable
-        || executableName == s_macqueenScreenshotExecutable;
+        || executableName == s_spectacleExecutable;
 }
 
 static QStringList fetchProcessServiceField(const QString &executablePath, const QString &fieldName)

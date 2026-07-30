@@ -302,7 +302,7 @@ Item {
     }
 
     MacqueenScreenCastChooser {}
-    MacqueenScreenshot {}
+    FlameshotLauncher {}
 
     Component {
         id: hyprlandOverviewComponent

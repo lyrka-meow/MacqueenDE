@@ -26,6 +26,10 @@ Package-manager and compiler output is written to
 actionable errors. After installation, log out, select **MacqueenDE** in SDDM,
 and log in.
 
+The installer uses the official Arch `flameshot` package for interactive
+screenshots. It is exposed in the MacqueenDE hotkey settings and removed with
+the desktop only when MacqueenDE originally installed it.
+
 Use the installed terminal manager to view the version and live component
 status, check for updates, switch between source and binary builds, or remove
 MacqueenDE:

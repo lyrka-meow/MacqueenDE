@@ -12,7 +12,7 @@ import qs.Common
 Scope {
     id: root
 
-    function captureRegion() {
+    function openFlameshot() {
         if (captureProcess.running)
             return;
         PopoutManager.closeAllPopouts();
@@ -24,26 +24,22 @@ Scope {
         target: Macqueen
 
         function onScreenshotRequested() {
-            root.captureRegion();
+            root.openFlameshot();
         }
     }
 
     IpcHandler {
-        target: "macqueen-screenshot"
+        target: "flameshot"
 
         function capture(): string {
-            root.captureRegion();
-            return "SCREENSHOT_STARTED";
+            root.openFlameshot();
+            return "FLAMESHOT_STARTED";
         }
     }
 
     Process {
         id: captureProcess
-        command: [
-            Quickshell.env("MACQUEENDE_ROOT") + "/build/macqueen-screenshot/bin/macqueen-screenshot",
-            "--region",
-            "--new-instance"
-        ]
+        command: ["flameshot", "gui"]
         running: false
 
         onExited: (exitCode, exitStatus) => {

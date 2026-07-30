@@ -198,6 +198,9 @@ remove_macqueen()
         printf 'Build-пакеты, поставленные установщиком, также будут удалены,\n'
         printf 'если они не нужны другим программам.\n'
     fi
+    if [[ $(info_value MANAGED_FLAMESHOT) == 1 ]]; then
+        printf 'Flameshot, поставленный установщиком, также будет удалён.\n'
+    fi
     printf '\n  1) Подтвердить удаление\n'
     printf '  0) Отмена\n'
     choice=$(read_choice 'Выбор: ')

@@ -6,6 +6,7 @@ repo=${MACQUEENDE_GITHUB_REPO:-lyrka-meow/MacqueenDE}
 release_tag=${MACQUEENDE_RELEASE_TAG:-rolling}
 requested_mode=${MACQUEENDE_INSTALL_MODE:-}
 install_mode=
+managed_flameshot=0
 arch=$(uname -m)
 
 case "$arch" in
@@ -51,7 +52,7 @@ runtime_packages=(
     curl
     sddm
     kwin
-    spectacle
+    flameshot
     xdg-desktop-portal-kde
     quickshell
     cava
@@ -181,6 +182,13 @@ existing_build_packages()
         head -n1
 }
 
+existing_managed_flameshot()
+{
+    [[ -r /opt/macqueende/INSTALL_INFO ]] || return 0
+    sed -n 's/^MANAGED_FLAMESHOT=//p' /opt/macqueende/INSTALL_INFO |
+        head -n1
+}
+
 resolve_binary()
 {
     local release_api asset_url asset_name archive_suffix
@@ -248,6 +256,7 @@ install_binary()
         MACQUEENDE_INSTALL_METHOD=binary \
         MACQUEENDE_INSTALL_VERSION="$binary_version" \
         MACQUEENDE_BUILD_PACKAGES="$previous_build" \
+        MACQUEENDE_MANAGED_FLAMESHOT="$managed_flameshot" \
         "$tmp_dir/install.sh"
     installed_version=$binary_version
 }
@@ -270,11 +279,6 @@ configure_sources()
         -G Ninja \
         -DCMAKE_BUILD_TYPE="$build_type" \
         -DCMAKE_INSTALL_PREFIX=/opt/macqueende
-    cmake -S "$source_dir/apps/macqueen-screenshot" \
-        -B "$source_dir/build/macqueen-screenshot" \
-        -G Ninja \
-        -DCMAKE_BUILD_TYPE="$build_type" \
-        -DBUILD_TESTING=OFF
 }
 
 build_sources()
@@ -285,7 +289,6 @@ build_sources()
         --target macqueen screenshot --parallel "$jobs"
     cmake --build "$source_dir/build/portal" --parallel "$jobs"
     cmake --build "$source_dir/build/quickshell-macqueen" --parallel "$jobs"
-    cmake --build "$source_dir/build/macqueen-screenshot" --parallel "$jobs"
     make -C "$source_dir/shell/MolniyaMacqueenShell/core" \
         VERSION="$source_version" \
         COMMIT="${source_commit:0:12}" \
@@ -307,7 +310,7 @@ install_source()
     source_commit=$(git -C "$source_dir" rev-parse HEAD)
     source_version="source-$(date +%Y%m%d).${source_commit:0:12}"
     run_step 'Конфигурация компонентов CMake' configure_sources
-    run_step 'Компиляция compositor, portal, shell и приложений' build_sources
+    run_step 'Компиляция compositor, portal и shell' build_sources
     run_step 'Подготовка локального установочного payload' \
         "$source_dir/packaging/github/build-binary-release.sh" \
         "$source_version" "$arch"
@@ -330,6 +333,7 @@ install_source()
         MACQUEENDE_INSTALL_VERSION="$source_version" \
         MACQUEENDE_SOURCE_COMMIT="$source_commit" \
         MACQUEENDE_BUILD_PACKAGES="$merged_build" \
+        MACQUEENDE_MANAGED_FLAMESHOT="$managed_flameshot" \
         "$tmp_dir/install.sh"
     installed_version=$source_version
 }
@@ -384,6 +388,11 @@ main()
     printf 'Для системных изменений потребуется пароль sudo.\n\n'
     sudo -n true 2>/dev/null || sudo -v
 
+    managed_flameshot=$(existing_managed_flameshot)
+    [[ "$managed_flameshot" == 1 ]] || managed_flameshot=0
+    if ! pacman -Q flameshot >/dev/null 2>&1; then
+        managed_flameshot=1
+    fi
     install_runtime_packages
     case "$install_mode" in
         source) install_source ;;

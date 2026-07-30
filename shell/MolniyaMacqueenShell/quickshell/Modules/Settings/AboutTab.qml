@@ -84,6 +84,16 @@ Item {
                                             " · $1 экз.");
     }
 
+    function localizedScheduler(scheduler, transport) {
+        const value = String(scheduler || "").trim();
+        if (value === "none") {
+            if (String(transport || "").toLowerCase() === "nvme")
+                return "Не используется — нормально для NVMe";
+            return "Не используется";
+        }
+        return value;
+    }
+
     function addRow(rows, label, value) {
         if (value === undefined || value === null || String(value).trim() === "")
             return;
@@ -169,7 +179,8 @@ Item {
             addRow(rows, "Логический сектор", formatBytes(disk.logicalSector));
         if (disk.physicalSector)
             addRow(rows, "Физический сектор", formatBytes(disk.physicalSector));
-        addRow(rows, "Планировщик ввода-вывода", disk.scheduler);
+        addRow(rows, "Планировщик ввода-вывода",
+               localizedScheduler(disk.scheduler, disk.transport));
         addRow(rows, "Разделов", disk.partitionCount);
         addRow(rows, "Съёмный накопитель", disk.removable ? "Да" : "Нет");
         return rows;

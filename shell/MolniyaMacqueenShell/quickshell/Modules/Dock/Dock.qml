@@ -11,7 +11,20 @@ import qs.Widgets
 
 Variants {
     id: dockVariants
-    model: SettingsData.getFilteredScreens("dock")
+    readonly property var log: Log.scoped("Dock")
+    // A dock is a per-output desktop surface. Do not route it through the
+    // generic component screen filter: every connected monitor owns one dock,
+    // with independent hover and smart-auto-hide state.
+    model: Quickshell.screens
+    readonly property int activeDockCount: instances.length
+
+    function logActiveDocks() {
+        const names = instances.map(instance => instance?._dockScreenName || "<pending>");
+        log.info("Active per-monitor docks:", activeDockCount, names.join(", "));
+    }
+
+    onActiveDockCountChanged: logActiveDocks()
+    Component.onCompleted: logActiveDocks()
 
     property var contextMenu
     property var trashContextMenu

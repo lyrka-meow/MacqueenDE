@@ -759,64 +759,6 @@ Item {
                 }
             }
 
-            StyledRect {
-                width: parent.width
-                height: toolsSection.implicitHeight + Theme.spacingL * 2
-                radius: Theme.cornerRadius
-                color: Theme.surfaceContainerHigh
-                border.color: Theme.outlineHeavy
-                border.width: 0
-
-                Column {
-                    id: toolsSection
-
-                    anchors.fill: parent
-                    anchors.margins: Theme.spacingL
-                    spacing: Theme.spacingM
-
-                    Row {
-                        width: parent.width
-                        spacing: Theme.spacingM
-
-                        DankIcon {
-                            name: "build"
-                            size: Theme.iconSize
-                            color: Theme.primary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        StyledText {
-                            text: I18n.tr("Tools")
-                            font.pixelSize: Theme.fontSizeLarge
-                            font.weight: Font.Medium
-                            color: Theme.surfaceText
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-
-                    Row {
-                        anchors.left: parent.left
-                        spacing: Theme.spacingS
-
-                        DankButton {
-                            text: I18n.tr("Show Welcome")
-                            iconName: "waving_hand"
-                            backgroundColor: Theme.surfaceTextHover
-                            textColor: Theme.surfaceText
-                            onClicked: FirstLaunchService.showWelcome()
-                        }
-
-                        DankButton {
-                            text: I18n.tr("System Check")
-                            iconName: "vital_signs"
-                            backgroundColor: Theme.surfaceTextHover
-                            textColor: Theme.surfaceText
-                            onClicked: FirstLaunchService.showDoctor()
-                        }
-                    }
-                }
-            }
-
             StyledText {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: I18n.tr('<a href="https://github.com/lyrka-meow/MacqueenDE/blob/main/LICENSE" style="text-decoration:none; color:%1;">MIT License</a>').arg(Theme.surfaceVariantText)

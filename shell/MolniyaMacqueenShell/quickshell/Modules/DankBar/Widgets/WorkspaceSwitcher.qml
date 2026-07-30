@@ -682,7 +682,8 @@ Item {
 
     readonly property real dpr: parentScreen ? CompositorService.getScreenScale(parentScreen) : 1
     readonly property real padding: (root.barConfig?.removeWidgetPadding ?? false) ? 0 : Theme.snap((root.barConfig?.widgetPadding ?? 12) * (widgetHeight / 30), dpr)
-    readonly property real visualWidth: isVertical ? widgetHeight : (workspaceRow.implicitWidth + padding * 2)
+    readonly property real macqueenCellWidth: Theme.snap(30, dpr)
+    readonly property real visualWidth: isVertical ? widgetHeight : ((root.macqueenRailStyle ? macqueenWorkspaceRow.implicitWidth : workspaceRow.implicitWidth) + padding * 2)
     readonly property real visualHeight: isVertical ? (workspaceRow.implicitHeight + padding * 2) : widgetHeight
     readonly property real appIconSize: Theme.barIconSize(barThickness, -6 + SettingsData.workspaceAppIconSizeOffset, root.barConfig?.maximizeWidgetIcons, root.barConfig?.iconScale)
 
@@ -739,14 +740,15 @@ Item {
     }
 
     function findClosestWorkspaceIndex(localX, localY) {
-        if (workspaceRepeater.count === 0)
+        const repeater = root.macqueenRailStyle ? macqueenWorkspaceRepeater : workspaceRepeater;
+        if (repeater.count === 0)
             return -1;
 
         let closestIdx = -1;
         let closestDist = Infinity;
 
-        for (let i = 0; i < workspaceRepeater.count; i++) {
-            const item = workspaceRepeater.itemAt(i);
+        for (let i = 0; i < repeater.count; i++) {
+            const item = repeater.itemAt(i);
             if (!item || item.isPlaceholder)
                 continue;
             const center = item.mapToItem(root, item.width / 2, item.height / 2);
@@ -924,6 +926,7 @@ Item {
 
     Item {
         id: visualBackground
+        visible: !root.macqueenRailStyle
         width: root.visualWidth
         height: root.visualHeight
         anchors.centerIn: parent
@@ -985,6 +988,88 @@ Item {
         }
     }
 
+    Item {
+        id: macqueenCompactSwitcher
+
+        visible: root.macqueenRailStyle
+        width: root.visualWidth
+        height: root.widgetHeight
+        anchors.centerIn: parent
+
+        Row {
+            id: macqueenWorkspaceRow
+
+            anchors.centerIn: parent
+            spacing: 0
+
+            Repeater {
+                id: macqueenWorkspaceRepeater
+                model: ScriptModel {
+                    values: root.workspaceList
+                }
+
+                delegate: Item {
+                    id: macqueenWorkspaceCell
+
+                    required property var modelData
+                    required property int index
+
+                    readonly property bool active: modelData?.id === root.currentWorkspace
+                    readonly property int workspaceNumber: modelData?.position ?? (index + 1)
+
+                    width: root.macqueenCellWidth
+                    height: root.widgetHeight
+
+                    Rectangle {
+                        anchors.centerIn: parent
+                        width: Theme.snap(29, root.dpr)
+                        height: Theme.snap(Math.max(20, root.widgetHeight - 1), root.dpr)
+                        radius: Theme.snap(9, root.dpr)
+                        color: macqueenWorkspaceCell.active ? Theme.primary : "transparent"
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Theme.shortDuration
+                                easing.type: Theme.standardEasing
+                            }
+                        }
+                    }
+
+                    StyledText {
+                        anchors.centerIn: parent
+                        text: String(macqueenWorkspaceCell.workspaceNumber).padStart(2, "0")
+                        color: macqueenWorkspaceCell.active ? Theme.onPrimary : Theme.surfaceText
+                        opacity: 1
+                        font.pixelSize: Math.max(9, Math.round(root.widgetHeight * 0.31))
+                        font.weight: Font.Bold
+                    }
+
+                    Rectangle {
+                        anchors {
+                            horizontalCenter: parent.horizontalCenter
+                            bottom: parent.bottom
+                        }
+                        visible: macqueenWorkspaceMouse.containsMouse && !macqueenWorkspaceCell.active
+                        width: Theme.snap(16, root.dpr)
+                        height: Theme.hairline(root.dpr)
+                        radius: height / 2
+                        color: Theme.primary
+                    }
+
+                    MouseArea {
+                        id: macqueenWorkspaceMouse
+
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.switchToWorkspaceByModelData(macqueenWorkspaceCell.modelData)
+                        onWheel: wheel => edgeMouseArea.processWorkspaceWheel(wheel)
+                    }
+                }
+            }
+        }
+    }
+
     MouseArea {
         id: edgeMouseArea
         z: -1
@@ -1024,7 +1109,7 @@ Item {
             }
         }
 
-        onWheel: wheel => {
+        function processWorkspaceWheel(wheel) {
             if (Math.abs(wheel.angleDelta.x) > Math.abs(wheel.angleDelta.y)) {
                 wheel.accepted = false;
                 return;
@@ -1058,6 +1143,8 @@ Item {
             scrollCooldown.restart();
             mouseAccumulator = 0;
         }
+
+        onWheel: wheel => processWorkspaceWheel(wheel)
     }
 
     property int dragSourceIndex: -1
@@ -1075,6 +1162,7 @@ Item {
     Flow {
         id: workspaceRow
 
+        visible: !root.macqueenRailStyle
         x: isVertical ? visualBackground.x : (parent.width - implicitWidth) / 2
         y: isVertical ? (parent.height - implicitHeight) / 2 : visualBackground.y
         spacing: root.macqueenRailStyle ? Theme.spacingXS : Theme.spacingS

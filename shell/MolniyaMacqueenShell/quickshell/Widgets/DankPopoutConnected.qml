@@ -1076,10 +1076,13 @@ Item {
             width: root.morphTravelEnabled ? root.pubBodyW : root.alignedWidth
             height: root.morphTravelEnabled ? root.pubBodyH : root.renderedAlignedHeight
 
-            readonly property bool barTop: effectiveBarPosition === SettingsData.Position.Top
-            readonly property bool barBottom: effectiveBarPosition === SettingsData.Position.Bottom
-            readonly property bool barLeft: effectiveBarPosition === SettingsData.Position.Left
-            readonly property bool barRight: effectiveBarPosition === SettingsData.Position.Right
+            // An edge-centered side sheet connects to that screen edge rather
+            // than to the bar which happened to launch it.
+            readonly property bool sideLeftPlacement: root.positioning === "leftCenter"
+            readonly property bool barTop: !sideLeftPlacement && effectiveBarPosition === SettingsData.Position.Top
+            readonly property bool barBottom: !sideLeftPlacement && effectiveBarPosition === SettingsData.Position.Bottom
+            readonly property bool barLeft: sideLeftPlacement || effectiveBarPosition === SettingsData.Position.Left
+            readonly property bool barRight: !sideLeftPlacement && effectiveBarPosition === SettingsData.Position.Right
             readonly property string connectedBarSide: barTop ? "top" : (barBottom ? "bottom" : (barLeft ? "left" : "right"))
             readonly property real surfaceRadius: root.usesConnectedSurfaceChrome ? Theme.connectedSurfaceRadius : Theme.cornerRadius
             readonly property color surfaceColor: root.usesConnectedSurfaceChrome ? Theme.connectedSurfaceColor : Theme.withAlpha(Theme.surfaceContainer, Theme.popupTransparency)

@@ -25,20 +25,9 @@ Singleton {
     readonly property color accentTrack: Theme.withAlpha(accent, 0.28)
     readonly property color accentSubtle: Theme.withAlpha(accent, 0.55)
 
-    // Prefer the validated url, but fall back to the live mpris art so quantization
-    // starts as soon as the cover exists instead of waiting on the commit pipeline.
-    readonly property string artUrl: {
-        const resolved = TrackArtService.resolvedArtUrl;
-        if (resolved !== "")
-            return resolved;
-        const p = MprisController.activePlayer;
-        if (!p)
-            return "";
-        if (p.trackArtUrl)
-            return p.trackArtUrl;
-        const m = p.metadata;
-        return m && m["mpris:artUrl"] ? m["mpris:artUrl"].toString() : "";
-    }
+    // Only quantize artwork committed for the current track key. A live MPRIS
+    // URL can still point to the previous song while metadata is changing.
+    readonly property string artUrl: TrackArtService.activeArtUrl
 
     // Hold the last accent across the brief artUrl blank between tracks; never reset to primary.
     property var _accent: null

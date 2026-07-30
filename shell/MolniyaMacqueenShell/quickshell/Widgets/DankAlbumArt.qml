@@ -7,23 +7,14 @@ Item {
     id: root
 
     property MprisPlayer activePlayer
-    property string artUrl: TrackArtService.resolvedArtUrl
+    property string artUrl: TrackArtService.activeArtUrl
+    property string artKey: TrackArtService.activeTrackKey
     property string lastValidArtUrl: ""
-    // Live mpris url — always valid for the current track; fallback so art is never blank.
-    readonly property string rawArtUrl: {
-        const p = activePlayer;
-        if (!p)
-            return "";
-        if (p.trackArtUrl)
-            return p.trackArtUrl;
-        const m = p.metadata;
-        return m && m["mpris:artUrl"] ? m["mpris:artUrl"].toString() : "";
-    }
-    readonly property string curArt: artUrl || lastValidArtUrl || rawArtUrl
+    property string lastValidArtKey: ""
+    readonly property string curArt: artUrl
+        || (lastValidArtKey === artKey ? lastValidArtUrl : "")
     property string _prevArt: ""
     property bool _fadePending: false
-    property string _srcOverride: "" // forces the live url when the resolved one fails
-    readonly property string _mainSrc: _srcOverride !== "" ? _srcOverride : curArt
     readonly property int albumArtStatus: mainArt.imageStatus
     property real albumSize: Math.min(width, height) * 0.58
     property bool showAnimation: true
@@ -62,10 +53,23 @@ Item {
 
     onActivePlayerChanged: {
         lastValidArtUrl = "";
+        lastValidArtKey = "";
+    }
+
+    onArtKeyChanged: {
+        // A cached image is valid only for the track key which produced it.
+        // Clear every fallback immediately so a delayed old decode cannot
+        // survive a next/previous action.
+        fadeSafety.stop();
+        fadeOut.stop();
+        fadeArt.opacity = 0;
+        fadeArt.imageSource = "";
+        lastValidArtUrl = "";
+        lastValidArtKey = "";
+        _prevArt = "";
     }
 
     onCurArtChanged: {
-        _srcOverride = "";
         // Keep the outgoing art covering mainArt until the new art decodes, then fade —
         // hides mainArt's placeholder base so no primary circle flashes mid-load.
         if (_prevArt !== "" && _prevArt !== curArt) {
@@ -238,16 +242,16 @@ Item {
         height: albumSize
         anchors.centerIn: parent
         z: 1
-        imageSource: root._mainSrc
+        imageSource: root.curArt
         fallbackIcon: "album"
         border.color: MediaAccentService.accent
         border.width: 2
 
         onImageStatusChanged: {
-            if (imageStatus === Image.Ready && imageSource !== "")
+            if (imageStatus === Image.Ready && imageSource !== "") {
                 root.lastValidArtUrl = imageSource;
-            else if (imageStatus === Image.Error && root._srcOverride === "" && root.rawArtUrl !== "" && root.rawArtUrl !== imageSource)
-                root._srcOverride = root.rawArtUrl; // resolved url dead → use live mpris url
+                root.lastValidArtKey = root.artKey;
+            }
             root._maybeStartFade();
         }
     }

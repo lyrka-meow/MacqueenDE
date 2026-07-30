@@ -60,7 +60,7 @@ Singleton {
         _committedSrcUrl = u !== "" ? srcUrl : "";
     }
 
-    function loadArtwork(url, artKey, requestSerial) {
+    function loadArtwork(url, artKey, requestSerial, forceRefresh) {
         if (!url || url === "") {
             // Keep stale art; only blank once the empty url debounce settles.
             _lastArtUrl = "";
@@ -83,7 +83,8 @@ Singleton {
             const filePath = cacheDir + "/remote_" + hash;
             const localFileUrl = "file://" + filePath;
 
-            Proc.runCommand(null, ["test", "-f", filePath], (output, exitCode) => {
+            const cacheProbe = forceRefresh ? ["false"] : ["test", "-f", filePath];
+            Proc.runCommand(null, cacheProbe, (output, exitCode) => {
                 if (_lastArtUrl !== targetUrl || _requestSerial !== requestSerial)
                     return;
 
@@ -136,9 +137,14 @@ Singleton {
         const localUrl = url;
         const filePath = url.startsWith("file://") ? url.substring(7) : url;
         const cacheDir = Paths.strip(Paths.imagecache);
-        // Cover lands after metadata, so poll; commit a content-addressed copy so identical bytes keep an identical url
-        const script = "f=\"$1\"; d=\"$2\"; i=0; while [ ! -f \"$f\" ] && [ \"$i\" -lt 20 ]; do sleep 0.15; i=$((i + 1)); done; [ -f \"$f\" ] || exit 1; s=$(sha1sum \"$f\" | cut -c1-40); if [ ! -f \"$d/art_$s\" ]; then mkdir -p \"$d\" && cp \"$f\" \"$d/art_$s.tmp\" && mv \"$d/art_$s.tmp\" \"$d/art_$s\" || exit 1; fi; echo \"$s\"";
-        Proc.runCommand(null, ["sh", "-c", script, "sh", filePath, cacheDir], (output, exitCode) => {
+        const committedPrefix = "file://" + cacheDir + "/art_";
+        const previousSha = forceRefresh && resolvedArtUrl.startsWith(committedPrefix)
+            ? resolvedArtUrl.substring(committedPrefix.length) : "";
+        // Some MPRIS clients overwrite one temporary file for every track.
+        // Wait for its bytes to change instead of accepting the old cover
+        // under the new track key.
+        const script = "f=\"$1\"; d=\"$2\"; old=\"$3\"; i=0; while [ \"$i\" -lt 24 ]; do if [ -f \"$f\" ]; then s=$(sha1sum \"$f\" | cut -c1-40); if [ -z \"$old\" ] || [ \"$s\" != \"$old\" ] || [ \"$i\" -ge 20 ]; then break; fi; fi; sleep 0.15; i=$((i + 1)); done; [ -f \"$f\" ] || exit 1; s=$(sha1sum \"$f\" | cut -c1-40); if [ ! -f \"$d/art_$s\" ]; then mkdir -p \"$d\" && cp \"$f\" \"$d/art_$s.tmp\" && mv \"$d/art_$s.tmp\" \"$d/art_$s\" || exit 1; fi; echo \"$s\"";
+        Proc.runCommand(null, ["sh", "-c", script, "sh", filePath, cacheDir, previousSha], (output, exitCode) => {
             if (_lastArtUrl !== localUrl || _requestSerial !== requestSerial)
                 return;
             loading = false;
@@ -167,6 +173,10 @@ Singleton {
     property string _committedSrcUrl: ""
     property int _requestSerial: 0
     property int _lastIssuedSerial: -1
+    property int _metadataRetryCount: 0
+    readonly property string activeTrackKey: _pendingArtKey
+    readonly property string activeArtUrl: _pendingArtKey !== ""
+        && _pendingArtKey === _committedArtKey ? resolvedArtUrl : ""
 
     onActivePlayerChanged: _updateArtUrl()
 
@@ -179,25 +189,35 @@ Singleton {
     }
 
     function _trackKey() {
-        const p = activePlayer;
+        return _trackKeyFor(activePlayer);
+    }
+
+    function _trackKeyFor(p) {
         if (!p)
             return "";
         // dbusName is constant per player; uniqueId is per-track and would churn the key.
         const playerId = p.dbusName || p.identity || "";
         const tid = p.metadata && p.metadata["mpris:trackid"] ? p.metadata["mpris:trackid"].toString() : "";
-        return playerId + " " + tid + " " + (p.trackTitle || "") + " " + (p.trackArtist || "");
+        const mediaUrl = p.metadata && p.metadata["xesam:url"] ? p.metadata["xesam:url"].toString() : "";
+        return playerId + " " + tid + " " + (p.trackTitle || "") + " "
+            + (p.trackArtist || "") + " " + (p.trackAlbum || "") + " " + mediaUrl;
     }
 
     function artReadyFor(player) {
-        const url = getArtworkUrl(player);
-        return url !== "" && url === _lastArtUrl && !loading && resolvedArtUrl !== "";
+        const key = _trackKeyFor(player);
+        return key !== "" && key === _committedArtKey && !loading && activeArtUrl !== "";
     }
 
-    function _updateArtUrl() {
+    function _updateArtUrl(forceSameSource) {
         const key = _trackKey();
         if (key !== _pendingArtKey) {
             _requestSerial++;
             loading = false;
+            _metadataRetryCount = 0;
+            if (key !== "")
+                _artMetadataRetry.restart();
+            else
+                _artMetadataRetry.stop();
         }
         _pendingArtKey = key;
         const url = getArtworkUrl(activePlayer);
@@ -206,8 +226,21 @@ Singleton {
             return;
         if (key !== "" && url !== "" && url === _committedSrcUrl) {
             // Chrome can publish track metadata before its new artwork URL.
-            return;
+            if (!forceSameSource)
+                return;
         }
-        loadArtwork(url, key, _requestSerial);
+        loadArtwork(url, key, _requestSerial, !!forceSameSource);
+    }
+
+    Timer {
+        id: _artMetadataRetry
+        interval: 180
+        repeat: true
+        onTriggered: {
+            root._metadataRetryCount++;
+            root._updateArtUrl(root._metadataRetryCount >= 6);
+            if (root._pendingArtKey === root._committedArtKey || root._metadataRetryCount >= 24)
+                stop();
+        }
     }
 }

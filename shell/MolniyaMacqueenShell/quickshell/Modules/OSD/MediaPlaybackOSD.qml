@@ -98,7 +98,7 @@ DankOSD {
 
     Image {
         id: artPreloader
-        source: TrackArtService.resolvedArtUrl
+        source: TrackArtService.activeArtUrl
         visible: false
         asynchronous: true
         cache: true
@@ -122,7 +122,7 @@ DankOSD {
                 pendingShowFallback.restart();
                 return;
             }
-            if (!TrackArtService.resolvedArtUrl) {
+            if (!TrackArtService.activeArtUrl) {
                 root._showPending();
                 return;
             }
@@ -222,14 +222,14 @@ DankOSD {
             Item {
                 id: bgContainer
                 anchors.fill: parent
-                visible: TrackArtService.resolvedArtUrl !== ""
+                visible: TrackArtService.activeArtUrl !== ""
 
                 Image {
                     id: bgImage
                     anchors.centerIn: parent
                     width: Math.max(parent.width, parent.height)
                     height: width
-                    source: TrackArtService.resolvedArtUrl
+                    source: TrackArtService.activeArtUrl
                     fillMode: Image.PreserveAspectCrop
                     asynchronous: true
                     cache: true

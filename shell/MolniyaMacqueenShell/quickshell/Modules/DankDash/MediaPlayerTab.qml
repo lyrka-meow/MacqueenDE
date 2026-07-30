@@ -337,19 +337,7 @@ Item {
         id: bgContainer
         anchors.fill: parent
 
-        // Fall back to the live mpris url so the background is never blank.
-        readonly property string curArt: {
-            const resolved = TrackArtService.resolvedArtUrl;
-            if (resolved !== "")
-                return resolved;
-            const p = root.activePlayer;
-            if (!p)
-                return "";
-            if (p.trackArtUrl)
-                return p.trackArtUrl;
-            const m = p.metadata;
-            return m && m["mpris:artUrl"] ? m["mpris:artUrl"].toString() : "";
-        }
+        readonly property string curArt: TrackArtService.activeArtUrl
         // Two layers crossfade: new art loads into the hidden one and fades in once decoded.
         property bool _showA: true
         visible: layerA.ready || layerB.ready
@@ -358,8 +346,11 @@ Item {
         Component.onCompleted: syncArt()
 
         function syncArt() {
-            if (curArt === "")
+            if (curArt === "") {
+                layerA.art = "";
+                layerB.art = "";
                 return;
+            }
             const front = _showA ? layerA : layerB;
             const back = _showA ? layerB : layerA;
             if (front.art == curArt)

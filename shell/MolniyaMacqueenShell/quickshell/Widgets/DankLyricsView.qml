@@ -13,6 +13,14 @@ Item {
     readonly property int lyricCount: LyricsService.lines?.length || 0
     readonly property real lyricProgress: lyricCount > 0 && currentIndex >= 0 ? Math.min(1, (currentIndex + 1) / lyricCount) : 0
 
+    function localizedLyricsError(message) {
+        if (message === "Lyrics are available, but not synchronized")
+            return I18n.tr("Lyrics are available, but not synchronized");
+        if (!message || message === "Lyrics not found")
+            return I18n.tr("Lyrics not found");
+        return message;
+    }
+
     onCurrentIndexChanged: {
         if (currentIndex >= 0)
             lyrics.positionViewAtIndex(currentIndex, ListView.Center);
@@ -190,7 +198,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             width: parent.width
             text: LyricsService.loading ? I18n.tr("Loading lyrics…")
-                                        : (LyricsService.error || I18n.tr("Lyrics not found"))
+                                        : root.localizedLyricsError(LyricsService.error)
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             color: Theme.surfaceTextSecondary

@@ -48,6 +48,14 @@ Item {
         lyricsPanelOpen = false;
     }
 
+    function localizedLyricsError(message) {
+        if (message === "Lyrics are available, but not synchronized")
+            return I18n.tr("Lyrics are available, but not synchronized");
+        if (!message || message === "Lyrics not found")
+            return I18n.tr("Lyrics not found");
+        return message;
+    }
+
     readonly property bool isRightEdge: {
         if (barPosition === SettingsData.Position.Right)
             return true;
@@ -646,7 +654,7 @@ Item {
                                     return "";
                                 if (LyricsService.loading)
                                     return I18n.tr("Loading lyrics…");
-                                return LyricsService.error || I18n.tr("Lyrics not found");
+                                return root.localizedLyricsError(LyricsService.error);
                             }
                             font.pixelSize: parent.currentLine ? 19 : 13
                             font.weight: parent.currentLine ? Font.DemiBold : Font.Normal

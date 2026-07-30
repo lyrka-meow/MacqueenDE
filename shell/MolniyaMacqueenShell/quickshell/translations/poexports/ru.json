@@ -4397,6 +4397,9 @@
   "Loading keybinds...": {
     "Loading keybinds...": "Загрузка комбинаций клавиш..."
   },
+  "Loading lyrics…": {
+    "Loading lyrics…": "Загрузка текста песни…"
+  },
   "Loading trending...": {
     "Loading trending...": "Загрузка трендов..."
   },
@@ -4477,6 +4480,12 @@
   },
   "Lower display refresh rate on battery": {
     "Lower display refresh rate on battery": ""
+  },
+  "Lyrics are available, but not synchronized": {
+    "Lyrics are available, but not synchronized": "Текст песни доступен, но не синхронизирован"
+  },
+  "Lyrics not found": {
+    "Lyrics not found": "Текст песни не найден"
   },
   "MAC": {
     "MAC": "MAC"

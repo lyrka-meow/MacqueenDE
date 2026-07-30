@@ -351,7 +351,6 @@ DankPopout {
                     currentIndex: root.currentTabIndex
                     spacing: Theme.spacingS
                     equalWidthTabs: true
-                    activeIconPill: true
                     enableArrowNavigation: false
                     focus: false
                     activeFocusOnTab: false

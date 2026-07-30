@@ -116,6 +116,7 @@ Item {
     }
 
     onUseConnectedBackendChanged: _maybeResolveBackend()
+    onPositioningChanged: _maybeResolveBackend()
     Component.onCompleted: _resolvedBackend = _backendForScreen(screen)
 
     Connections {
@@ -140,7 +141,9 @@ Item {
     // Backend re-resolution on toplevel activity is covered by CompositorService.frameBlockedByScreen.
 
     function _usesConnectedBackendForScreen(targetScreen) {
-        return CompositorService.usesConnectedFrameChromeForScreen(targetScreen);
+        // Edge-centered popouts are independent side sheets, not extensions
+        // of the bar's connected frame.
+        return positioning !== "leftCenter" && CompositorService.usesConnectedFrameChromeForScreen(targetScreen);
     }
 
     function _backendForScreen(targetScreen) {

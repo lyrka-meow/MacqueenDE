@@ -139,6 +139,8 @@ Item {
     property int effectiveBarPosition: 0
     property real effectiveBarBottomGap: 0
     readonly property string autoBarShadowDirection: {
+        if (positioning === "leftCenter")
+            return "left";
         const section = triggerSection || "center";
         switch (effectiveBarPosition) {
         case SettingsData.Position.Top:
@@ -508,6 +510,9 @@ Item {
             const leftGap = _edgeClearance("left", popupGap, adjacentBarInfo.leftBar > 0 ? adjacentBarInfo.leftBar : 0);
             const rightGap = _edgeClearance("right", popupGap, adjacentBarInfo.rightBar > 0 ? adjacentBarInfo.rightBar : 0);
 
+            if (positioning === "leftCenter")
+                return leftGap;
+
             switch (effectiveBarPosition) {
             case SettingsData.Position.Left:
                 return Math.max(leftGap, Math.min(screenWidth - popupWidth - rightGap, triggerX));
@@ -527,6 +532,11 @@ Item {
             const popupGap = useAutoGaps ? Math.max(4, storedBarSpacing) : manualGapValue;
             const topGap = _edgeClearance("top", popupGap, adjacentBarInfo.topBar > 0 ? adjacentBarInfo.topBar : 0);
             const bottomGap = _edgeClearance("bottom", popupGap, adjacentBarInfo.bottomBar > 0 ? adjacentBarInfo.bottomBar : 0);
+
+            if (positioning === "leftCenter") {
+                const centeredY = (screenHeight - popupHeight) / 2;
+                return Math.max(topGap, Math.min(screenHeight - popupHeight - bottomGap, centeredY));
+            }
 
             switch (effectiveBarPosition) {
             case SettingsData.Position.Bottom:
@@ -724,6 +734,8 @@ Item {
             readonly property real depthTravel: Math.max(root.animationOffset * 0.7, 28)
             readonly property real sectionTilt: (triggerSection === "left" ? -1 : (triggerSection === "right" ? 1 : 0))
             readonly property real offsetX: {
+                if (root.positioning === "leftCenter")
+                    return directionalEffect ? -directionalTravelX : -depthTravel;
                 if (directionalEffect) {
                     if (barLeft)
                         return -directionalTravelX;
@@ -745,6 +757,8 @@ Item {
                 return barLeft ? root.animationOffset : (barRight ? -root.animationOffset : 0);
             }
             readonly property real offsetY: {
+                if (root.positioning === "leftCenter")
+                    return 0;
                 if (directionalEffect) {
                     if (barBottom)
                         return directionalTravelY;

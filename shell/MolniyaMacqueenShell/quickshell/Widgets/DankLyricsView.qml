@@ -10,6 +10,8 @@ Item {
     property color accent: MediaAccentService.accent
     readonly property string trackTitle: activePlayer?.trackTitle || MprisController.stableTitle || ""
     readonly property string trackArtist: activePlayer?.trackArtist || MprisController.stableArtist || ""
+    readonly property int lyricCount: LyricsService.lines?.length || 0
+    readonly property real lyricProgress: lyricCount > 0 && currentIndex >= 0 ? Math.min(1, (currentIndex + 1) / lyricCount) : 0
 
     onCurrentIndexChanged: {
         if (currentIndex >= 0)
@@ -23,15 +25,15 @@ Item {
         gradient: Gradient {
             GradientStop {
                 position: 0
-                color: Theme.withAlpha(root.accent, 0.1)
+                color: Theme.withAlpha(root.accent, 0.12)
             }
             GradientStop {
-                position: 0.42
-                color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.08)
+                position: 0.3
+                color: Theme.withAlpha(Theme.surfaceContainerHigh, 0.04)
             }
             GradientStop {
                 position: 1
-                color: Theme.withAlpha(Theme.surfaceContainerHighest, 0.34)
+                color: Theme.withAlpha(Theme.surfaceContainerHighest, 0.18)
             }
         }
     }
@@ -41,61 +43,73 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        anchors.margins: Theme.spacingM
-        anchors.rightMargin: 52
-        height: 48
+        anchors.leftMargin: 14
+        anchors.rightMargin: 50
+        anchors.topMargin: 11
+        height: 50
 
         Rectangle {
             id: headerIcon
-            width: 38
-            height: 38
-            radius: 13
+            width: 34
+            height: 34
+            radius: 11
             anchors.left: parent.left
             anchors.verticalCenter: parent.verticalCenter
-            color: Theme.withAlpha(root.accent, 0.16)
-            border.width: 1
-            border.color: Theme.withAlpha(root.accent, 0.34)
+            color: Theme.withAlpha(root.accent, 0.15)
 
             DankIcon {
                 anchors.centerIn: parent
                 name: "lyrics"
-                size: 19
+                size: 18
                 color: root.accent
             }
         }
 
         Column {
             anchors.left: headerIcon.right
-            anchors.leftMargin: Theme.spacingS
+            anchors.leftMargin: 10
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 1
+            spacing: 2
 
             Row {
-                spacing: Theme.spacingXS
+                width: parent.width
+                spacing: 7
 
                 StyledText {
                     text: I18n.tr("Lyrics")
-                    font.pixelSize: Theme.fontSizeMedium
+                    font.pixelSize: Theme.fontSizeSmall
                     font.weight: Font.DemiBold
                     color: Theme.surfaceText
                 }
 
-                Rectangle {
+                Item {
                     anchors.verticalCenter: parent.verticalCenter
-                    width: syncedLabel.implicitWidth + 10
-                    height: 18
-                    radius: 9
-                    color: Theme.withAlpha(root.accent, 0.12)
+                    width: syncRow.implicitWidth
+                    height: 16
                     visible: LyricsService.hasLyrics
 
-                    StyledText {
-                        id: syncedLabel
+                    Row {
+                        id: syncRow
                         anchors.centerIn: parent
-                        text: "SYNC"
-                        font.pixelSize: Math.max(8, Theme.fontSizeSmall - 2)
-                        font.weight: Font.DemiBold
-                        color: root.accent
+                        spacing: 4
+
+                        Rectangle {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 5
+                            height: 5
+                            radius: 3
+                            color: root.accent
+                        }
+
+                        StyledText {
+                            text: root.currentIndex >= 0
+                                ? (root.currentIndex + 1) + " / " + root.lyricCount
+                                : "SYNC"
+                            font.pixelSize: Math.max(8, Theme.fontSizeSmall - 2)
+                            font.weight: Font.Medium
+                            color: root.accent
+                        }
                     }
                 }
             }
@@ -108,7 +122,36 @@ Item {
                 elide: Text.ElideRight
                 maximumLineCount: 1
                 font.pixelSize: Theme.fontSizeSmall
-                color: Theme.surfaceTextSecondary
+                color: Theme.surfaceVariantText
+                opacity: 0.72
+            }
+        }
+    }
+
+    Rectangle {
+        id: headerProgressTrack
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: lyricsHeader.bottom
+        anchors.leftMargin: 14
+        anchors.rightMargin: 14
+        anchors.topMargin: 7
+        height: 1
+        radius: 1
+        color: Theme.withAlpha(Theme.surfaceText, 0.1)
+        visible: LyricsService.hasLyrics
+
+        Rectangle {
+            width: parent.width * root.lyricProgress
+            height: parent.height
+            radius: parent.radius
+            color: root.accent
+
+            Behavior on width {
+                NumberAnimation {
+                    duration: 320
+                    easing.type: Easing.OutCubic
+                }
             }
         }
     }
@@ -158,19 +201,20 @@ Item {
     ListView {
         id: lyrics
         anchors.fill: parent
-        anchors.topMargin: 74
-        anchors.bottomMargin: Theme.spacingM
-        anchors.leftMargin: Theme.spacingS
-        anchors.rightMargin: Theme.spacingS
+        anchors.topMargin: 76
+        anchors.bottomMargin: 12
+        anchors.leftMargin: 10
+        anchors.rightMargin: 10
         visible: LyricsService.hasLyrics
         clip: true
         model: LyricsService.lines
-        spacing: 3
+        spacing: 1
         currentIndex: root.currentIndex
-        highlightMoveDuration: 420
+        cacheBuffer: height * 2
+        highlightMoveDuration: 460
         highlightMoveVelocity: -1
-        preferredHighlightBegin: height * 0.4
-        preferredHighlightEnd: height * 0.6
+        preferredHighlightBegin: height * 0.42
+        preferredHighlightEnd: height * 0.58
         highlightRangeMode: ListView.ApplyRange
         boundsBehavior: Flickable.StopAtBounds
 
@@ -180,30 +224,54 @@ Item {
             width: ListView.view.width
             readonly property bool currentLine: index === root.currentIndex
             readonly property int lineDistance: root.currentIndex < 0 ? 1 : Math.abs(index - root.currentIndex)
-            height: lyricText.implicitHeight + (currentLine ? 20 : 12)
+            readonly property bool pastLine: root.currentIndex >= 0 && index < root.currentIndex
+            height: lyricText.implicitHeight + (currentLine ? 22 : 16)
 
             Rectangle {
+                id: lineSurface
                 anchors.fill: parent
-                anchors.leftMargin: 2
-                anchors.rightMargin: 2
-                radius: Theme.cornerRadius
-                color: currentLine ? Theme.withAlpha(root.accent, 0.14) : "transparent"
-                border.width: currentLine ? 1 : 0
-                border.color: Theme.withAlpha(root.accent, 0.28)
+                radius: Math.max(8, Theme.cornerRadius - 2)
+                opacity: currentLine ? 1 : (lineArea.containsMouse ? 0.45 : 0)
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop {
+                        position: 0
+                        color: Theme.withAlpha(root.accent, 0.16)
+                    }
+                    GradientStop {
+                        position: 0.72
+                        color: Theme.withAlpha(root.accent, 0.035)
+                    }
+                    GradientStop {
+                        position: 1
+                        color: "transparent"
+                    }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation { duration: 180 }
+                }
             }
 
             Rectangle {
                 width: 3
-                height: Math.min(24, parent.height - 12)
+                height: currentLine ? Math.min(30, parent.height - 12) : 4
                 radius: 2
                 anchors.left: parent.left
-                anchors.leftMargin: 3
+                anchors.leftMargin: 2
                 anchors.verticalCenter: parent.verticalCenter
                 color: root.accent
-                opacity: currentLine ? 1 : 0
+                opacity: currentLine ? 1 : (lineArea.containsMouse ? 0.45 : 0)
 
                 Behavior on opacity {
                     NumberAnimation { duration: 180 }
+                }
+
+                Behavior on height {
+                    NumberAnimation {
+                        duration: 220
+                        easing.type: Easing.OutCubic
+                    }
                 }
             }
 
@@ -211,16 +279,23 @@ Item {
                 id: lyricText
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.leftMargin: currentLine ? 16 : 12
-                anchors.rightMargin: 12
+                anchors.leftMargin: currentLine ? 17 : 14
+                anchors.rightMargin: 14
                 anchors.verticalCenter: parent.verticalCenter
                 text: modelData.text || "♪"
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                horizontalAlignment: Text.AlignHCenter
+                horizontalAlignment: Text.AlignLeft
                 color: currentLine ? root.accent : Theme.surfaceText
-                font.pixelSize: currentLine ? Theme.fontSizeMedium : Theme.fontSizeSmall
+                font.pixelSize: currentLine ? Theme.fontSizeLarge : Theme.fontSizeMedium
                 font.weight: currentLine ? Font.DemiBold : Font.Normal
-                opacity: currentLine ? 1 : Math.max(0.28, 0.66 - lineDistance * 0.1)
+                lineHeight: currentLine ? 1.08 : 1.04
+                opacity: {
+                    if (currentLine)
+                        return 1;
+                    if (pastLine)
+                        return Math.max(0.2, 0.44 - lineDistance * 0.055);
+                    return Math.max(0.3, 0.68 - lineDistance * 0.07);
+                }
 
                 Behavior on color {
                     ColorAnimation { duration: 220 }
@@ -231,6 +306,7 @@ Item {
             }
 
             MouseArea {
+                id: lineArea
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor
                 hoverEnabled: true
@@ -245,15 +321,15 @@ Item {
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.top: lyricsHeader.bottom
-        height: 24
+        anchors.top: headerProgressTrack.bottom
+        height: 34
         z: 2
         visible: LyricsService.hasLyrics
         enabled: false
         gradient: Gradient {
             GradientStop {
                 position: 0
-                color: Theme.withAlpha(Theme.floatingSurface, 0.82)
+                color: Theme.withAlpha(Theme.floatingSurface, 0.88)
             }
             GradientStop {
                 position: 1
@@ -266,7 +342,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: 24
+        height: 38
         z: 2
         visible: LyricsService.hasLyrics
         enabled: false
@@ -277,7 +353,7 @@ Item {
             }
             GradientStop {
                 position: 1
-                color: Theme.withAlpha(Theme.floatingSurface, 0.82)
+                color: Theme.withAlpha(Theme.floatingSurface, 0.9)
             }
         }
     }

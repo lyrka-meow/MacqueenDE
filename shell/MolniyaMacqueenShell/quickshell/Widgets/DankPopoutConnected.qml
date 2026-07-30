@@ -152,6 +152,8 @@ Item {
     property int effectiveBarPosition: 0
     property real effectiveBarBottomGap: 0
     readonly property string autoBarShadowDirection: {
+        if (positioning === "leftCenter")
+            return "left";
         const section = triggerSection || "center";
         switch (effectiveBarPosition) {
         case SettingsData.Position.Top:
@@ -864,6 +866,11 @@ Item {
             const edgeGapRight = _edgeGapFor("right", popupGap);
             const anchorX = root.usesConnectedSurfaceChrome ? connectedAnchorX : triggerX;
 
+            if (positioning === "leftCenter") {
+                const clearLeft = adjacentBarClearance(adjacentBarInfo.leftBar);
+                return Math.max(edgeGapLeft, clearLeft);
+            }
+
             switch (effectiveBarPosition) {
             case SettingsData.Position.Left:
                 return Math.max(popupGap, Math.min(screenWidth - popupWidth - edgeGapRight, anchorX));
@@ -884,6 +891,14 @@ Item {
             const edgeGapTop = _edgeGapFor("top", popupGap);
             const edgeGapBottom = _edgeGapFor("bottom", popupGap);
             const anchorY = root.usesConnectedSurfaceChrome ? connectedAnchorY : triggerY;
+
+            if (positioning === "leftCenter") {
+                const clearTop = adjacentBarClearance(adjacentBarInfo.topBar);
+                const clearBottom = adjacentBarClearance(adjacentBarInfo.bottomBar);
+                const minY = Math.max(edgeGapTop, clearTop);
+                const maxY = screenHeight - popupHeight - Math.max(edgeGapBottom, clearBottom);
+                return Math.max(minY, Math.min(maxY, (screenHeight - popupHeight) / 2));
+            }
 
             switch (effectiveBarPosition) {
             case SettingsData.Position.Bottom:
@@ -1084,6 +1099,8 @@ Item {
             readonly property real verticalConnectorExtent: root.usesConnectedSurfaceChrome && (barLeft || barRight) ? Theme.connectedCornerRadius : 0
 
             readonly property real offsetX: {
+                if (root.positioning === "leftCenter")
+                    return directionalEffect ? -directionalTravelX : -depthTravel;
                 if (directionalEffect) {
                     if (barLeft)
                         return -directionalTravelX;
@@ -1105,6 +1122,8 @@ Item {
                 return barLeft ? root.animationOffset : (barRight ? -root.animationOffset : 0);
             }
             readonly property real offsetY: {
+                if (root.positioning === "leftCenter")
+                    return 0;
                 if (directionalEffect) {
                     if (barBottom)
                         return directionalTravelY;

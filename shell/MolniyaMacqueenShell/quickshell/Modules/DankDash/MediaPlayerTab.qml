@@ -1024,13 +1024,13 @@ Item {
 
     Rectangle {
         id: lyricsButton
-        width: 40
-        height: 40
-        radius: 20
-        x: root.lyricsPanelOpen ? lyricsDrawer.x + lyricsDrawer.width + Theme.spacingS : Theme.spacingM
-        y: 295
-        color: lyricsArea.containsMouse || root.lyricsPanelOpen ? root.accentPressed : Theme.withAlpha(root.accentPressed, 0)
-        border.color: root.lyricsPanelOpen ? root.accent : Theme.outlineStrong
+        width: 38
+        height: 38
+        radius: 19
+        x: root.lyricsPanelOpen ? lyricsDrawer.x + lyricsDrawer.width + Theme.spacingXS : Theme.spacingM
+        y: Math.round((root.height - height) / 2)
+        color: lyricsArea.containsMouse || root.lyricsPanelOpen ? Theme.withAlpha(root.accent, 0.18) : Theme.withAlpha(Theme.surfaceContainerHighest, 0.34)
+        border.color: root.lyricsPanelOpen ? Theme.withAlpha(root.accent, 0.72) : Theme.outlineStrong
         border.width: 1
         z: 100
 
@@ -1064,15 +1064,15 @@ Item {
 
     Rectangle {
         id: lyricsDrawer
-        width: Math.min(330, root.width * 0.48)
-        height: root.height - Theme.spacingM * 2
-        x: root.lyricsPanelOpen ? Theme.spacingM : -width - Theme.spacingL
-        y: Theme.spacingM
+        width: Math.min(316, root.width * 0.455)
+        height: root.height - Theme.spacingS * 2
+        x: root.lyricsPanelOpen ? Theme.spacingS : -width - Theme.spacingL
+        y: Theme.spacingS
         z: 99
-        radius: Theme.cornerRadius * 2
-        color: Theme.withAlpha(Theme.floatingSurface, 0.94)
+        radius: Theme.cornerRadius * 1.55
+        color: Theme.withAlpha(Theme.floatingSurface, 0.9)
         border.width: 1
-        border.color: Theme.withAlpha(root.accent, root.lyricsPanelOpen ? 0.48 : 0)
+        border.color: Theme.withAlpha(root.accent, root.lyricsPanelOpen ? 0.26 : 0)
         opacity: root.lyricsPanelOpen ? 1 : 0
         enabled: root.lyricsPanelOpen
         clip: true
@@ -1105,16 +1105,6 @@ Item {
             shadowEnabled: Theme.elevationEnabled
         }
 
-        Rectangle {
-            width: 3
-            height: parent.height * 0.22
-            anchors.left: parent.left
-            anchors.leftMargin: 1
-            anchors.verticalCenter: parent.verticalCenter
-            radius: 2
-            color: root.accent
-        }
-
         DankLyricsView {
             anchors.fill: parent
             activePlayer: root.activePlayer
@@ -1123,20 +1113,21 @@ Item {
         }
 
         Rectangle {
-            width: 32
-            height: 32
-            radius: 16
+            width: 30
+            height: 30
+            radius: 15
             anchors.top: parent.top
             anchors.right: parent.right
-            anchors.margins: Theme.spacingS
+            anchors.topMargin: 11
+            anchors.rightMargin: 11
             z: 3
-            color: closeLyricsArea.containsMouse ? Theme.withAlpha(root.accent, 0.18) : Theme.withAlpha(Theme.surfaceContainerHighest, 0.72)
+            color: closeLyricsArea.containsMouse ? Theme.withAlpha(root.accent, 0.18) : Theme.withAlpha(Theme.surfaceContainerHighest, 0.4)
 
             DankIcon {
                 anchors.centerIn: parent
                 name: "close"
-                size: 17
-                color: Theme.surfaceText
+                size: 16
+                color: closeLyricsArea.containsMouse ? root.accent : Theme.surfaceTextSecondary
             }
 
             MouseArea {

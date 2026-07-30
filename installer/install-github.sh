@@ -53,6 +53,7 @@ runtime_packages=(
     sddm
     kwin
     flameshot
+    pciutils
     xdg-desktop-portal-kde
     quickshell
     cava

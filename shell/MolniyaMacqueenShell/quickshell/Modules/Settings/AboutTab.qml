@@ -1,117 +1,435 @@
 import QtQuick
-import QtQuick.Effects
+import Quickshell
+import Quickshell.Io
 import qs.Common
-import qs.DankCommon.Common as DankCommon
-import qs.Services
 import qs.Widgets
 
 Item {
-    id: aboutTab
+    id: root
+
+    property bool loading: true
+    property string loadError: ""
+    property string processError: ""
+    property var generalInfo: ({})
+    property var cpuInfo: ({})
+    property var memoryInfo: ({})
+    property var disks: []
+    property var mounts: []
+    property var gpus: []
 
     LayoutMirroring.enabled: I18n.isRtl
     LayoutMirroring.childrenInherit: true
 
-    property bool isHyprland: CompositorService.isHyprland
-    property bool isNiri: CompositorService.isNiri
-    property bool isSway: CompositorService.isSway
-    property bool isScroll: CompositorService.isScroll
-    property bool isMiracle: CompositorService.isMiracle
-    property bool isMango: CompositorService.isMango
-    property bool isLabwc: CompositorService.isLabwc
-
-    property string compositorName: {
-        if (isHyprland)
-            return "hyprland";
-        if (isSway)
-            return "sway";
-        if (isScroll)
-            return "scroll";
-        if (isMiracle)
-            return "miracle";
-        if (isMango)
-            return "mangowc";
-        if (isLabwc)
-            return "labwc";
-        return "niri";
+    function formatBytes(value) {
+        const bytes = Number(value || 0);
+        if (!Number.isFinite(bytes) || bytes <= 0)
+            return "0 Б";
+        const units = ["Б", "КиБ", "МиБ", "ГиБ", "ТиБ"];
+        let amount = bytes;
+        let unit = 0;
+        while (amount >= 1024 && unit < units.length - 1) {
+            amount /= 1024;
+            unit++;
+        }
+        const digits = unit >= 3 ? 1 : (unit === 0 ? 0 : 1);
+        return amount.toFixed(digits) + " " + units[unit];
     }
 
-    property string compositorLogo: {
-        if (isHyprland)
-            return "/assets/hyprland.svg";
-        if (isSway)
-            return "/assets/sway.svg";
-        if (isScroll)
-            return "/assets/sway.svg";
-        if (isMiracle)
-            return "/assets/miraclewm.svg";
-        if (isMango)
-            return "/assets/mango.png";
-        if (isLabwc)
-            return "/assets/labwc.png";
-        return "/assets/niri.svg";
+    function formatFrequency(mhz) {
+        const value = Number(mhz || 0);
+        if (!Number.isFinite(value) || value <= 0)
+            return "";
+        if (value >= 1000)
+            return (value / 1000).toFixed(2) + " ГГц";
+        return Math.round(value) + " МГц";
     }
 
-    property string compositorUrl: {
-        if (isHyprland)
-            return "https://hypr.land";
-        if (isSway)
-            return "https://swaywm.org";
-        if (isScroll)
-            return "https://github.com/dawsers/scroll";
-        if (isMiracle)
-            return "https://github.com/miracle-wm-org/miracle-wm";
-        if (isMango)
-            return "https://github.com/DreamMaoMao/mangowc";
-        if (isLabwc)
-            return "https://labwc.github.io/";
-        return "https://github.com/niri-wm/niri";
+    function localizedInstallMethod(method) {
+        switch (method || "") {
+        case "binary":
+            return "Готовый rolling-бинарник";
+        case "source":
+            return "Сборка из исходников";
+        case "development":
+            return "Рабочая копия разработчика";
+        default:
+            return method || "";
+        }
     }
 
-    property string compositorTooltip: {
-        if (isHyprland)
-            return I18n.tr("Hyprland Website");
-        if (isSway)
-            return I18n.tr("Sway Website");
-        if (isScroll)
-            return I18n.tr("Scroll GitHub");
-        if (isMiracle)
-            return I18n.tr("Scroll GitHub");
-        if (isMango)
-            return I18n.tr("mangowc GitHub");
-        if (isLabwc)
-            return I18n.tr("LabWC Website");
-        return I18n.tr("niri GitHub");
+    function localizedGpuType(type) {
+        return type === "Integrated" ? "Встроенная" : "Дискретная";
     }
 
-    property string dmsDiscordUrl: "https://discord.gg/ppWTpKmPgT"
-    property string dmsDiscordTooltip: I18n.tr("niri/dms Discord")
-
-    property string compositorDiscordUrl: {
-        if (isHyprland)
-            return "https://discord.com/invite/hQ9XvMUjjr";
-        if (isMango)
-            return "https://discord.gg/CPjbDxesh5";
-        return "";
+    function formatUptime(secondsValue) {
+        let seconds = Math.max(0, Math.floor(Number(secondsValue || 0)));
+        if (!Number.isFinite(seconds) || seconds <= 0)
+            return "";
+        const days = Math.floor(seconds / 86400);
+        seconds %= 86400;
+        const hours = Math.floor(seconds / 3600);
+        seconds %= 3600;
+        const minutes = Math.floor(seconds / 60);
+        const parts = [];
+        if (days > 0)
+            parts.push(days + " д.");
+        if (hours > 0)
+            parts.push(hours + " ч.");
+        parts.push(minutes + " мин.");
+        return parts.join(" ");
     }
 
-    property string compositorDiscordTooltip: {
-        if (isHyprland)
-            return I18n.tr("Hyprland Discord Server");
-        if (isMango)
-            return I18n.tr("mangowc Discord Server");
-        return "";
+    function localizedCache(value) {
+        return String(value || "").replace(/\s*\((\d+)\s+instances?\)/i,
+                                            " · $1 экз.");
     }
 
-    property string redditUrl: "https://reddit.com/r/niri"
-    property string redditTooltip: I18n.tr("r/niri Subreddit")
+    function addRow(rows, label, value) {
+        if (value === undefined || value === null || String(value).trim() === "")
+            return;
+        rows.push({
+            "label": label,
+            "value": String(value)
+        });
+    }
 
-    property string ircUrl: "https://web.libera.chat/gamja/?channels=#labwc"
-    property string ircTooltip: I18n.tr("LabWC IRC Channel")
+    function systemRows() {
+        const rows = [];
+        addRow(rows, "Операционная система", generalInfo.os);
+        addRow(rows, "Имя компьютера", generalInfo.hostname);
+        addRow(rows, "Ядро", generalInfo.kernel);
+        addRow(rows, "Архитектура", generalInfo.architecture);
+        addRow(rows, "Графический протокол", generalInfo.session);
+        addRow(rows, "Окружение рабочего стола", generalInfo.compositor || "MacqueenDE");
+        addRow(rows, "Способ установки", localizedInstallMethod(generalInfo.install_method));
+        addRow(rows, "Пакетный менеджер", generalInfo.package_manager);
+        addRow(rows, "AUR-помощник", generalInfo.package_helper);
+        if (generalInfo.package_count)
+            addRow(rows, "Установлено пакетов", generalInfo.package_count);
+        addRow(rows, "Время работы системы", formatUptime(generalInfo.uptime_seconds));
+        return rows;
+    }
 
-    property bool showMatrix: isNiri && !isHyprland && !isSway && !isScroll && !isMiracle && !isMango && !isLabwc
-    property bool showCompositorDiscord: isHyprland || isMango
-    property bool showReddit: isNiri && !isHyprland && !isSway && !isScroll && !isMiracle && !isMango && !isLabwc
-    property bool showIrc: isLabwc
+    function cpuRows() {
+        const rows = [];
+        addRow(rows, "Модель", cpuInfo.model);
+        addRow(rows, "Производитель", cpuInfo.vendor);
+        addRow(rows, "Архитектура", cpuInfo.architecture);
+        addRow(rows, "Сокетов", cpuInfo.sockets);
+        addRow(rows, "Физических ядер", cpuInfo.physical_cores);
+        addRow(rows, "Логических потоков", cpuInfo.logical_cpus);
+        addRow(rows, "Потоков на ядро", cpuInfo.threads_per_core);
+        addRow(rows, "Текущая средняя частота", formatFrequency(cpuInfo.current_mhz));
+        const minFrequency = formatFrequency(cpuInfo.min_mhz);
+        const maxFrequency = formatFrequency(cpuInfo.max_mhz);
+        if (minFrequency || maxFrequency)
+            addRow(rows, "Диапазон частот", minFrequency + " — " + maxFrequency);
+        addRow(rows, "Регулятор частоты", cpuInfo.governor);
+        if (cpuInfo.temperature)
+            addRow(rows, "Температура пакета", cpuInfo.temperature + " °C");
+        addRow(rows, "Аппаратная виртуализация", cpuInfo.virtualization);
+        addRow(rows, "Кэш L1 данных", localizedCache(cpuInfo.l1d));
+        addRow(rows, "Кэш L1 инструкций", localizedCache(cpuInfo.l1i));
+        addRow(rows, "Кэш L2", localizedCache(cpuInfo.l2));
+        addRow(rows, "Кэш L3", localizedCache(cpuInfo.l3));
+        addRow(rows, "NUMA-узлов", cpuInfo.numa_nodes);
+        return rows;
+    }
+
+    function memoryRows() {
+        const rows = [];
+        const total = Number(memoryInfo.total || 0);
+        const used = Number(memoryInfo.used || 0);
+        const percent = total > 0 ? Math.round(used / total * 100) : 0;
+        addRow(rows, "Всего установлено", formatBytes(total));
+        addRow(rows, "Используется сейчас", formatBytes(used) + " · " + percent + "%");
+        addRow(rows, "Доступно приложениям", formatBytes(memoryInfo.available));
+        addRow(rows, "Полностью свободно", formatBytes(memoryInfo.free));
+        addRow(rows, "Файловый кэш", formatBytes(memoryInfo.cache));
+        addRow(rows, "Буферы ядра", formatBytes(memoryInfo.buffers));
+        addRow(rows, "Разделяемая память", formatBytes(memoryInfo.shared));
+        const swapTotal = Number(memoryInfo.swap_total || 0);
+        if (swapTotal > 0)
+            addRow(rows, "Swap", formatBytes(memoryInfo.swap_used) + " из " + formatBytes(swapTotal));
+        else
+            addRow(rows, "Swap", "Не настроен");
+        return rows;
+    }
+
+    function diskRows(disk) {
+        const rows = [];
+        addRow(rows, "Устройство", "/dev/" + disk.device);
+        addRow(rows, "Модель", disk.model || "Неизвестная модель");
+        addRow(rows, "Ёмкость", formatBytes(disk.size));
+        addRow(rows, "Тип накопителя", disk.media);
+        addRow(rows, "Интерфейс", (disk.transport || "не определён").toUpperCase());
+        addRow(rows, "Серийный номер", disk.serial);
+        addRow(rows, "Версия прошивки", disk.revision);
+        if (disk.logicalSector)
+            addRow(rows, "Логический сектор", formatBytes(disk.logicalSector));
+        if (disk.physicalSector)
+            addRow(rows, "Физический сектор", formatBytes(disk.physicalSector));
+        addRow(rows, "Планировщик ввода-вывода", disk.scheduler);
+        addRow(rows, "Разделов", disk.partitionCount);
+        addRow(rows, "Съёмный накопитель", disk.removable ? "Да" : "Нет");
+        return rows;
+    }
+
+    function mountRows() {
+        const rows = [];
+        for (const mount of mounts) {
+            const used = formatBytes(mount.used);
+            const size = formatBytes(mount.size);
+            const available = formatBytes(mount.available);
+            const details = used + " из " + size
+                + " · свободно " + available
+                + " · " + mount.percent
+                + " · " + mount.fstype
+                + " · " + mount.source;
+            addRow(rows, mount.target, details);
+        }
+        return rows;
+    }
+
+    function gpuRows(gpu) {
+        const rows = [];
+        addRow(rows, "Тип", localizedGpuType(gpu.type));
+        addRow(rows, "Производитель", gpu.vendor);
+        addRow(rows, "Модель", gpu.name);
+        addRow(rows, "Драйвер ядра", gpu.driver);
+        addRow(rows, "Версия драйвера", gpu.driverVersion);
+        if (gpu.vramKind === "Shared")
+            addRow(rows, "Видеопамять", "Общая системная память");
+        else if (Number(gpu.vram || 0) > 0)
+            addRow(rows, "Видеопамять", formatBytes(gpu.vram));
+        else
+            addRow(rows, "Видеопамять", "Не удалось определить");
+        addRow(rows, "PCI-адрес", gpu.address);
+        addRow(rows, "PCI ID", gpu.pciId);
+        addRow(rows, "DRM-устройство", gpu.drmNode ? "/dev/dri/" + gpu.drmNode : "");
+        addRow(rows, "Основная при загрузке", gpu.primary ? "Да" : "Нет");
+        return rows;
+    }
+
+    function parseReport(text) {
+        const general = {};
+        const cpu = {};
+        const memory = {};
+        const diskList = [];
+        const mountList = [];
+        const gpuList = [];
+        const lines = String(text || "").split("\n");
+
+        for (const line of lines) {
+            if (!line.trim())
+                continue;
+            const fields = line.split("\t");
+            const section = fields[0] || "";
+            if (section === "general" && fields.length >= 3) {
+                general[fields[1]] = fields.slice(2).join("\t");
+            } else if (section === "cpu" && fields.length >= 3) {
+                cpu[fields[1]] = fields.slice(2).join("\t");
+            } else if (section === "memory" && fields.length >= 3) {
+                memory[fields[1]] = fields.slice(2).join("\t");
+            } else if (section === "disk" && fields.length >= 13) {
+                diskList.push({
+                    "device": fields[1],
+                    "model": fields[2],
+                    "size": Number(fields[3] || 0),
+                    "transport": fields[4],
+                    "media": fields[5],
+                    "serial": fields[6],
+                    "revision": fields[7],
+                    "logicalSector": Number(fields[8] || 0),
+                    "physicalSector": Number(fields[9] || 0),
+                    "scheduler": fields[10],
+                    "partitionCount": fields[11],
+                    "removable": fields[12] === "1"
+                });
+            } else if (section === "mount" && fields.length >= 8) {
+                mountList.push({
+                    "target": fields[1],
+                    "source": fields[2],
+                    "fstype": fields[3],
+                    "size": Number(fields[4] || 0),
+                    "used": Number(fields[5] || 0),
+                    "available": Number(fields[6] || 0),
+                    "percent": fields[7]
+                });
+            } else if (section === "gpu" && fields.length >= 12) {
+                gpuList.push({
+                    "address": fields[1],
+                    "vendor": fields[2],
+                    "name": fields[3],
+                    "type": fields[4],
+                    "driver": fields[5],
+                    "driverVersion": fields[6],
+                    "vram": Number(fields[7] || 0),
+                    "vramKind": fields[8],
+                    "primary": fields[9] === "1",
+                    "drmNode": fields[10],
+                    "pciId": fields[11]
+                });
+            }
+        }
+
+        generalInfo = general;
+        cpuInfo = cpu;
+        memoryInfo = memory;
+        disks = diskList;
+        mounts = mountList;
+        gpus = gpuList;
+        loading = false;
+        loadError = "";
+    }
+
+    function refresh() {
+        if (systemInfoProcess.running)
+            return;
+        processError = "";
+        loadError = "";
+        loading = true;
+        systemInfoProcess.command = [Theme.shellDir + "/scripts/system-info.sh"];
+        systemInfoProcess.running = true;
+    }
+
+    Component.onCompleted: refresh()
+
+    component DetailRow: Item {
+        id: detailRow
+
+        property string label: ""
+        property string value: ""
+
+        width: parent ? parent.width : 0
+        visible: value.length > 0
+        height: visible ? Math.max(detailLabel.implicitHeight, detailValue.implicitHeight) : 0
+
+        StyledText {
+            id: detailLabel
+
+            width: Math.min(190, detailRow.width * 0.36)
+            text: detailRow.label
+            font.pixelSize: Theme.fontSizeMedium
+            font.weight: Font.Medium
+            color: Theme.surfaceVariantText
+            wrapMode: Text.WordWrap
+        }
+
+        StyledText {
+            id: detailValue
+
+            anchors.left: detailLabel.right
+            anchors.leftMargin: Theme.spacingL
+            anchors.right: parent.right
+            text: detailRow.value
+            font.pixelSize: Theme.fontSizeMedium
+            color: Theme.surfaceText
+            wrapMode: Text.Wrap
+            horizontalAlignment: Text.AlignLeft
+        }
+    }
+
+    component InfoCard: StyledRect {
+        id: infoCard
+
+        property string title: ""
+        property string subtitle: ""
+        property string iconName: "info"
+        property var rows: []
+
+        width: parent ? parent.width : 0
+        height: cardColumn.implicitHeight + Theme.spacingL * 2
+        radius: Theme.cornerRadius
+        color: Theme.surfaceContainerHigh
+        border.width: 0
+
+        Column {
+            id: cardColumn
+
+            anchors.fill: parent
+            anchors.margins: Theme.spacingL
+            spacing: Theme.spacingM
+
+            Row {
+                width: parent.width
+                spacing: Theme.spacingM
+
+                DankIcon {
+                    name: infoCard.iconName
+                    size: Theme.iconSize + 2
+                    color: Theme.primary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Column {
+                    width: parent.width - Theme.iconSize - Theme.spacingL
+                    spacing: 2
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    StyledText {
+                        width: parent.width
+                        text: infoCard.title
+                        font.pixelSize: Theme.fontSizeLarge
+                        font.weight: Font.DemiBold
+                        color: Theme.surfaceText
+                        wrapMode: Text.WordWrap
+                    }
+
+                    StyledText {
+                        width: parent.width
+                        visible: infoCard.subtitle.length > 0
+                        height: visible ? implicitHeight : 0
+                        text: infoCard.subtitle
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceVariantText
+                        wrapMode: Text.WordWrap
+                    }
+                }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 1
+                color: Theme.outline
+                opacity: 0.45
+            }
+
+            Repeater {
+                model: infoCard.rows
+
+                delegate: DetailRow {
+                    required property var modelData
+
+                    width: cardColumn.width
+                    label: modelData.label || ""
+                    value: modelData.value || ""
+                }
+            }
+        }
+    }
+
+    Process {
+        id: systemInfoProcess
+
+        running: false
+
+        stdout: StdioCollector {
+            onStreamFinished: root.parseReport(text)
+        }
+
+        stderr: StdioCollector {
+            onStreamFinished: root.processError = String(text || "").trim()
+        }
+
+        onExited: exitCode => {
+            root.loading = false;
+            if (exitCode !== 0) {
+                root.loadError = root.processError
+                    || "Не удалось получить информацию о системе";
+            }
+        }
+    }
 
     DankFlickable {
         anchors.fill: parent
@@ -121,718 +439,164 @@ Item {
 
         Column {
             id: mainColumn
+
             topPadding: 4
-
-            width: Math.min(550, parent.width - Theme.spacingL * 2)
+            width: Math.min(720, parent.width - Theme.spacingL * 2)
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: Theme.spacingXL
+            spacing: Theme.spacingL
 
-            // ASCII Art Header
             StyledRect {
                 width: parent.width
-                height: asciiSection.implicitHeight + Theme.spacingL * 2
+                height: 132
                 radius: Theme.cornerRadius
                 color: Theme.surfaceContainerHigh
-                border.color: Theme.outlineHeavy
                 border.width: 0
 
                 Column {
-                    id: asciiSection
-
-                    anchors.fill: parent
-                    anchors.margins: Theme.spacingL
-                    spacing: Theme.spacingM
-
-                    Row {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: parent.width < 350 ? Theme.spacingM : Theme.spacingL
-
-                        property bool compactLogo: parent.width < 400
-                        property bool hideLogo: parent.width < 280
-
-                        Image {
-                            id: logoImage
-
-                            visible: !parent.hideLogo
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.compactLogo ? 80 : 120
-                            height: width * (569.94629 / 506.50931)
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true
-                            mipmap: true
-                            asynchronous: true
-                            source: "file://" + Theme.shellDir + "/assets/danklogonormal.svg"
-                            layer.enabled: true
-                            layer.smooth: true
-                            layer.mipmap: true
-                            layer.effect: MultiEffect {
-                                saturation: 0
-                                colorization: 1
-                                colorizationColor: Theme.primary
-                            }
-                        }
-
-                        StyledText {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "MOLNIYA"
-                            font.pixelSize: parent.compactLogo ? 32 : 48
-                            font.weight: Font.Bold
-                            font.family: DankCommon.Fonts.sans
-                            color: Theme.surfaceText
-                            antialiasing: true
-                        }
-                    }
+                    anchors.centerIn: parent
+                    spacing: Theme.spacingS
 
                     StyledText {
-                        text: {
-                            if (!ShellVersionService.shellVersion && !DMSService.cliVersion)
-                                return "MolniyaMacqueenShell";
-
-                            let version = ShellVersionService.shellVersion || "";
-                            let cliVersion = DMSService.cliVersion || "";
-
-                            // Debian/Ubuntu/OpenSUSE git format: 1.0.3+git2264.c5c5ce84
-                            let match = version.match(/^([\d.]+)\+git(\d+)\./);
-                            if (match) {
-                                return `Molniya (git) v${match[1]}-${match[2]}`;
-                            }
-
-                            // Fedora COPR git format: 0.0.git.2267.d430cae9
-                            match = version.match(/^[\d.]+\.git\.(\d+)\./);
-                            if (match) {
-                                function extractBaseVersion(value) {
-                                    if (!value)
-                                        return "";
-                                    let baseMatch = value.match(/(\d+\.\d+\.\d+)/);
-                                    if (baseMatch)
-                                        return baseMatch[1];
-                                    baseMatch = value.match(/(\d+\.\d+)/);
-                                    if (baseMatch)
-                                        return baseMatch[1];
-                                    return "";
-                                }
-
-                                let baseVersion = extractBaseVersion(cliVersion);
-                                if (!baseVersion)
-                                    baseVersion = extractBaseVersion(ShellVersionService.semverVersion);
-                                if (baseVersion) {
-                                    return `Molniya (git) v${baseVersion}-${match[1]}`;
-                                }
-                                return `Molniya (git) v${match[1]}`;
-                            }
-
-                            // Stable release format: 1.0.3
-                            match = version.match(/^([\d.]+)$/);
-                            if (match) {
-                                return `Molniya v${match[1]}`;
-                            }
-
-                            if (!version && cliVersion) {
-                                match = cliVersion.match(/^([\d.]+)\+git(\d+)\./);
-                                if (match) {
-                                    return `Molniya (git) v${match[1]}-${match[2]}`;
-                                }
-                                match = cliVersion.match(/^([\d.]+)$/);
-                                if (match) {
-                                    return `Molniya v${match[1]}`;
-                                }
-                                return `Molniya ${cliVersion}`;
-                            }
-
-                            return `Molniya ${version}`;
-                        }
-                        font.pixelSize: Theme.fontSizeXLarge
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "MacqueenDE"
+                        font.pixelSize: 32
                         font.weight: Font.Bold
                         color: Theme.surfaceText
-                        horizontalAlignment: Text.AlignHCenter
-                        width: parent.width
                     }
 
-                    StyledText {
-                        visible: ShellVersionService.shellCodename.length > 0
-                        text: `"${ShellVersionService.shellCodename}"`
-                        font.pixelSize: Theme.fontSizeMedium
-                        font.italic: true
-                        color: Theme.surfaceVariantText
-                        horizontalAlignment: Text.AlignHCenter
-                        width: parent.width
-                    }
-
-                    Row {
-                        id: resourceButtonsRow
+                    Rectangle {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: Theme.spacingS
+                        width: versionText.implicitWidth + Theme.spacingL * 2
+                        height: 32
+                        radius: 16
+                        color: Theme.primaryHover
 
-                        property bool compactMode: parent.width < 450
+                        StyledText {
+                            id: versionText
 
-                        DankButton {
-                            id: docsButton
-                            text: resourceButtonsRow.compactMode ? "" : I18n.tr("Docs")
-                            iconName: "menu_book"
-                            iconSize: 18
-                            backgroundColor: Theme.surfaceTextHover
-                            textColor: Theme.surfaceText
-                            onClicked: Qt.openUrlExternally("https://danklinux.com/docs")
-                            onHoveredChanged: {
-                                if (hovered)
-                                    resourceTooltip.show(resourceButtonsRow.compactMode ? I18n.tr("Docs") + " - danklinux.com/docs" : "danklinux.com/docs", docsButton, 0, 0, "bottom");
-                                else
-                                    resourceTooltip.hide();
-                            }
-                        }
-
-                        DankButton {
-                            id: pluginsButton
-                            text: resourceButtonsRow.compactMode ? "" : I18n.tr("Plugins")
-                            iconName: "extension"
-                            iconSize: 18
-                            backgroundColor: Theme.surfaceTextHover
-                            textColor: Theme.surfaceText
-                            onClicked: Qt.openUrlExternally("https://plugins.danklinux.com")
-                            onHoveredChanged: {
-                                if (hovered)
-                                    resourceTooltip.show(resourceButtonsRow.compactMode ? I18n.tr("Plugins") + " - plugins.danklinux.com" : "plugins.danklinux.com", pluginsButton, 0, 0, "bottom");
-                                else
-                                    resourceTooltip.hide();
-                            }
-                        }
-
-                        DankButton {
-                            id: githubButton
-                            text: resourceButtonsRow.compactMode ? "" : I18n.tr("GitHub")
-                            iconName: "code"
-                            iconSize: 18
-                            backgroundColor: Theme.surfaceTextHover
-                            textColor: Theme.surfaceText
-                            onClicked: Qt.openUrlExternally("https://github.com/lyrka-meow/MacqueenDE")
-                            onHoveredChanged: {
-                                if (hovered)
-                                    resourceTooltip.show(resourceButtonsRow.compactMode ? "GitHub - lyrka-meow/MacqueenDE" : "github.com/lyrka-meow/MacqueenDE", githubButton, 0, 0, "bottom");
-                                else
-                                    resourceTooltip.hide();
-                            }
-                        }
-
-                        DankButton {
-                            id: kofiButton
-                            text: resourceButtonsRow.compactMode ? "" : I18n.tr("Ko-fi")
-                            iconName: "favorite"
-                            iconSize: 18
-                            backgroundColor: Theme.primaryHover
-                            textColor: Theme.primary
-                            onClicked: Qt.openUrlExternally("https://ko-fi.com/danklinux")
-                            onHoveredChanged: {
-                                if (hovered)
-                                    resourceTooltip.show(resourceButtonsRow.compactMode ? I18n.tr("Ko-fi") + " - ko-fi.com/danklinux" : "ko-fi.com/danklinux", kofiButton, 0, 0, "bottom");
-                                else
-                                    resourceTooltip.hide();
-                            }
-                        }
-                    }
-
-                    DankTooltipV2 {
-                        id: resourceTooltip
-                    }
-
-                    Item {
-                        id: communityIcons
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        height: 24
-                        width: {
-                            let baseWidth = compositorButton.width + dmsDiscordButton.width + Theme.spacingM;
-                            if (showMatrix) {
-                                baseWidth += matrixButton.width + 4;
-                            }
-                            if (showIrc) {
-                                baseWidth += ircButton.width + Theme.spacingM;
-                            }
-                            if (showCompositorDiscord) {
-                                baseWidth += compositorDiscordButton.width + Theme.spacingM;
-                            }
-                            if (showReddit) {
-                                baseWidth += redditButton.width + Theme.spacingM;
-                            }
-                            return baseWidth;
-                        }
-
-                        Item {
-                            id: compositorButton
-                            width: 24
-                            height: 24
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.verticalCenterOffset: -2
-                            x: 0
-
-                            property bool hovered: false
-                            property string tooltipText: compositorTooltip
-
-                            Image {
-                                anchors.fill: parent
-                                source: Qt.resolvedUrl(".").toString().replace("file://", "").replace("/Modules/Settings/", "") + compositorLogo
-                                sourceSize: Qt.size(24, 24)
-                                smooth: true
-                                fillMode: Image.PreserveAspectFit
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                hoverEnabled: true
-                                onEntered: parent.hovered = true
-                                onExited: parent.hovered = false
-                                onClicked: Qt.openUrlExternally(compositorUrl)
-                            }
-                        }
-
-                        Item {
-                            id: matrixButton
-                            width: 30
-                            height: 24
-                            x: compositorButton.x + compositorButton.width + 4
-                            visible: showMatrix
-
-                            property bool hovered: false
-                            property string tooltipText: I18n.tr("niri Matrix Chat")
-
-                            Image {
-                                anchors.fill: parent
-                                source: Qt.resolvedUrl(".").toString().replace("file://", "").replace("/Modules/Settings/", "") + "/assets/matrix-logo-white.svg"
-                                sourceSize: Qt.size(28, 18)
-                                smooth: true
-                                fillMode: Image.PreserveAspectFit
-                                layer.enabled: true
-
-                                layer.effect: MultiEffect {
-                                    colorization: 1
-                                    colorizationColor: Theme.surfaceText
-                                }
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                hoverEnabled: true
-                                onEntered: parent.hovered = true
-                                onExited: parent.hovered = false
-                                onClicked: Qt.openUrlExternally("https://matrix.to/#/#niri:matrix.org")
-                            }
-                        }
-
-                        Item {
-                            id: ircButton
-                            width: 24
-                            height: 24
-                            x: compositorButton.x + compositorButton.width + Theme.spacingM
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: showIrc
-
-                            property bool hovered: false
-                            property string tooltipText: ircTooltip
-
-                            DankIcon {
-                                anchors.centerIn: parent
-                                name: "forum"
-                                size: 20
-                                color: Theme.surfaceText
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                hoverEnabled: true
-                                onEntered: parent.hovered = true
-                                onExited: parent.hovered = false
-                                onClicked: Qt.openUrlExternally(ircUrl)
-                            }
-                        }
-
-                        Item {
-                            id: dmsDiscordButton
-                            width: 20
-                            height: 20
-                            x: {
-                                if (showMatrix)
-                                    return matrixButton.x + matrixButton.width + Theme.spacingM;
-                                if (showIrc)
-                                    return ircButton.x + ircButton.width + Theme.spacingM;
-                                return compositorButton.x + compositorButton.width + Theme.spacingM;
-                            }
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            property bool hovered: false
-                            property string tooltipText: dmsDiscordTooltip
-
-                            Image {
-                                anchors.fill: parent
-                                source: Qt.resolvedUrl(".").toString().replace("file://", "").replace("/Modules/Settings/", "") + "/assets/discord.svg"
-                                sourceSize: Qt.size(20, 20)
-                                smooth: true
-                                fillMode: Image.PreserveAspectFit
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                hoverEnabled: true
-                                onEntered: parent.hovered = true
-                                onExited: parent.hovered = false
-                                onClicked: Qt.openUrlExternally(dmsDiscordUrl)
-                            }
-                        }
-
-                        Item {
-                            id: compositorDiscordButton
-                            width: 20
-                            height: 20
-                            x: dmsDiscordButton.x + dmsDiscordButton.width + Theme.spacingM
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: showCompositorDiscord
-
-                            property bool hovered: false
-                            property string tooltipText: compositorDiscordTooltip
-
-                            Image {
-                                anchors.fill: parent
-                                source: Qt.resolvedUrl(".").toString().replace("file://", "").replace("/Modules/Settings/", "") + "/assets/discord.svg"
-                                sourceSize: Qt.size(20, 20)
-                                smooth: true
-                                fillMode: Image.PreserveAspectFit
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                hoverEnabled: true
-                                onEntered: parent.hovered = true
-                                onExited: parent.hovered = false
-                                onClicked: Qt.openUrlExternally(compositorDiscordUrl)
-                            }
-                        }
-
-                        Item {
-                            id: redditButton
-                            width: 20
-                            height: 20
-                            x: showCompositorDiscord ? compositorDiscordButton.x + compositorDiscordButton.width + Theme.spacingM : dmsDiscordButton.x + dmsDiscordButton.width + Theme.spacingM
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: showReddit
-
-                            property bool hovered: false
-                            property string tooltipText: redditTooltip
-
-                            Image {
-                                anchors.fill: parent
-                                source: Qt.resolvedUrl(".").toString().replace("file://", "").replace("/Modules/Settings/", "") + "/assets/reddit.svg"
-                                sourceSize: Qt.size(20, 20)
-                                smooth: true
-                                fillMode: Image.PreserveAspectFit
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                hoverEnabled: true
-                                onEntered: parent.hovered = true
-                                onExited: parent.hovered = false
-                                onClicked: Qt.openUrlExternally(redditUrl)
-                            }
+                            anchors.centerIn: parent
+                            text: "Версия " + (root.generalInfo.version || "…")
+                            font.pixelSize: Theme.fontSizeMedium
+                            font.weight: Font.Medium
+                            color: Theme.primary
                         }
                     }
                 }
+
+                DankActionButton {
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.spacingM
+                    iconName: "refresh"
+                    iconSize: 20
+                    iconColor: Theme.primary
+                    enabled: !root.loading
+                    onClicked: root.refresh()
+                }
             }
 
-            // Project Information
             StyledRect {
+                visible: root.loading || root.loadError.length > 0
                 width: parent.width
-                height: projectSection.implicitHeight + Theme.spacingL * 2
+                height: visible ? statusRow.implicitHeight + Theme.spacingL * 2 : 0
                 radius: Theme.cornerRadius
-                color: Theme.surfaceContainerHigh
-                border.color: Theme.outlineHeavy
+                color: root.loadError.length > 0 ? Theme.errorContainer : Theme.surfaceContainerHigh
                 border.width: 0
 
-                Column {
-                    id: projectSection
+                Row {
+                    id: statusRow
 
                     anchors.fill: parent
                     anchors.margins: Theme.spacingL
                     spacing: Theme.spacingM
 
-                    Row {
-                        width: parent.width
-                        spacing: Theme.spacingM
-
-                        DankIcon {
-                            name: "info"
-                            size: Theme.iconSize
-                            color: Theme.primary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        StyledText {
-                            text: I18n.tr("About")
-                            font.pixelSize: Theme.fontSizeLarge
-                            font.weight: Font.Medium
-                            color: Theme.surfaceText
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                    DankIcon {
+                        name: root.loadError.length > 0 ? "error" : "sync"
+                        size: Theme.iconSize
+                        color: root.loadError.length > 0 ? Theme.error : Theme.primary
                     }
 
                     StyledText {
-                        text: I18n.tr('MolniyaMacqueenShell is a customizable Material 3 desktop shell built specifically for the Macqueen compositor.<br /><br/>It is powered by <a href="https://quickshell.org" style="text-decoration:none; color:%1;">Quickshell</a> and a Go backend, and is based on the open-source DankMaterialShell project.').arg(Theme.primary)
-                        textFormat: Text.RichText
+                        width: parent.width - Theme.iconSize - Theme.spacingM
+                        text: root.loadError.length > 0
+                            ? root.loadError
+                            : "Собираем подробную информацию об оборудовании…"
                         font.pixelSize: Theme.fontSizeMedium
-                        linkColor: Theme.primary
-                        onLinkActivated: url => Qt.openUrlExternally(url)
-                        color: Theme.surfaceVariantText
-                        width: parent.width
+                        color: root.loadError.length > 0 ? Theme.error : Theme.surfaceText
                         wrapMode: Text.WordWrap
-
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
-                            acceptedButtons: Qt.NoButton
-                            propagateComposedEvents: true
-                        }
                     }
                 }
             }
 
-            StyledRect {
-                visible: DMSService.isConnected
-                width: parent.width
-                height: backendSection.implicitHeight + Theme.spacingL * 2
-                radius: Theme.cornerRadius
-                color: Theme.surfaceContainerHigh
-                border.color: Theme.outlineHeavy
-                border.width: 0
+            InfoCard {
+                title: "Система"
+                iconName: "computer"
+                rows: root.systemRows()
+            }
 
-                Column {
-                    id: backendSection
+            InfoCard {
+                title: "Процессор"
+                subtitle: root.cpuInfo.model || ""
+                iconName: "memory"
+                rows: root.cpuRows()
+            }
 
-                    anchors.fill: parent
-                    anchors.margins: Theme.spacingL
-                    spacing: Theme.spacingM
+            InfoCard {
+                title: "Оперативная память"
+                subtitle: root.formatBytes(root.memoryInfo.total)
+                iconName: "memory_alt"
+                rows: root.memoryRows()
+            }
 
-                    Row {
-                        width: parent.width
-                        spacing: Theme.spacingM
+            Repeater {
+                model: root.disks
 
-                        DankIcon {
-                            name: "dns"
-                            size: Theme.iconSize
-                            color: Theme.primary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                delegate: InfoCard {
+                    required property var modelData
+                    required property int index
 
-                        StyledText {
-                            text: I18n.tr("Backend")
-                            font.pixelSize: Theme.fontSizeLarge
-                            font.weight: Font.Medium
-                            color: Theme.surfaceText
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-
-                    Row {
-                        anchors.left: parent.left
-                        spacing: Theme.spacingL
-
-                        Column {
-                            spacing: Theme.spacingXXS
-
-                            StyledText {
-                                text: I18n.tr("Version")
-                                font.pixelSize: Theme.fontSizeSmall
-                                color: Theme.surfaceVariantText
-                                horizontalAlignment: Text.AlignLeft
-                            }
-
-                            StyledText {
-                                text: DMSService.cliVersion || "—"
-                                font.pixelSize: Theme.fontSizeMedium
-                                font.weight: Font.Medium
-                                color: Theme.surfaceText
-                                horizontalAlignment: Text.AlignLeft
-                            }
-                        }
-
-                        Rectangle {
-                            width: 1
-                            height: 32
-                            color: Theme.outlineVariant
-                        }
-
-                        Column {
-                            spacing: Theme.spacingXXS
-
-                            StyledText {
-                                text: I18n.tr("API")
-                                font.pixelSize: Theme.fontSizeSmall
-                                color: Theme.surfaceVariantText
-                                horizontalAlignment: Text.AlignLeft
-                            }
-
-                            StyledText {
-                                text: `v${DMSService.apiVersion}`
-                                font.pixelSize: Theme.fontSizeMedium
-                                font.weight: Font.Medium
-                                color: Theme.surfaceText
-                                horizontalAlignment: Text.AlignLeft
-                            }
-                        }
-
-                        Rectangle {
-                            width: 1
-                            height: 32
-                            color: Theme.outlineVariant
-                        }
-
-                        Column {
-                            spacing: Theme.spacingXXS
-
-                            StyledText {
-                                text: I18n.tr("Status")
-                                font.pixelSize: Theme.fontSizeSmall
-                                color: Theme.surfaceVariantText
-                                horizontalAlignment: Text.AlignLeft
-                            }
-
-                            Row {
-                                spacing: Theme.spacingXS
-
-                                Rectangle {
-                                    width: 8
-                                    height: 8
-                                    radius: 4
-                                    color: Theme.success
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-
-                                StyledText {
-                                    text: I18n.tr("Connected")
-                                    font.pixelSize: Theme.fontSizeMedium
-                                    font.weight: Font.Medium
-                                    color: Theme.surfaceText
-                                    horizontalAlignment: Text.AlignLeft
-                                }
-                            }
-                        }
-                    }
-
-                    Column {
-                        width: parent.width
-                        spacing: Theme.spacingS
-                        visible: DMSService.capabilities.length > 0
-
-                        StyledText {
-                            text: I18n.tr("Capabilities")
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceVariantText
-                            width: parent.width
-                            horizontalAlignment: Text.AlignLeft
-                        }
-
-                        Flow {
-                            width: parent.width
-                            spacing: Theme.spacingS
-
-                            Repeater {
-                                model: DMSService.capabilities
-
-                                Rectangle {
-                                    width: capText.implicitWidth + 16
-                                    height: 26
-                                    radius: 13
-                                    color: Theme.primaryHover
-
-                                    StyledText {
-                                        id: capText
-                                        anchors.centerIn: parent
-                                        text: modelData
-                                        font.pixelSize: Theme.fontSizeSmall
-                                        color: Theme.primary
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    width: mainColumn.width
+                    title: root.disks.length > 1
+                        ? "Физический диск " + (index + 1)
+                        : "Физический диск"
+                    subtitle: modelData.model || modelData.device
+                    iconName: "hard_drive"
+                    rows: root.diskRows(modelData)
                 }
             }
 
-            StyledText {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: I18n.tr('<a href="https://github.com/lyrka-meow/MacqueenDE/blob/main/LICENSE" style="text-decoration:none; color:%1;">MIT License</a>').arg(Theme.surfaceVariantText)
-                font.pixelSize: Theme.fontSizeMedium
-                color: Theme.surfaceVariantText
-                textFormat: Text.RichText
-                wrapMode: Text.NoWrap
-                onLinkActivated: url => Qt.openUrlExternally(url)
+            InfoCard {
+                title: "Разделы и хранилища"
+                iconName: "storage"
+                rows: root.mountRows()
+            }
 
-                MouseArea {
-                    anchors.fill: parent
-                    cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.ArrowCursor
-                    acceptedButtons: Qt.NoButton
-                    propagateComposedEvents: true
+            Repeater {
+                model: root.gpus
+
+                delegate: InfoCard {
+                    required property var modelData
+                    required property int index
+
+                    width: mainColumn.width
+                    title: root.gpus.length > 1
+                        ? "Видеокарта " + (index + 1) + " · " + root.localizedGpuType(modelData.type)
+                        : "Видеокарта · " + root.localizedGpuType(modelData.type)
+                    subtitle: modelData.name
+                    iconName: modelData.type === "Integrated" ? "developer_board" : "videogame_asset"
+                    rows: root.gpuRows(modelData)
                 }
             }
-        }
-    }
 
-    // Community tooltip - positioned absolutely above everything
-    Rectangle {
-        id: communityTooltip
-        parent: aboutTab
-        z: 1000
-
-        property var hoveredButton: {
-            if (compositorButton.hovered)
-                return compositorButton;
-            if (matrixButton.visible && matrixButton.hovered)
-                return matrixButton;
-            if (ircButton.visible && ircButton.hovered)
-                return ircButton;
-            if (dmsDiscordButton.hovered)
-                return dmsDiscordButton;
-            if (compositorDiscordButton.visible && compositorDiscordButton.hovered)
-                return compositorDiscordButton;
-            if (redditButton.visible && redditButton.hovered)
-                return redditButton;
-            return null;
-        }
-
-        property string tooltipText: hoveredButton ? hoveredButton.tooltipText : ""
-
-        visible: hoveredButton !== null && tooltipText !== ""
-        width: tooltipLabel.implicitWidth + 24
-        height: tooltipLabel.implicitHeight + 12
-
-        color: Theme.surfaceContainer
-        radius: Theme.cornerRadius
-        border.width: 0
-        border.color: Theme.outlineMedium
-
-        x: hoveredButton ? hoveredButton.mapToItem(aboutTab, hoveredButton.width / 2, 0).x - width / 2 : 0
-        y: hoveredButton ? communityIcons.mapToItem(aboutTab, 0, 0).y - height - 8 : 0
-
-        ElevationShadow {
-            anchors.fill: parent
-            z: -1
-            level: Theme.elevationLevel1
-            fallbackOffset: 1
-            targetRadius: communityTooltip.radius
-            targetColor: communityTooltip.color
-            borderColor: communityTooltip.border.color
-            borderWidth: communityTooltip.border.width
-            shadowOpacity: Theme.elevationLevel1 && Theme.elevationLevel1.alpha !== undefined ? Theme.elevationLevel1.alpha : 0.2
-            shadowEnabled: Theme.elevationEnabled
-        }
-
-        StyledText {
-            id: tooltipLabel
-            anchors.centerIn: parent
-            text: communityTooltip.tooltipText
-            font.pixelSize: Theme.fontSizeSmall
-            color: Theme.surfaceText
+            InfoCard {
+                visible: !root.loading && root.gpus.length === 0
+                title: "Графика"
+                iconName: "videogame_asset"
+                rows: [{
+                    "label": "Статус",
+                    "value": "Видеокарты не обнаружены. Для определения требуется пакет pciutils."
+                }]
+            }
         }
     }
 }

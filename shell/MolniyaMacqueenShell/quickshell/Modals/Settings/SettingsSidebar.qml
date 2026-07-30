@@ -412,8 +412,8 @@ Rectangle {
         },
         {
             "id": "about",
-            "text": I18n.tr("About"),
-            "icon": "info",
+            "text": I18n.tr("System Information"),
+            "icon": "computer",
             "tabIndex": 13
         }
     ]

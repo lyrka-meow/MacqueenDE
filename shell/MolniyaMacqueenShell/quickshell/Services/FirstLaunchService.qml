@@ -79,7 +79,9 @@ Singleton {
 
                 if (result === "first") {
                     root.isFirstLaunch = true;
-                    log.info("First launch detected, greeter will be shown");
+                    root.greeterDismissed = true;
+                    log.info("First launch detected; inherited DMS onboarding is disabled in MacqueenDE");
+                    touchMarkerProcess.running = true;
                 } else if (result === "existing_user") {
                     root.isFirstLaunch = false;
                     log.info("Existing user detected, silently creating marker");
@@ -89,9 +91,6 @@ Singleton {
                 }
 
                 root.checkComplete = true;
-
-                if (root.isFirstLaunch)
-                    root.greeterRequested();
             }
         }
     }

@@ -390,7 +390,6 @@ Item {
                     StyledText {
                         width: parent.width
                         visible: infoCard.subtitle.length > 0
-                        height: visible ? implicitHeight : 0
                         text: infoCard.subtitle
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.surfaceVariantText

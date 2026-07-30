@@ -14,11 +14,10 @@ Item {
     readonly property real lyricProgress: lyricCount > 0 && currentIndex >= 0 ? Math.min(1, (currentIndex + 1) / lyricCount) : 0
 
     function localizedLyricsError(message) {
-        if (message === "Lyrics are available, but not synchronized")
+        const normalized = String(message || "").toLowerCase();
+        if (normalized.includes("not synchronized"))
             return I18n.tr("Lyrics are available, but not synchronized");
-        if (!message || message === "Lyrics not found")
-            return I18n.tr("Lyrics not found");
-        return message;
+        return I18n.tr("Lyrics not found");
     }
 
     onCurrentIndexChanged: {

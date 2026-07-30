@@ -8,6 +8,21 @@ Item {
     id: localeTab
 
     readonly property string _systemDefaultLabel: I18n.tr("System Default")
+    property bool shortcutRecording: false
+
+    function startShortcutRecording() {
+        shortcutRecording = true;
+        shortcutField.forceActiveFocus();
+        Macqueen.setShortcutCaptureActive(true);
+    }
+
+    function stopShortcutRecording() {
+        if (!shortcutRecording)
+            return;
+
+        shortcutRecording = false;
+        Macqueen.setShortcutCaptureActive(false);
+    }
 
     function availableLayoutOptions() {
         const configured = Macqueen.keyboardLayouts.map((layout) => {
@@ -71,6 +86,23 @@ Item {
 
         }
         return "";
+    }
+
+    Component.onDestruction: {
+        if (shortcutRecording)
+            Macqueen.setShortcutCaptureActive(false);
+    }
+
+    Connections {
+        target: Macqueen
+
+        function onShortcutCaptured(shortcut) {
+            if (!localeTab.shortcutRecording)
+                return;
+
+            localeTab.stopShortcutRecording();
+            Macqueen.setKeyboardLayoutShortcut(shortcut);
+        }
     }
 
     DankFlickable {
@@ -150,14 +182,111 @@ Item {
                         wrapMode: Text.WordWrap
                     }
 
-                    StyledText {
-                        visible: Macqueen.keyboardLayouts.length > 1
+                    Rectangle {
+                        visible: Macqueen.protocolVersion >= 10
                         width: parent.width
-                        text: "Alt+Shift — переключить раскладку"
-                        color: Theme.primary
-                        font.pixelSize: Theme.fontSizeSmall
-                        font.weight: Font.Medium
-                        wrapMode: Text.WordWrap
+                        height: shortcutRow.height + Theme.spacingL * 2
+                        radius: Theme.cornerRadius
+                        color: Theme.surfaceContainerHigh
+
+                        Row {
+                            id: shortcutRow
+
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.leftMargin: Theme.spacingM
+                            anchors.rightMargin: Theme.spacingM
+                            spacing: Theme.spacingM
+                            height: Math.max(shortcutDescription.implicitHeight, shortcutField.height, resetShortcutButton.height)
+
+                            Column {
+                                id: shortcutDescription
+
+                                width: Math.max(120, parent.width - shortcutField.width - resetShortcutButton.width - parent.spacing * 2)
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+
+                                StyledText {
+                                    width: parent.width
+                                    text: "Смена раскладки"
+                                    color: Theme.surfaceText
+                                    font.pixelSize: Theme.fontSizeMedium
+                                    font.weight: Font.Medium
+                                    wrapMode: Text.WordWrap
+                                }
+
+                                StyledText {
+                                    width: parent.width
+                                    text: localeTab.shortcutRecording ? "Нажмите новое сочетание клавиш" : "Нажмите на сочетание, чтобы изменить"
+                                    color: localeTab.shortcutRecording ? Theme.primary : Theme.surfaceVariantText
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+
+                            FocusScope {
+                                id: shortcutField
+
+                                width: 142
+                                height: 40
+                                anchors.verticalCenter: parent.verticalCenter
+                                activeFocusOnTab: true
+
+                                Keys.onPressed: event => {
+                                    if (event.key === Qt.Key_Escape) {
+                                        localeTab.stopShortcutRecording();
+                                        event.accepted = true;
+                                    }
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: Theme.cornerRadius
+                                    color: localeTab.shortcutRecording ? Theme.primaryContainer : Theme.surfaceContainerHighest
+                                    border.width: localeTab.shortcutRecording || shortcutField.activeFocus ? 2 : 1
+                                    border.color: localeTab.shortcutRecording ? Theme.primary : Theme.outlineVariant
+                                }
+
+                                StyledText {
+                                    anchors.centerIn: parent
+                                    width: parent.width - Theme.spacingM * 2
+                                    text: localeTab.shortcutRecording ? "Запись…" : (Macqueen.keyboardLayoutShortcut || "Alt+Shift")
+                                    color: localeTab.shortcutRecording ? Theme.primary : Theme.surfaceText
+                                    font.pixelSize: Theme.fontSizeMedium
+                                    font.weight: Font.DemiBold
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        if (localeTab.shortcutRecording)
+                                            localeTab.stopShortcutRecording();
+                                        else
+                                            localeTab.startShortcutRecording();
+                                    }
+                                }
+                            }
+
+                            DankButton {
+                                id: resetShortcutButton
+
+                                anchors.verticalCenter: parent.verticalCenter
+                                iconName: "refresh"
+                                text: "Сброс"
+                                buttonHeight: 40
+                                horizontalPadding: 9
+                                backgroundColor: "transparent"
+                                textColor: Theme.surfaceVariantText
+                                onClicked: {
+                                    localeTab.stopShortcutRecording();
+                                    Macqueen.resetKeyboardLayoutShortcut();
+                                }
+                            }
+                        }
                     }
 
                     Repeater {

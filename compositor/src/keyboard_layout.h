@@ -52,6 +52,9 @@ public:
     void switchToLayout(xkb_layout_index_t index);
     void switchToLastUsedLayout();
     void resetLayout();
+    QString switchShortcut() const;
+    bool setSwitchShortcut(const QString &shortcut);
+    void resetSwitchShortcut();
 
 Q_SIGNALS:
     void layoutChanged(uint index);
@@ -68,6 +71,7 @@ private:
     xkb_layout_index_t m_layout = 0;
     KConfigWatcher::Ptr m_configWatcher;
     KConfigGroup m_configGroup;
+    QAction *m_switchKeyboardAction = nullptr;
     QList<QAction *> m_layoutShortcuts;
     KeyboardLayoutDBusInterface *m_dbusInterface = nullptr;
     std::unique_ptr<KeyboardLayoutSwitching::Policy> m_policy;

@@ -38,34 +38,38 @@ static QString translatedLayout(const QString &layout)
     return i18nd("xkeyboard-config", layout.toUtf8().constData());
 }
 
+static QList<QKeySequence> defaultLayoutSwitchShortcuts()
+{
+    return {
+        QKeySequence(QStringLiteral("Alt+Shift")),
+        QKeySequence(Qt::META | Qt::ALT | Qt::Key_K),
+    };
+}
+
 void KeyboardLayout::init()
 {
-    QAction *switchKeyboardAction = new QAction(this);
-    switchKeyboardAction->setObjectName(QStringLiteral("Switch to Next Keyboard Layout"));
-    switchKeyboardAction->setProperty("componentName", QStringLiteral("KDE Keyboard Layout Switcher"));
-    switchKeyboardAction->setProperty("componentDisplayName", i18n("Keyboard Layout Switcher"));
-    const QKeySequence altShiftShortcut(QStringLiteral("Alt+Shift"));
-    const QKeySequence legacyShortcut(Qt::META | Qt::ALT | Qt::Key_K);
-    const QList<QKeySequence> macqueenShortcuts{
-        altShiftShortcut,
-        legacyShortcut,
-    };
+    m_switchKeyboardAction = new QAction(this);
+    m_switchKeyboardAction->setObjectName(QStringLiteral("Switch to Next Keyboard Layout"));
+    m_switchKeyboardAction->setProperty("componentName", QStringLiteral("KDE Keyboard Layout Switcher"));
+    m_switchKeyboardAction->setProperty("componentDisplayName", i18n("Keyboard Layout Switcher"));
+    const QList<QKeySequence> macqueenShortcuts = defaultLayoutSwitchShortcuts();
+    const QKeySequence legacyShortcut = macqueenShortcuts.at(1);
     KGlobalAccel::self()->setGlobalShortcut(
-        switchKeyboardAction,
+        m_switchKeyboardAction,
         macqueenShortcuts);
 
     // alpha.14 and older registered Meta+Alt+K as the only default. Migrate
     // that untouched legacy value so updating users receive Alt+Shift too,
     // while preserving any genuinely customized shortcut.
-    const QList<QKeySequence> loadedShortcuts = KGlobalAccel::self()->shortcut(switchKeyboardAction);
+    const QList<QKeySequence> loadedShortcuts = KGlobalAccel::self()->shortcut(m_switchKeyboardAction);
     if (loadedShortcuts.size() == 1 && loadedShortcuts.constFirst() == legacyShortcut) {
         KGlobalAccel::self()->setShortcut(
-            switchKeyboardAction,
+            m_switchKeyboardAction,
             macqueenShortcuts,
             KGlobalAccel::NoAutoloading);
     }
 
-    connect(switchKeyboardAction, &QAction::triggered, this, &KeyboardLayout::switchToNextLayout);
+    connect(m_switchKeyboardAction, &QAction::triggered, this, &KeyboardLayout::switchToNextLayout);
 
     QAction *switchLastUsedKeyboardAction = new QAction(this);
     switchLastUsedKeyboardAction->setObjectName(QStringLiteral("Switch to Last-Used Keyboard Layout"));
@@ -84,6 +88,50 @@ void KeyboardLayout::init()
             m_dbusInterface, &KeyboardLayoutDBusInterface::layoutChanged);
     // TODO: the signal might be emitted even if the list didn't change
     connect(this, &KeyboardLayout::layoutsReconfigured, m_dbusInterface, &KeyboardLayoutDBusInterface::layoutListChanged);
+}
+
+QString KeyboardLayout::switchShortcut() const
+{
+    if (!m_switchKeyboardAction) {
+        return {};
+    }
+    const QList<QKeySequence> shortcuts = KGlobalAccel::self()->shortcut(m_switchKeyboardAction);
+    if (shortcuts.isEmpty()) {
+        return {};
+    }
+    QString portable = shortcuts.constFirst().toString(QKeySequence::PortableText);
+    return portable.replace(QStringLiteral("Meta"), QStringLiteral("Super"));
+}
+
+bool KeyboardLayout::setSwitchShortcut(const QString &shortcut)
+{
+    if (!m_switchKeyboardAction) {
+        return false;
+    }
+
+    QString portable = shortcut.trimmed();
+    portable.replace(QStringLiteral("Super"), QStringLiteral("Meta"), Qt::CaseInsensitive);
+    const QKeySequence sequence = QKeySequence::fromString(portable, QKeySequence::PortableText);
+    if (sequence.isEmpty()) {
+        return false;
+    }
+
+    KGlobalAccel::self()->setShortcut(
+        m_switchKeyboardAction,
+        {sequence},
+        KGlobalAccel::NoAutoloading);
+    return true;
+}
+
+void KeyboardLayout::resetSwitchShortcut()
+{
+    if (!m_switchKeyboardAction) {
+        return;
+    }
+    KGlobalAccel::self()->setShortcut(
+        m_switchKeyboardAction,
+        defaultLayoutSwitchShortcuts(),
+        KGlobalAccel::NoAutoloading);
 }
 
 void KeyboardLayout::switchToNextLayout()

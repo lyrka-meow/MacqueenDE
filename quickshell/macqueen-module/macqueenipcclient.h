@@ -27,6 +27,7 @@ class MacqueenIpcClient : public QObject
     Q_PROPERTY(QVariantList keyboardLayouts READ keyboardLayouts NOTIFY keyboardLayoutsChanged)
     Q_PROPERTY(QVariantList availableKeyboardLayouts READ availableKeyboardLayouts NOTIFY availableKeyboardLayoutsChanged)
     Q_PROPERTY(uint currentKeyboardLayout READ currentKeyboardLayout NOTIFY keyboardLayoutsChanged)
+    Q_PROPERTY(QString keyboardLayoutShortcut READ keyboardLayoutShortcut NOTIFY keyboardLayoutShortcutChanged)
     Q_PROPERTY(QString screenshotShortcut READ screenshotShortcut NOTIFY screenshotShortcutChanged)
 
 public:
@@ -42,6 +43,7 @@ public:
     QVariantList keyboardLayouts() const;
     QVariantList availableKeyboardLayouts() const;
     uint currentKeyboardLayout() const;
+    QString keyboardLayoutShortcut() const;
     QString screenshotShortcut() const;
 
     Q_INVOKABLE void refresh();
@@ -57,6 +59,8 @@ public:
     Q_INVOKABLE QString outputAtCursor() const;
     Q_INVOKABLE bool setKeyboardLayouts(const QStringList &layouts);
     Q_INVOKABLE bool setCurrentKeyboardLayout(uint index);
+    Q_INVOKABLE bool setKeyboardLayoutShortcut(const QString &shortcut);
+    Q_INVOKABLE bool resetKeyboardLayoutShortcut();
     Q_INVOKABLE bool submitScreenCastSelection(const QString &requestId, const QString &kind, const QString &id, bool allowRestore = true);
     Q_INVOKABLE bool cancelScreenCastSelection(const QString &requestId);
     Q_INVOKABLE bool setScreenshotShortcut(const QString &shortcut);
@@ -73,6 +77,7 @@ Q_SIGNALS:
     void workspacesChanged();
     void keyboardLayoutsChanged();
     void availableKeyboardLayoutsChanged();
+    void keyboardLayoutShortcutChanged();
     void overviewRequested(const QString &reason);
     void screenCastSelectionRequested(const QString &requestId, const QString &title, const QString &optionsJson);
     void screenshotRequested();
@@ -91,6 +96,7 @@ private Q_SLOTS:
     void refreshKeyboardLayouts();
     void handleOverviewRequested(const QString &reason);
     void handleScreenCastSelectionRequested(const QString &requestId, const QString &title, const QString &optionsJson);
+    void handleKeyboardLayoutShortcutChanged(const QString &shortcut);
     void handleScreenshotShortcutChanged(const QString &shortcut);
 
 private:
@@ -115,5 +121,6 @@ private:
     QVariantList m_keyboardLayouts;
     QVariantList m_availableKeyboardLayouts;
     uint m_currentKeyboardLayout = 0;
+    QString m_keyboardLayoutShortcut;
     QString m_screenshotShortcut;
 };

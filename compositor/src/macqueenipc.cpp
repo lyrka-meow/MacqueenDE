@@ -154,7 +154,7 @@ MacqueenIpc::~MacqueenIpc()
 
 uint MacqueenIpc::protocolVersion() const
 {
-    return 9;
+    return 10;
 }
 
 QString MacqueenIpc::compositorVersion() const
@@ -322,6 +322,36 @@ bool MacqueenIpc::setCurrentKeyboardLayout(uint index)
     return true;
 }
 
+QString MacqueenIpc::keyboardLayoutShortcut() const
+{
+    if (!input() || !input()->keyboard() || !input()->keyboard()->keyboardLayout()) {
+        return {};
+    }
+    return input()->keyboard()->keyboardLayout()->switchShortcut();
+}
+
+bool MacqueenIpc::setKeyboardLayoutShortcut(const QString &shortcut)
+{
+    if (!input() || !input()->keyboard() || !input()->keyboard()->keyboardLayout()) {
+        return false;
+    }
+    const bool changed = input()->keyboard()->keyboardLayout()->setSwitchShortcut(shortcut);
+    if (changed) {
+        Q_EMIT keyboardLayoutShortcutChanged(keyboardLayoutShortcut());
+    }
+    return changed;
+}
+
+bool MacqueenIpc::resetKeyboardLayoutShortcut()
+{
+    if (!input() || !input()->keyboard() || !input()->keyboard()->keyboardLayout()) {
+        return false;
+    }
+    input()->keyboard()->keyboardLayout()->resetSwitchShortcut();
+    Q_EMIT keyboardLayoutShortcutChanged(keyboardLayoutShortcut());
+    return true;
+}
+
 bool MacqueenIpc::activateWorkspace(const QString &id)
 {
     VirtualDesktopManager *manager = VirtualDesktopManager::self();
@@ -457,6 +487,11 @@ void MacqueenIpc::setShortcutCaptureActive(bool active)
     m_screenshotAction->setEnabled(!active);
     if (active) {
         m_pressedRawKeys.clear();
+        m_captureModifierKeys.clear();
+        m_captureSawNonModifier = false;
+    } else {
+        m_captureModifierKeys.clear();
+        m_captureSawNonModifier = false;
     }
 }
 
@@ -528,10 +563,18 @@ bool MacqueenIpc::toggleHoveredWindowBorder()
 
 void MacqueenIpc::handleRawKeyState(quint32 keyCode, KeyboardKeyState state)
 {
+    const bool modifierKey = keyCode == KEY_LEFTSHIFT || keyCode == KEY_RIGHTSHIFT
+        || keyCode == KEY_LEFTMETA || keyCode == KEY_RIGHTMETA
+        || keyCode == KEY_LEFTCTRL || keyCode == KEY_RIGHTCTRL
+        || keyCode == KEY_LEFTALT || keyCode == KEY_RIGHTALT;
+
     m_lastRawKeyCode = keyCode;
     m_lastRawKeyState = state;
     if (state == KeyboardKeyState::Pressed) {
         m_pressedRawKeys.insert(keyCode);
+        if (m_shortcutCaptureActive && modifierKey) {
+            m_captureModifierKeys.insert(keyCode);
+        }
     } else if (state == KeyboardKeyState::Released) {
         m_pressedRawKeys.remove(keyCode);
     }
@@ -545,11 +588,8 @@ void MacqueenIpc::handleRawKeyState(quint32 keyCode, KeyboardKeyState state)
     }
 
     if (m_shortcutCaptureActive && state == KeyboardKeyState::Pressed) {
-        const bool modifierKey = keyCode == KEY_LEFTSHIFT || keyCode == KEY_RIGHTSHIFT
-            || keyCode == KEY_LEFTMETA || keyCode == KEY_RIGHTMETA
-            || keyCode == KEY_LEFTCTRL || keyCode == KEY_RIGHTCTRL
-            || keyCode == KEY_LEFTALT || keyCode == KEY_RIGHTALT;
         if (!modifierKey) {
+            m_captureSawNonModifier = true;
             Xkb *xkb = input()->keyboard()->xkb();
             const Qt::Key key = xkb->toQtKey(xkb->toKeysym(keyCode), keyCode);
             if (key != Qt::Key_unknown) {
@@ -574,6 +614,28 @@ void MacqueenIpc::handleRawKeyState(quint32 keyCode, KeyboardKeyState state)
                 }
             }
         }
+    } else if (m_shortcutCaptureActive
+               && state == KeyboardKeyState::Released
+               && modifierKey
+               && !m_captureSawNonModifier
+               && m_pressedRawKeys.isEmpty()) {
+        QStringList modifiers;
+        if (m_captureModifierKeys.contains(KEY_LEFTMETA) || m_captureModifierKeys.contains(KEY_RIGHTMETA)) {
+            modifiers.append(QStringLiteral("Super"));
+        }
+        if (m_captureModifierKeys.contains(KEY_LEFTALT) || m_captureModifierKeys.contains(KEY_RIGHTALT)) {
+            modifiers.append(QStringLiteral("Alt"));
+        }
+        if (m_captureModifierKeys.contains(KEY_LEFTCTRL) || m_captureModifierKeys.contains(KEY_RIGHTCTRL)) {
+            modifiers.append(QStringLiteral("Ctrl"));
+        }
+        if (m_captureModifierKeys.contains(KEY_LEFTSHIFT) || m_captureModifierKeys.contains(KEY_RIGHTSHIFT)) {
+            modifiers.append(QStringLiteral("Shift"));
+        }
+        if (modifiers.size() >= 2) {
+            Q_EMIT shortcutCaptured(modifiers.join(QLatin1Char('+')));
+        }
+        m_captureModifierKeys.clear();
     }
 
     if (m_shortcutCaptureActive

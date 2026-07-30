@@ -120,6 +120,8 @@ MacqueenIpcClient::MacqueenIpcClient(QObject *parent)
     bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
                 QStringLiteral("keyboardLayoutsChanged"), this, SLOT(refreshKeyboardLayouts()));
     bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
+                QStringLiteral("keyboardLayoutShortcutChanged"), this, SLOT(handleKeyboardLayoutShortcutChanged(QString)));
+    bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
                 QStringLiteral("overviewRequested"), this, SLOT(handleOverviewRequested(QString)));
     bus.connect(QString::fromLatin1(Service), QString::fromLatin1(Path), QString::fromLatin1(Interface),
                 QStringLiteral("screenshotRequested"), this, SIGNAL(screenshotRequested()));
@@ -193,6 +195,11 @@ uint MacqueenIpcClient::currentKeyboardLayout() const
     return m_currentKeyboardLayout;
 }
 
+QString MacqueenIpcClient::keyboardLayoutShortcut() const
+{
+    return m_keyboardLayoutShortcut;
+}
+
 QString MacqueenIpcClient::screenshotShortcut() const
 {
     return m_screenshotShortcut;
@@ -209,6 +216,11 @@ void MacqueenIpcClient::refresh()
     refreshOutputs();
     refreshWorkspaces();
     refreshKeyboardLayouts();
+    if (m_protocolVersion >= 10) {
+        handleKeyboardLayoutShortcutChanged(call(QStringLiteral("keyboardLayoutShortcut")).toString());
+    } else {
+        handleKeyboardLayoutShortcutChanged({});
+    }
     if (m_protocolVersion >= 4) {
         handleScreenshotShortcutChanged(call(QStringLiteral("screenshotShortcut")).toString());
     } else {
@@ -283,6 +295,30 @@ bool MacqueenIpcClient::setCurrentKeyboardLayout(uint index)
     const bool changed = call(QStringLiteral("setCurrentKeyboardLayout"), {index}).toBool();
     if (changed) {
         refreshKeyboardLayouts();
+    }
+    return changed;
+}
+
+bool MacqueenIpcClient::setKeyboardLayoutShortcut(const QString &shortcut)
+{
+    if (!m_available || m_protocolVersion < 10) {
+        return false;
+    }
+    const bool changed = call(QStringLiteral("setKeyboardLayoutShortcut"), {shortcut}).toBool();
+    if (changed) {
+        handleKeyboardLayoutShortcutChanged(call(QStringLiteral("keyboardLayoutShortcut")).toString());
+    }
+    return changed;
+}
+
+bool MacqueenIpcClient::resetKeyboardLayoutShortcut()
+{
+    if (!m_available || m_protocolVersion < 10) {
+        return false;
+    }
+    const bool changed = call(QStringLiteral("resetKeyboardLayoutShortcut")).toBool();
+    if (changed) {
+        handleKeyboardLayoutShortcutChanged(call(QStringLiteral("keyboardLayoutShortcut")).toString());
     }
     return changed;
 }
@@ -394,6 +430,15 @@ void MacqueenIpcClient::handleScreenCastSelectionRequested(const QString &reques
     Q_EMIT screenCastSelectionRequested(requestId, title, optionsJson);
 }
 
+void MacqueenIpcClient::handleKeyboardLayoutShortcutChanged(const QString &shortcut)
+{
+    if (m_keyboardLayoutShortcut == shortcut) {
+        return;
+    }
+    m_keyboardLayoutShortcut = shortcut;
+    Q_EMIT keyboardLayoutShortcutChanged();
+}
+
 void MacqueenIpcClient::handleScreenshotShortcutChanged(const QString &shortcut)
 {
     if (m_screenshotShortcut == shortcut) {
@@ -492,6 +537,8 @@ void MacqueenIpcClient::clear()
     m_keyboardLayouts.clear();
     m_availableKeyboardLayouts.clear();
     m_currentKeyboardLayout = 0;
+    m_keyboardLayoutShortcut.clear();
+    m_screenshotShortcut.clear();
 
     if (wasAvailable) {
         Q_EMIT availableChanged();
@@ -503,4 +550,6 @@ void MacqueenIpcClient::clear()
     Q_EMIT workspacesChanged();
     Q_EMIT keyboardLayoutsChanged();
     Q_EMIT availableKeyboardLayoutsChanged();
+    Q_EMIT keyboardLayoutShortcutChanged();
+    Q_EMIT screenshotShortcutChanged();
 }

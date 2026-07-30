@@ -42,6 +42,9 @@ public Q_SLOTS:
     uint currentKeyboardLayout() const;
     bool setKeyboardLayouts(const QStringList &layouts);
     bool setCurrentKeyboardLayout(uint index);
+    QString keyboardLayoutShortcut() const;
+    bool setKeyboardLayoutShortcut(const QString &shortcut);
+    bool resetKeyboardLayoutShortcut();
     bool activateWorkspace(const QString &id);
     QString createWorkspace(uint position, const QString &name);
     bool removeWorkspace(const QString &id);
@@ -72,6 +75,7 @@ Q_SIGNALS:
     void outputsChanged();
     void workspacesChanged();
     void keyboardLayoutsChanged();
+    void keyboardLayoutShortcutChanged(const QString &shortcut);
     void overviewRequested(const QString &reason);
     void screenshotRequested();
     void screenshotShortcutChanged(const QString &shortcut);
@@ -86,6 +90,8 @@ private:
     QAction *m_toggleHoveredBorderAction = nullptr;
     bool m_shortcutCaptureActive = false;
     QSet<quint32> m_pressedRawKeys;
+    QSet<quint32> m_captureModifierKeys;
+    bool m_captureSawNonModifier = false;
     QStringList m_recentRawKeyEvents;
     quint32 m_lastRawKeyCode = 0;
     KeyboardKeyState m_lastRawKeyState = KeyboardKeyState::Released;

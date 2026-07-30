@@ -729,19 +729,17 @@ Item {
             y: 134
             z: 100
             visible: (allPlayers?.length || 0) >= 1
-            color: playersExpanded
-                ? Theme.withAlpha(root.accent, 0.58)
-                : (playerSelectorArea.containsMouse ? "#352526" : "#241a1b")
+            color: playerSelectorArea.containsMouse || playersExpanded ? "#352526" : "#241a1b"
             border.width: 1
             border.color: playersExpanded
-                ? Theme.withAlpha(root.accent, 0.5)
+                ? Theme.withAlpha(Theme.surfaceText, 0.16)
                 : Theme.withAlpha(Theme.surfaceText, 0.05)
 
             DankIcon {
                 anchors.centerIn: parent
                 name: "queue_music"
                 size: 19
-                color: playersExpanded ? root.onAccent : Theme.surfaceText
+                color: Theme.surfaceText
             }
 
             MouseArea {

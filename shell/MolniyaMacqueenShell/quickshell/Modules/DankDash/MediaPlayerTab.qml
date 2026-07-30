@@ -622,13 +622,13 @@ Item {
                             ? LyricsService.lines[sourceIndex]
                             : null
                         width: inlineLyrics.width
-                        height: 33
+                        height: currentLine ? 53 : 28
 
                         Rectangle {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
                             width: 3
-                            height: 18
+                            height: parent.currentLine ? Math.min(32, parent.height - 12) : 18
                             radius: 2
                             color: root.accent
                             visible: parent.currentLine && !!parent.lyricLine
@@ -652,8 +652,10 @@ Item {
                             font.weight: parent.currentLine ? Font.DemiBold : Font.Normal
                             color: parent.currentLine ? Theme.surfaceText : Theme.surfaceTextSecondary
                             opacity: parent.currentLine ? 1 : (parent.index === 1 || parent.index === 3 ? 0.56 : 0.36)
+                            wrapMode: parent.currentLine ? Text.WrapAtWordBoundaryOrAnywhere : Text.NoWrap
                             elide: Text.ElideRight
-                            maximumLineCount: 1
+                            maximumLineCount: parent.currentLine ? 2 : 1
+                            lineHeight: parent.currentLine ? 0.96 : 1
 
                             Behavior on opacity { NumberAnimation { duration: 180 } }
                             Behavior on color { ColorAnimation { duration: 180 } }

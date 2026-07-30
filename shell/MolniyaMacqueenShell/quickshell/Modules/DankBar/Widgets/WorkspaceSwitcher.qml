@@ -1021,6 +1021,8 @@ Item {
                     height: root.widgetHeight
 
                     Rectangle {
+                        id: macqueenWorkspaceSurface
+
                         anchors.centerIn: parent
                         width: Theme.snap(29, root.dpr)
                         height: Theme.snap(Math.max(20, root.widgetHeight - 1), root.dpr)
@@ -1062,14 +1064,29 @@ Item {
 
                     Rectangle {
                         anchors {
-                            horizontalCenter: parent.horizontalCenter
-                            bottom: parent.bottom
+                            horizontalCenter: macqueenWorkspaceSurface.horizontalCenter
+                            bottom: macqueenWorkspaceSurface.bottom
+                            bottomMargin: Theme.snap(3, root.dpr)
                         }
-                        visible: macqueenWorkspaceMouse.containsMouse && !macqueenWorkspaceCell.active
-                        width: Theme.snap(14, root.dpr)
+                        visible: !macqueenWorkspaceCell.active
+                        width: macqueenWorkspaceMouse.containsMouse ? Theme.snap(14, root.dpr) : 0
                         height: Theme.hairline(root.dpr)
                         radius: height / 2
-                        color: Theme.withAlpha(Theme.primary, 0.8)
+                        color: Theme.withAlpha(Theme.surfaceText, 0.48)
+                        opacity: macqueenWorkspaceMouse.containsMouse ? 1 : 0
+
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: Theme.shortDuration
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Theme.shortDuration
+                            }
+                        }
                     }
 
                     MouseArea {

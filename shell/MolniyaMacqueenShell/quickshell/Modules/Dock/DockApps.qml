@@ -112,16 +112,6 @@ Item {
 
                 Component.onCompleted: updateModel()
 
-                function isOnScreen(toplevel, screenName) {
-                    if (!toplevel.screens)
-                        return false;
-                    for (let i = 0; i < toplevel.screens.length; i++) {
-                        if (toplevel.screens[i]?.name === screenName)
-                            return true;
-                    }
-                    return false;
-                }
-
                 function getCoreAppData(appId) {
                     if (typeof AppSearchService === "undefined")
                         return null;
@@ -148,7 +138,12 @@ Item {
                     const items = [];
                     const pinnedApps = [...(SessionData.pinnedApps || [])];
                     const allToplevels = CompositorService.sortedToplevels;
-                    const sortedToplevels = (SettingsData.dockIsolateDisplays && root.dockScreen) ? allToplevels.filter(t => isOnScreen(t, root.dockScreen.name)) : allToplevels;
+                    // Let the compositor adapter resolve output membership.
+                    // Macqueen snapshots expose `output`, while native
+                    // foreign-toplevel objects usually expose `screens`.
+                    const sortedToplevels = (SettingsData.dockIsolateDisplays && root.dockScreen)
+                        ? CompositorService.filterCurrentDisplay(allToplevels, root.dockScreen.name)
+                        : allToplevels;
 
                     if (root.groupByApp) {
                         return buildGroupedItems(pinnedApps, sortedToplevels);

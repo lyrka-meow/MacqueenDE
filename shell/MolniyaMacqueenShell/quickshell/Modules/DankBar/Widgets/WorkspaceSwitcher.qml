@@ -1066,10 +1066,10 @@ Item {
                             bottom: parent.bottom
                         }
                         visible: macqueenWorkspaceMouse.containsMouse && !macqueenWorkspaceCell.active
-                        width: Theme.snap(16, root.dpr)
+                        width: Theme.snap(14, root.dpr)
                         height: Theme.hairline(root.dpr)
                         radius: height / 2
-                        color: Theme.primary
+                        color: Theme.withAlpha(Theme.primary, 0.8)
                     }
 
                     MouseArea {

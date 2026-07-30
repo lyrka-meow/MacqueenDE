@@ -1039,9 +1039,19 @@ Item {
                         anchors.centerIn: parent
                         text: String(macqueenWorkspaceCell.workspaceNumber).padStart(2, "0")
                         color: macqueenWorkspaceCell.active ? Theme.onPrimary : Theme.surfaceText
-                        opacity: 1
+                        opacity: {
+                            if (macqueenWorkspaceCell.active || macqueenWorkspaceMouse.containsMouse)
+                                return 1;
+                            return Math.max(0.2, 0.92 - macqueenWorkspaceCell.index * 0.18);
+                        }
                         font.pixelSize: Math.max(9, Math.round(root.widgetHeight * 0.31))
                         font.weight: Font.Bold
+
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: Theme.shortDuration
+                            }
+                        }
                     }
 
                     Rectangle {

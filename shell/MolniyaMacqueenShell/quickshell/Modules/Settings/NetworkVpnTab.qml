@@ -16,6 +16,9 @@ Item {
     property string pendingAppOutbound: "direct"
     property string appSearchQuery: ""
     property bool appPickerExpanded: false
+    property var detectionApplication: null
+    property string processSearchQuery: ""
+    property bool showAllProcesses: false
 
     readonly property var selectedRoute: {
         const routes = RegaliaService.routes || [];
@@ -33,9 +36,9 @@ Item {
         const configured = selectedRoute?.apps || [];
         const matches = [];
         for (const app of (RegaliaService.applications || [])) {
-            if (configured.some(rule => rule.processPath === app.processPath))
+            if (configured.some(rule => rule.desktopId === app.desktopId))
                 continue;
-            const haystack = ((app.name || "") + " " + (app.desktopId || "") + " " + (app.processPath || "")).toLowerCase();
+            const haystack = ((app.name || "") + " " + (app.desktopId || "") + " " + (app.launcherPath || "")).toLowerCase();
             if (query.length > 0 && !haystack.includes(query))
                 continue;
             matches.push(app);
@@ -43,6 +46,61 @@ Item {
                 break;
         }
         return matches;
+    }
+
+    readonly property var matchingProcesses: {
+        if (!detectionApplication)
+            return [];
+        const query = processSearchQuery.trim().toLowerCase();
+        const launcherBase = baseName(detectionApplication.launcherPath || "").toLowerCase();
+        const desktopBase = String(detectionApplication.desktopId || "").replace(/\.desktop$/i, "").toLowerCase();
+        const appName = String(detectionApplication.name || "").toLowerCase();
+        const matches = [];
+        for (const process of (RegaliaService.processes || [])) {
+            const processBase = baseName(process.processPath || "").toLowerCase();
+            const haystack = ((process.name || "") + " " + (process.processPath || "")).toLowerCase();
+            const likely = (launcherBase.length > 1 && processBase === launcherBase)
+                || (desktopBase.length > 2 && haystack.includes(desktopBase))
+                || (appName.length > 2 && haystack.includes(appName));
+            if (query.length > 0) {
+                if (!haystack.includes(query))
+                    continue;
+            } else if (!showAllProcesses && !likely) {
+                continue;
+            }
+            matches.push(process);
+            if (matches.length >= 20)
+                break;
+        }
+        return matches;
+    }
+
+    function baseName(path) {
+        const value = String(path || "");
+        const separator = value.lastIndexOf("/");
+        return separator >= 0 ? value.substring(separator + 1) : value;
+    }
+
+    function selectApplicationForDetection(application) {
+        detectionApplication = application;
+        processSearchQuery = "";
+        showAllProcesses = false;
+        RegaliaService.refreshProcesses();
+    }
+
+    function saveDetectedProcess(process) {
+        if (!detectionApplication || process?.appImage || !process?.processPath)
+            return;
+        RegaliaService.setRouteApplication(selectedRoute.id, {
+            "desktopId": detectionApplication.desktopId || "",
+            "name": detectionApplication.name || "",
+            "icon": detectionApplication.icon || "",
+            "processPath": process.processPath
+        }, pendingAppOutbound);
+        detectionApplication = null;
+        processSearchQuery = "";
+        showAllProcesses = false;
+        appPickerExpanded = false;
     }
 
     readonly property var availableServers: {
@@ -106,6 +164,9 @@ Item {
         pendingAppOutbound = selectedRoute?.defaultOutbound === "direct" ? "proxy" : "direct";
         appSearchQuery = "";
         appPickerExpanded = false;
+        detectionApplication = null;
+        processSearchQuery = "";
+        showAllProcesses = false;
     }
 
     ConfirmModal {
@@ -742,10 +803,31 @@ Item {
 
                     StyledText {
                         width: parent.width
-                        text: I18n.tr("Choose applications by name. Regalia stores their executable path automatically; you do not need to search for processPath.")
+                        text: I18n.tr("Choose an application, then confirm its exact running process. Regalia reads processPath directly from /proc, just like a process path viewer.")
                         wrapMode: Text.WordWrap
                         font.pixelSize: Theme.fontSizeSmall
                         color: Theme.surfaceVariantText
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: appImageWarning.implicitHeight + Theme.spacingM * 2
+                        radius: Theme.cornerRadius
+                        color: Theme.withAlpha(Theme.warning, 0.1)
+                        border.width: 1
+                        border.color: Theme.withAlpha(Theme.warning, 0.35)
+
+                        StyledText {
+                            id: appImageWarning
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.margins: Theme.spacingM
+                            text: I18n.tr("AppImage is not supported because its executable path changes on every launch.")
+                            wrapMode: Text.WordWrap
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.warning
+                        }
                     }
 
                     Rectangle {
@@ -896,8 +978,12 @@ Item {
                         enabled: !RegaliaService.busy && !RegaliaService.enabled
                         onClicked: {
                             networkVpnTab.appPickerExpanded = !networkVpnTab.appPickerExpanded;
-                            if (!networkVpnTab.appPickerExpanded)
+                            if (!networkVpnTab.appPickerExpanded) {
                                 networkVpnTab.appSearchQuery = "";
+                                networkVpnTab.detectionApplication = null;
+                                networkVpnTab.processSearchQuery = "";
+                                networkVpnTab.showAllProcesses = false;
+                            }
                         }
                     }
 
@@ -984,7 +1070,7 @@ Item {
 
                                         StyledText {
                                             width: parent.width
-                                            text: modelData.processPath || ""
+                                            text: modelData.launcherPath || ""
                                             elide: Text.ElideMiddle
                                             font.pixelSize: Theme.fontSizeSmall
                                             color: Theme.surfaceVariantText
@@ -994,11 +1080,11 @@ Item {
                                     DankButton {
                                         id: addRuleButton
                                         anchors.verticalCenter: parent.verticalCenter
-                                        text: I18n.tr("Add")
-                                        iconName: "add"
+                                        text: I18n.tr("Find process")
+                                        iconName: "manage_search"
                                         buttonHeight: 32
                                         enabled: !RegaliaService.busy && !RegaliaService.enabled
-                                        onClicked: RegaliaService.setRouteApplication(networkVpnTab.selectedRoute.id, modelData, networkVpnTab.pendingAppOutbound)
+                                        onClicked: networkVpnTab.selectApplicationForDetection(modelData)
                                     }
                                 }
 
@@ -1015,6 +1101,173 @@ Item {
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.surfaceVariantText
                             visible: networkVpnTab.matchingApplications.length === 0
+                        }
+
+                        Rectangle {
+                            width: parent.width
+                            height: processDetectionContent.implicitHeight + Theme.spacingM * 2
+                            radius: Theme.cornerRadius
+                            color: Theme.surfaceContainer
+                            border.width: 1
+                            border.color: Theme.primary
+                            visible: networkVpnTab.detectionApplication !== null
+
+                            Column {
+                                id: processDetectionContent
+                                anchors.left: parent.left
+                                anchors.right: parent.right
+                                anchors.top: parent.top
+                                anchors.margins: Theme.spacingM
+                                spacing: Theme.spacingS
+
+                                Row {
+                                    width: parent.width
+                                    spacing: Theme.spacingM
+
+                                    Item {
+                                        width: 36
+                                        height: 36
+
+                                        IconImage {
+                                            id: detectedApplicationIcon
+                                            anchors.fill: parent
+                                            source: Paths.resolveIconUrl(networkVpnTab.detectionApplication?.icon || "application-x-executable")
+                                            asynchronous: true
+                                            smooth: true
+                                            mipmap: true
+                                        }
+
+                                        DankIcon {
+                                            anchors.centerIn: parent
+                                            name: "apps"
+                                            size: 24
+                                            color: Theme.surfaceVariantText
+                                            visible: detectedApplicationIcon.status !== Image.Ready
+                                        }
+                                    }
+
+                                    Column {
+                                        width: parent.width - scanProcessesButton.width - 36 - Theme.spacingM * 2
+                                        spacing: Theme.spacingXXS
+
+                                        StyledText {
+                                            width: parent.width
+                                            text: networkVpnTab.detectionApplication?.name || I18n.tr("Application")
+                                            font.pixelSize: Theme.fontSizeMedium
+                                            font.weight: Font.DemiBold
+                                            color: Theme.surfaceText
+                                            elide: Text.ElideRight
+                                        }
+
+                                        StyledText {
+                                            width: parent.width
+                                            text: I18n.tr("Select the executable path shown by the running process.")
+                                            font.pixelSize: Theme.fontSizeSmall
+                                            color: Theme.surfaceVariantText
+                                            wrapMode: Text.WordWrap
+                                        }
+                                    }
+
+                                    DankButton {
+                                        id: scanProcessesButton
+                                        text: RegaliaService.processesLoading ? I18n.tr("Scanning") : I18n.tr("Scan again")
+                                        iconName: "refresh"
+                                        buttonHeight: 34
+                                        enabled: !RegaliaService.processesLoading
+                                        onClicked: RegaliaService.refreshProcesses()
+                                    }
+                                }
+
+                                DankTextField {
+                                    width: parent.width
+                                    placeholderText: I18n.tr("Search running processes by name or path")
+                                    leftIconName: "search"
+                                    showClearButton: true
+                                    backgroundColor: Theme.surfaceContainerHighest
+                                    normalBorderColor: Theme.outlineMedium
+                                    focusedBorderColor: Theme.primary
+                                    onTextChanged: networkVpnTab.processSearchQuery = text
+                                }
+
+                                Repeater {
+                                    model: networkVpnTab.matchingProcesses
+
+                                    delegate: Rectangle {
+                                        required property var modelData
+
+                                        width: parent.width
+                                        height: 66
+                                        radius: Theme.cornerRadius
+                                        color: Theme.surfaceContainerHigh
+                                        border.width: 1
+                                        border.color: modelData.appImage ? Theme.warning : Theme.outline
+
+                                        Row {
+                                            anchors.fill: parent
+                                            anchors.margins: Theme.spacingM
+                                            spacing: Theme.spacingM
+
+                                            DankIcon {
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                name: modelData.appImage ? "warning" : "memory"
+                                                size: 24
+                                                color: modelData.appImage ? Theme.warning : Theme.primary
+                                            }
+
+                                            Column {
+                                                width: parent.width - confirmProcessButton.width - 24 - Theme.spacingM * 2
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                spacing: Theme.spacingXXS
+
+                                                StyledText {
+                                                    width: parent.width
+                                                    text: (modelData.name || networkVpnTab.baseName(modelData.processPath)) + " • " + I18n.tr("%1 processes").arg(modelData.processCount || 1)
+                                                    font.pixelSize: Theme.fontSizeSmall
+                                                    font.weight: Font.Medium
+                                                    color: Theme.surfaceText
+                                                    elide: Text.ElideRight
+                                                }
+
+                                                StyledText {
+                                                    width: parent.width
+                                                    text: modelData.processPath || ""
+                                                    font.pixelSize: Theme.fontSizeSmall
+                                                    color: modelData.appImage ? Theme.warning : Theme.surfaceVariantText
+                                                    elide: Text.ElideMiddle
+                                                }
+                                            }
+
+                                            DankButton {
+                                                id: confirmProcessButton
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                text: modelData.appImage ? I18n.tr("Unsupported") : I18n.tr("Use this path")
+                                                iconName: modelData.appImage ? "block" : "check"
+                                                buttonHeight: 32
+                                                enabled: !modelData.appImage && !RegaliaService.busy && !RegaliaService.enabled
+                                                onClicked: networkVpnTab.saveDetectedProcess(modelData)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                StyledText {
+                                    width: parent.width
+                                    text: I18n.tr("The application is not running or no matching process was found. Start it and scan again, or search all running processes manually.")
+                                    wrapMode: Text.WordWrap
+                                    horizontalAlignment: Text.AlignHCenter
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    color: Theme.surfaceVariantText
+                                    visible: !RegaliaService.processesLoading && networkVpnTab.matchingProcesses.length === 0
+                                }
+
+                                DankButton {
+                                    text: networkVpnTab.showAllProcesses ? I18n.tr("Show suggested processes") : I18n.tr("Show all running processes")
+                                    iconName: networkVpnTab.showAllProcesses ? "filter_alt" : "list"
+                                    buttonHeight: 34
+                                    enabled: !RegaliaService.processesLoading
+                                    onClicked: networkVpnTab.showAllProcesses = !networkVpnTab.showAllProcesses
+                                }
+                            }
                         }
                     }
                 }

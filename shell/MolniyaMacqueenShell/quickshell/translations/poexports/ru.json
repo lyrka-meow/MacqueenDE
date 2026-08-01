@@ -9376,5 +9376,47 @@
   },
   "Application route removed": {
     "Application route removed": "Маршрут приложения удалён"
+  },
+  "Failed to scan running processes": {
+    "Failed to scan running processes": "Не удалось получить список запущенных процессов"
+  },
+  "Choose an application, then confirm its exact running process. Regalia reads processPath directly from /proc, just like a process path viewer.": {
+    "Choose an application, then confirm its exact running process. Regalia reads processPath directly from /proc, just like a process path viewer.": "Выберите приложение, затем подтвердите его настоящий запущенный процесс. Regalia читает processPath напрямую из /proc, как просмотрщик путей процессов."
+  },
+  "AppImage is not supported because its executable path changes on every launch.": {
+    "AppImage is not supported because its executable path changes on every launch.": "AppImage не поддерживается: путь к исполняемому файлу меняется при каждом запуске."
+  },
+  "Find process": {
+    "Find process": "Найти процесс"
+  },
+  "Select the executable path shown by the running process.": {
+    "Select the executable path shown by the running process.": "Выберите исполняемый путь, который показывает запущенный процесс."
+  },
+  "Scanning": {
+    "Scanning": "Поиск"
+  },
+  "Scan again": {
+    "Scan again": "Найти снова"
+  },
+  "Search running processes by name or path": {
+    "Search running processes by name or path": "Поиск запущенных процессов по имени или пути"
+  },
+  "%1 processes": {
+    "%1 processes": "Процессов: %1"
+  },
+  "Unsupported": {
+    "Unsupported": "Не поддерживается"
+  },
+  "Use this path": {
+    "Use this path": "Выбрать путь"
+  },
+  "The application is not running or no matching process was found. Start it and scan again, or search all running processes manually.": {
+    "The application is not running or no matching process was found. Start it and scan again, or search all running processes manually.": "Приложение не запущено или подходящий процесс не найден. Запустите его и повторите поиск либо найдите нужный процесс вручную среди всех запущенных."
+  },
+  "Show suggested processes": {
+    "Show suggested processes": "Показать подходящие процессы"
+  },
+  "Show all running processes": {
+    "Show all running processes": "Показать все запущенные процессы"
   }
 }

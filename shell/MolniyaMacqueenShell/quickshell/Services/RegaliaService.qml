@@ -14,7 +14,7 @@ Singleton {
     readonly property string projectUrl: "https://github.com/lyrka-meow/Regalia"
     readonly property string runtimeDirectory: Quickshell.env("XDG_RUNTIME_DIR")
     readonly property string socketPath: runtimeDirectory.length > 0 ? runtimeDirectory + "/regalia/regaliad.sock" : ""
-    readonly property int minimumApiVersion: 3
+    readonly property int minimumApiVersion: 4
 
     property bool installed: false
     property bool checkingInstallation: true
@@ -41,6 +41,8 @@ Singleton {
     property var serverGroups: []
     property var routes: []
     property var applications: []
+    property var processes: []
+    property bool processesLoading: false
     property bool configurationLoading: false
     property int configurationRequestsPending: 0
     property string lastError: ""
@@ -211,6 +213,21 @@ Singleton {
                 configurationLoading = false;
                 configurationChanged();
             }
+        });
+    }
+
+    function refreshProcesses() {
+        if (!available || processesLoading)
+            return;
+        processesLoading = true;
+        sendRequest("apps.processes", null, response => {
+            processesLoading = false;
+            if (response.error) {
+                lastError = errorMessage(response.error);
+                ToastService.showError(I18n.tr("Failed to scan running processes"), lastError);
+                return;
+            }
+            processes = response.result || [];
         });
     }
 

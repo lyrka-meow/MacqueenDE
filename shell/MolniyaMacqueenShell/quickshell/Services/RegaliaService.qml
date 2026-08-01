@@ -40,6 +40,7 @@ Singleton {
     property var profiles: []
     property var serverGroups: []
     property var routes: []
+    property var applications: []
     property bool configurationLoading: false
     property int configurationRequestsPending: 0
     property string lastError: ""
@@ -181,7 +182,7 @@ Singleton {
         if (!available || configurationLoading)
             return;
         configurationLoading = true;
-        configurationRequestsPending = 3;
+        configurationRequestsPending = 4;
         requestCollection("profiles.list", result => {
             profiles = result || [];
         });
@@ -192,6 +193,9 @@ Singleton {
         requestCollection("routes.list", result => {
             routes = result?.items || [];
             activeRouteId = result?.activeRouteId || activeRouteId;
+        });
+        requestCollection("apps.list", result => {
+            applications = result || [];
         });
     }
 
@@ -337,6 +341,44 @@ Singleton {
                 return;
             }
             finishMutation("Routing profile deleted");
+        });
+    }
+
+    function setRouteApplication(routeId, app, outbound) {
+        if (!available || busy || enabled || !routeId || !app?.processPath)
+            return;
+        busy = true;
+        sendRequest("routes.app.set", {
+            "routeId": routeId,
+            "app": {
+                "desktopId": app.desktopId || "",
+                "name": app.name || "",
+                "icon": app.icon || "",
+                "processPath": app.processPath,
+                "outbound": outbound
+            }
+        }, response => {
+            if (response.error) {
+                mutationFailed("Failed to save application route", response);
+                return;
+            }
+            finishMutation("Application route saved");
+        });
+    }
+
+    function removeRouteApplication(routeId, processPath) {
+        if (!available || busy || enabled || !routeId || !processPath)
+            return;
+        busy = true;
+        sendRequest("routes.app.remove", {
+            "routeId": routeId,
+            "processPath": processPath
+        }, response => {
+            if (response.error) {
+                mutationFailed("Failed to remove application route", response);
+                return;
+            }
+            finishMutation("Application route removed");
         });
     }
 

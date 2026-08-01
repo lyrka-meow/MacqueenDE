@@ -12,6 +12,37 @@ Item {
     id: networkVpnTab
 
     property string pendingRouteOutbound: "proxy"
+    property string pendingAppOutbound: "direct"
+    property string appSearchQuery: ""
+    property bool appPickerExpanded: false
+
+    readonly property var selectedRoute: {
+        const routes = RegaliaService.routes || [];
+        for (const route of routes) {
+            if (route.id === RegaliaService.activeRouteId)
+                return route;
+        }
+        return null;
+    }
+
+    readonly property var matchingApplications: {
+        if (!appPickerExpanded)
+            return [];
+        const query = appSearchQuery.trim().toLowerCase();
+        const configured = selectedRoute?.apps || [];
+        const matches = [];
+        for (const app of (RegaliaService.applications || [])) {
+            if (configured.some(rule => rule.processPath === app.processPath))
+                continue;
+            const haystack = ((app.name || "") + " " + (app.desktopId || "") + " " + (app.processPath || "")).toLowerCase();
+            if (query.length > 0 && !haystack.includes(query))
+                continue;
+            matches.push(app);
+            if (matches.length >= 8)
+                break;
+        }
+        return matches;
+    }
 
     readonly property var availableServers: {
         const result = [];
@@ -69,6 +100,12 @@ Item {
     LayoutMirroring.childrenInherit: true
 
     Component.onCompleted: RegaliaService.detect()
+
+    onSelectedRouteChanged: {
+        pendingAppOutbound = selectedRoute?.defaultOutbound === "direct" ? "proxy" : "direct";
+        appSearchQuery = "";
+        appPickerExpanded = false;
+    }
 
     ConfirmModal {
         id: deleteConfirm
@@ -685,6 +722,298 @@ Item {
                             const name = routeName.text;
                             routeName.text = "";
                             RegaliaService.createRoute(name, networkVpnTab.pendingRouteOutbound);
+                        }
+                    }
+                }
+            }
+
+            SettingsCard {
+                title: I18n.tr("Application routing")
+                iconName: "apps"
+                settingKey: "regaliaApplicationRoutes"
+                tags: ["regalia", "routing", "applications", "processPath"]
+                width: parent.width
+                visible: RegaliaService.availabilityState === "ready" && networkVpnTab.selectedRoute !== null
+
+                Column {
+                    width: parent.width
+                    spacing: Theme.spacingM
+
+                    StyledText {
+                        width: parent.width
+                        text: I18n.tr("Choose applications by name. Regalia stores their executable path automatically; you do not need to search for processPath.")
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceVariantText
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: editWarningText.implicitHeight + Theme.spacingM * 2
+                        radius: Theme.cornerRadius
+                        color: Theme.withAlpha(Theme.warning, 0.12)
+                        border.width: 1
+                        border.color: Theme.withAlpha(Theme.warning, 0.45)
+                        visible: RegaliaService.enabled
+
+                        StyledText {
+                            id: editWarningText
+                            anchors.left: parent.left
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            anchors.margins: Theme.spacingM
+                            text: I18n.tr("Turn off VPN before changing routing rules. Your connection can be enabled again immediately after saving.")
+                            wrapMode: Text.WordWrap
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.warning
+                        }
+                    }
+
+                    Column {
+                        width: parent.width
+                        spacing: Theme.spacingS
+                        visible: (networkVpnTab.selectedRoute?.apps || []).length > 0
+
+                        StyledText {
+                            width: parent.width
+                            text: I18n.tr("Configured applications")
+                            font.pixelSize: Theme.fontSizeMedium
+                            font.weight: Font.DemiBold
+                            color: Theme.surfaceText
+                        }
+
+                        Repeater {
+                            model: networkVpnTab.selectedRoute?.apps || []
+
+                            delegate: Rectangle {
+                                required property var modelData
+
+                                width: parent.width
+                                height: 64
+                                radius: Theme.cornerRadius
+                                color: Theme.surfaceContainer
+                                border.width: 1
+                                border.color: Theme.outline
+
+                                Row {
+                                    anchors.fill: parent
+                                    anchors.margins: Theme.spacingM
+                                    spacing: Theme.spacingM
+
+                                    Item {
+                                        width: 36
+                                        height: 36
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        IconImage {
+                                            id: configuredAppIcon
+                                            anchors.fill: parent
+                                            source: Paths.resolveIconUrl(modelData.icon || "application-x-executable")
+                                            asynchronous: true
+                                            smooth: true
+                                            mipmap: true
+                                        }
+
+                                        DankIcon {
+                                            anchors.centerIn: parent
+                                            name: "apps"
+                                            size: 24
+                                            color: Theme.surfaceVariantText
+                                            visible: configuredAppIcon.status !== Image.Ready
+                                        }
+                                    }
+
+                                    Column {
+                                        width: parent.width - configuredRuleActions.width - 36 - Theme.spacingM * 2
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: Theme.spacingXXS
+
+                                        StyledText {
+                                            width: parent.width
+                                            text: modelData.name || modelData.desktopId || I18n.tr("Application")
+                                            elide: Text.ElideRight
+                                            font.pixelSize: Theme.fontSizeMedium
+                                            font.weight: Font.Medium
+                                            color: Theme.surfaceText
+                                        }
+
+                                        StyledText {
+                                            width: parent.width
+                                            text: modelData.processPath || ""
+                                            elide: Text.ElideMiddle
+                                            font.pixelSize: Theme.fontSizeSmall
+                                            color: Theme.surfaceVariantText
+                                        }
+                                    }
+
+                                    Row {
+                                        id: configuredRuleActions
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: Theme.spacingXS
+
+                                        DankButton {
+                                            text: modelData.outbound === "direct" ? I18n.tr("Without VPN") : I18n.tr("Through VPN")
+                                            iconName: modelData.outbound === "direct" ? "vpn_key_off" : "vpn_key"
+                                            buttonHeight: 34
+                                            enabled: !RegaliaService.busy && !RegaliaService.enabled
+                                            onClicked: RegaliaService.setRouteApplication(networkVpnTab.selectedRoute.id, modelData, modelData.outbound === "direct" ? "proxy" : "direct")
+                                        }
+
+                                        DankActionButton {
+                                            buttonSize: 34
+                                            iconName: "delete"
+                                            iconColor: Theme.error
+                                            enabled: !RegaliaService.busy && !RegaliaService.enabled
+                                            onClicked: RegaliaService.removeRouteApplication(networkVpnTab.selectedRoute.id, modelData.processPath)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    StyledText {
+                        width: parent.width
+                        text: I18n.tr("No application rules. The profile default is used for every application.")
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceVariantText
+                        visible: (networkVpnTab.selectedRoute?.apps || []).length === 0
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Theme.outline
+                        opacity: 0.2
+                    }
+
+                    DankButton {
+                        text: networkVpnTab.appPickerExpanded ? I18n.tr("Hide application picker") : I18n.tr("Add application")
+                        iconName: networkVpnTab.appPickerExpanded ? "expand_less" : "add"
+                        buttonHeight: 38
+                        enabled: !RegaliaService.busy && !RegaliaService.enabled
+                        onClicked: {
+                            networkVpnTab.appPickerExpanded = !networkVpnTab.appPickerExpanded;
+                            if (!networkVpnTab.appPickerExpanded)
+                                networkVpnTab.appSearchQuery = "";
+                        }
+                    }
+
+                    Column {
+                        width: parent.width
+                        spacing: Theme.spacingS
+                        visible: networkVpnTab.appPickerExpanded
+
+                        DankTextField {
+                            id: routeAppSearch
+                            width: parent.width
+                            placeholderText: I18n.tr("Search installed applications")
+                            leftIconName: "search"
+                            showClearButton: true
+                            backgroundColor: Theme.surfaceContainerHighest
+                            normalBorderColor: Theme.outlineMedium
+                            focusedBorderColor: Theme.primary
+                            enabled: !RegaliaService.busy && !RegaliaService.enabled
+                            onTextChanged: networkVpnTab.appSearchQuery = text
+                        }
+
+                        DankDropdown {
+                            width: parent.width
+                            compactMode: true
+                            options: [I18n.tr("Send selected application without VPN"), I18n.tr("Send selected application through VPN")]
+                            currentValue: networkVpnTab.pendingAppOutbound === "direct" ? I18n.tr("Send selected application without VPN") : I18n.tr("Send selected application through VPN")
+                            enabled: !RegaliaService.busy && !RegaliaService.enabled
+                            onValueChanged: value => networkVpnTab.pendingAppOutbound = value === I18n.tr("Send selected application without VPN") ? "direct" : "proxy"
+                        }
+
+                        Repeater {
+                            model: networkVpnTab.matchingApplications
+
+                            delegate: Rectangle {
+                                required property var modelData
+
+                                width: parent.width
+                                height: 58
+                                radius: Theme.cornerRadius
+                                color: addAppHover.hovered ? Theme.surfaceContainerHigh : Theme.surfaceContainer
+                                border.width: 1
+                                border.color: addAppHover.hovered ? Theme.primary : Theme.outline
+
+                                Row {
+                                    anchors.fill: parent
+                                    anchors.margins: Theme.spacingM
+                                    spacing: Theme.spacingM
+
+                                    Item {
+                                        width: 34
+                                        height: 34
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        IconImage {
+                                            id: availableAppIcon
+                                            anchors.fill: parent
+                                            source: Paths.resolveIconUrl(modelData.icon || "application-x-executable")
+                                            asynchronous: true
+                                            smooth: true
+                                            mipmap: true
+                                        }
+
+                                        DankIcon {
+                                            anchors.centerIn: parent
+                                            name: "apps"
+                                            size: 22
+                                            color: Theme.surfaceVariantText
+                                            visible: availableAppIcon.status !== Image.Ready
+                                        }
+                                    }
+
+                                    Column {
+                                        width: parent.width - addRuleButton.width - 34 - Theme.spacingM * 2
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: Theme.spacingXXS
+
+                                        StyledText {
+                                            width: parent.width
+                                            text: modelData.name || I18n.tr("Application")
+                                            elide: Text.ElideRight
+                                            font.pixelSize: Theme.fontSizeMedium
+                                            color: Theme.surfaceText
+                                        }
+
+                                        StyledText {
+                                            width: parent.width
+                                            text: modelData.processPath || ""
+                                            elide: Text.ElideMiddle
+                                            font.pixelSize: Theme.fontSizeSmall
+                                            color: Theme.surfaceVariantText
+                                        }
+                                    }
+
+                                    DankButton {
+                                        id: addRuleButton
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: I18n.tr("Add")
+                                        iconName: "add"
+                                        buttonHeight: 32
+                                        enabled: !RegaliaService.busy && !RegaliaService.enabled
+                                        onClicked: RegaliaService.setRouteApplication(networkVpnTab.selectedRoute.id, modelData, networkVpnTab.pendingAppOutbound)
+                                    }
+                                }
+
+                                HoverHandler {
+                                    id: addAppHover
+                                }
+                            }
+                        }
+
+                        StyledText {
+                            width: parent.width
+                            text: I18n.tr("No matching applications")
+                            horizontalAlignment: Text.AlignHCenter
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.surfaceVariantText
+                            visible: networkVpnTab.matchingApplications.length === 0
                         }
                     }
                 }

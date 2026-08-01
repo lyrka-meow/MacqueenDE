@@ -9325,5 +9325,56 @@
   },
   "VPN engine failed to start.": {
     "VPN engine failed to start.": "Не удалось запустить VPN-движок."
+  },
+  "Application routing": {
+    "Application routing": "Маршрутизация приложений"
+  },
+  "Choose applications by name. Regalia stores their executable path automatically; you do not need to search for processPath.": {
+    "Choose applications by name. Regalia stores their executable path automatically; you do not need to search for processPath.": "Выбирайте приложения по названию. Regalia автоматически сохранит путь к процессу — искать processPath вручную не нужно."
+  },
+  "Turn off VPN before changing routing rules. Your connection can be enabled again immediately after saving.": {
+    "Turn off VPN before changing routing rules. Your connection can be enabled again immediately after saving.": "Перед изменением маршрутов выключите VPN. Сразу после сохранения его можно включить обратно."
+  },
+  "Configured applications": {
+    "Configured applications": "Настроенные приложения"
+  },
+  "Without VPN": {
+    "Without VPN": "Без VPN"
+  },
+  "Through VPN": {
+    "Through VPN": "Через VPN"
+  },
+  "No application rules. The profile default is used for every application.": {
+    "No application rules. The profile default is used for every application.": "Правил для приложений пока нет. Для всех программ используется маршрут профиля по умолчанию."
+  },
+  "Hide application picker": {
+    "Hide application picker": "Скрыть выбор приложений"
+  },
+  "Add application": {
+    "Add application": "Добавить приложение"
+  },
+  "Search installed applications": {
+    "Search installed applications": "Поиск установленных приложений"
+  },
+  "Send selected application without VPN": {
+    "Send selected application without VPN": "Выбранное приложение — без VPN"
+  },
+  "Send selected application through VPN": {
+    "Send selected application through VPN": "Выбранное приложение — через VPN"
+  },
+  "No matching applications": {
+    "No matching applications": "Подходящие приложения не найдены"
+  },
+  "Failed to save application route": {
+    "Failed to save application route": "Не удалось сохранить маршрут приложения"
+  },
+  "Application route saved": {
+    "Application route saved": "Маршрут приложения сохранён"
+  },
+  "Failed to remove application route": {
+    "Failed to remove application route": "Не удалось удалить маршрут приложения"
+  },
+  "Application route removed": {
+    "Application route removed": "Маршрут приложения удалён"
   }
 }

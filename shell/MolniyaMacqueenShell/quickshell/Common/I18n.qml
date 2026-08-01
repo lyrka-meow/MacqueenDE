@@ -67,6 +67,9 @@ Singleton {
     FileView {
         id: translationLoader
         path: root._selectedPath
+        watchChanges: path !== ""
+
+        onFileChanged: reload()
 
         onLoaded: {
             try {
@@ -89,6 +92,9 @@ Singleton {
         id: commonTranslationLoader
         path: root._commonSelectedPath
         printErrors: false
+        watchChanges: path !== ""
+
+        onFileChanged: reload()
 
         onLoaded: {
             try {

@@ -40,6 +40,13 @@ Item {
         return RegaliaService.configurationError || I18n.tr("Complete the Regalia configuration before enabling VPN.");
     }
 
+    function subscriptionErrorMessage(message) {
+        const raw = String(message || "");
+        if (raw.includes("HTTP 502"))
+            return I18n.tr("Subscription service is temporarily unavailable (HTTP 502). Try again later.");
+        return raw;
+    }
+
     LayoutMirroring.enabled: I18n.isRtl
     LayoutMirroring.childrenInherit: true
 
@@ -361,7 +368,7 @@ Item {
 
                                     StyledText {
                                         width: parent.width
-                                        text: modelData.lastError ? modelData.lastError : I18n.tr("%1 servers").arg(modelData.serverCount || 0)
+                                        text: modelData.lastError ? networkVpnTab.subscriptionErrorMessage(modelData.lastError) : I18n.tr("%1 servers").arg(modelData.serverCount || 0)
                                         elide: Text.ElideRight
                                         font.pixelSize: Theme.fontSizeSmall
                                         color: modelData.lastError ? Theme.error : Theme.surfaceVariantText

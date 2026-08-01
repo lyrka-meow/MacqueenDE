@@ -9293,6 +9293,9 @@
   "Subscription name": {
     "Subscription name": "Название подписки"
   },
+  "Subscription service is temporarily unavailable (HTTP 502). Try again later.": {
+    "Subscription service is temporarily unavailable (HTTP 502). Try again later.": "Сервис подписки временно недоступен (HTTP 502). Повторите попытку позже."
+  },
   "Subscription updated": {
     "Subscription updated": "Подписка обновлена"
   },

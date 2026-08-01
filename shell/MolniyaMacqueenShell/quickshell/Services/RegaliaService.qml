@@ -56,20 +56,6 @@ Singleton {
 
     signal statusChanged
 
-    Component.onCompleted: detect()
-
-    Timer {
-        interval: 3000
-        repeat: true
-        running: true
-        onTriggered: {
-            if (root.daemonOnline)
-                root.refreshStatus();
-            else
-                root.detect();
-        }
-    }
-
     function detect() {
         if (packageCheck.running || socketProbe.running)
             return;

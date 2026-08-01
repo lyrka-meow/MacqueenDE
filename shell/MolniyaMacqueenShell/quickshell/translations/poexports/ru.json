@@ -9091,5 +9091,101 @@
   },
   "↑/↓: Navigate • Enter: Paste • Ctrl+C: Copy • Del: Delete • Ctrl+E: Edit • Ctrl+S: Pin/Unpin • F10: Help": {
     "↑/↓: Navigate • Enter: Paste • Ctrl+C: Copy • Del: Delete • Ctrl+E: Edit • Ctrl+S: Pin/Unpin • F10: Help": "↑/↓: навигация • Enter: вставить • Ctrl+C: копировать • Del: удалить • Ctrl+E: редактировать • Ctrl+S: закрепить/открепить • F10: справка"
+  },
+  "Applying VPN state": {
+    "Applying VPN state": "Применение состояния VPN"
+  },
+  "Check again": {
+    "Check again": "Проверить снова"
+  },
+  "Checking Regalia": {
+    "Checking Regalia": "Проверка Regalia"
+  },
+  "Complete the Regalia configuration before enabling VPN.": {
+    "Complete the Regalia configuration before enabling VPN.": "Завершите настройку Regalia перед включением VPN."
+  },
+  "Connected through Regalia TUN": {
+    "Connected through Regalia TUN": "Подключено через Regalia TUN"
+  },
+  "Connecting": {
+    "Connecting": "Подключение"
+  },
+  "Current configuration": {
+    "Current configuration": "Текущая конфигурация"
+  },
+  "Default route": {
+    "Default route": "Маршрут по умолчанию"
+  },
+  "Diagnostics": {
+    "Diagnostics": "Диагностика"
+  },
+  "Enable VPN": {
+    "Enable VPN": "Включить VPN"
+  },
+  "Enabled, waiting for the engine": {
+    "Enabled, waiting for the engine": "Включено, ожидание движка"
+  },
+  "Failed to start Regalia service": {
+    "Failed to start Regalia service": "Не удалось запустить службу Regalia"
+  },
+  "Keep this setting after logout and reboot": {
+    "Keep this setting after logout and reboot": "Сохранять это состояние после выхода и перезагрузки"
+  },
+  "Looking for the optional VPN component": {
+    "Looking for the optional VPN component": "Поиск дополнительного VPN-компонента"
+  },
+  "No server selected": {
+    "No server selected": "Сервер не выбран"
+  },
+  "Not selected": {
+    "Not selected": "Не выбран"
+  },
+  "Open project": {
+    "Open project": "Открыть проект"
+  },
+  "Optional component": {
+    "Optional component": "Необязательный компонент"
+  },
+  "Refresh status": {
+    "Refresh status": "Обновить состояние"
+  },
+  "Regalia is not installed": {
+    "Regalia is not installed": "Regalia не установлена"
+  },
+  "Regalia is ready. Subscription, server and per-application routing controls will appear in this section.": {
+    "Regalia is ready. Subscription, server and per-application routing controls will appear in this section.": "Regalia готова. Здесь появятся настройки подписок, серверов и маршрутизации приложений."
+  },
+  "Regalia is unavailable": {
+    "Regalia is unavailable": "Regalia недоступна"
+  },
+  "Regalia needs to be updated": {
+    "Regalia needs to be updated": "Необходимо обновить Regalia"
+  },
+  "Regalia service is not running": {
+    "Regalia service is not running": "Служба Regalia не запущена"
+  },
+  "Routing profile": {
+    "Routing profile": "Профиль маршрутизации"
+  },
+  "Selected server": {
+    "Selected server": "Выбранный сервер"
+  },
+  "Start service": {
+    "Start service": "Запустить службу"
+  },
+  "The component is installed, but its user service is offline. Your desktop works normally without it.": {
+    "The component is installed, but its user service is offline. Your desktop works normally without it.": "Компонент установлен, но его пользовательская служба не запущена. Без неё рабочий стол продолжит работать как обычно."
+  },
+  "The VPN component could not be reached": {
+    "The VPN component could not be reached": "Не удалось подключиться к VPN-компоненту"
+  },
+  "This shell requires Regalia API version %1 or newer.": {
+    "This shell requires Regalia API version %1 or newer.": "Для этой оболочки требуется Regalia API версии %1 или новее."
+  },
+  "VPN operation failed": {
+    "VPN operation failed": "Не удалось изменить состояние VPN"
+  },
+  "VPN support is optional. Install Regalia separately to unlock connection, server and routing settings.": {
+    "VPN support is optional. Install Regalia separately to unlock connection, server and routing settings.": "Поддержка VPN необязательна. Установите Regalia отдельно, чтобы открыть настройки подключения, серверов и маршрутизации."
   }
 }

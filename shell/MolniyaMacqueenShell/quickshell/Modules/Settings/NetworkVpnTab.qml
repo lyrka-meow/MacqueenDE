@@ -47,6 +47,24 @@ Item {
         return raw;
     }
 
+    function engineFailureMessage() {
+        const raw = String(RegaliaService.engineError || "");
+        if (raw.includes("add route") && raw.includes("file exists"))
+            return I18n.tr("Another TUN VPN is active. Disconnect Throne or another VPN and try again.");
+        return raw || I18n.tr("VPN engine failed to start.");
+    }
+
+    function engineStateLabel() {
+        switch (RegaliaService.engineState) {
+        case "connected": return I18n.tr("Connected");
+        case "starting": return I18n.tr("Starting");
+        case "stopping": return I18n.tr("Stopping");
+        case "failed": return I18n.tr("Failed");
+        case "unavailable": return I18n.tr("Unavailable");
+        default: return I18n.tr("Stopped");
+        }
+    }
+
     LayoutMirroring.enabled: I18n.isRtl
     LayoutMirroring.childrenInherit: true
 
@@ -227,6 +245,8 @@ Item {
                                     return I18n.tr("Applying VPN state");
                                 if (RegaliaService.connected)
                                     return I18n.tr("Connected through Regalia TUN");
+                                if (RegaliaService.engineState === "failed")
+                                    return networkVpnTab.engineFailureMessage();
                                 if (RegaliaService.enabled)
                                     return I18n.tr("Enabled, waiting for the engine");
                                 return I18n.tr("Keep this setting after logout and reboot");
@@ -277,7 +297,7 @@ Item {
 
                                 StyledText {
                                     width: parent.width
-                                    text: RegaliaService.activeServer ? (RegaliaService.activeServer.name || I18n.tr("Selected server")) : I18n.tr("No server selected")
+                                    text: RegaliaService.engineState === "failed" ? networkVpnTab.engineFailureMessage() : (RegaliaService.activeServer ? (RegaliaService.activeServer.name || I18n.tr("Selected server")) : I18n.tr("No server selected"))
                                     font.pixelSize: Theme.fontSizeSmall
                                     color: Theme.surfaceVariantText
                                     elide: Text.ElideRight
@@ -295,7 +315,7 @@ Item {
                                 StyledText {
                                     id: engineText
                                     anchors.centerIn: parent
-                                    text: RegaliaService.engineState
+                                    text: networkVpnTab.engineStateLabel()
                                     font.pixelSize: Theme.fontSizeSmall
                                     color: Theme.surfaceVariantText
                                 }

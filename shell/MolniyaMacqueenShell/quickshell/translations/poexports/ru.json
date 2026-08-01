@@ -7455,7 +7455,7 @@
     "Stop ignoring %1": ""
   },
   "Stopped": {
-    "Stopped": "Остановить"
+    "Stopped": "Остановлен"
   },
   "Stopped Partly": {
     "Stopped Partly": "Остановлено частично"
@@ -9313,5 +9313,17 @@
   },
   "Without a routing profile, all traffic goes through VPN. Create one to prepare per-application rules.": {
     "Without a routing profile, all traffic goes through VPN. Create one to prepare per-application rules.": "Без профиля маршрутизации весь трафик идёт через VPN. Создайте профиль, чтобы настроить правила для отдельных приложений."
+  },
+  "Another TUN VPN is active. Disconnect Throne or another VPN and try again.": {
+    "Another TUN VPN is active. Disconnect Throne or another VPN and try again.": "Уже активен другой TUN VPN. Отключите Throne или другой VPN и повторите попытку."
+  },
+  "Failed": {
+    "Failed": "Ошибка"
+  },
+  "Starting": {
+    "Starting": "Запуск"
+  },
+  "VPN engine failed to start.": {
+    "VPN engine failed to start.": "Не удалось запустить VPN-движок."
   }
 }

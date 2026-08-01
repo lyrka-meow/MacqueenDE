@@ -9164,6 +9164,9 @@
   "Regalia service is not running": {
     "Regalia service is not running": "Служба Regalia не запущена"
   },
+  "Regalia service did not respond": {
+    "Regalia service did not respond": "Служба Regalia не ответила"
+  },
   "Routing profile": {
     "Routing profile": "Профиль маршрутизации"
   },

@@ -98,7 +98,7 @@ Item {
 
                                 DankIcon {
                                     anchors.centerIn: parent
-                                    name: RegaliaService.checkingInstallation ? "sync" : "vpn_key_off"
+                                    name: RegaliaService.availabilityState === "checking" ? "sync" : "vpn_key_off"
                                     size: 28
                                     color: Theme.primary
                                 }

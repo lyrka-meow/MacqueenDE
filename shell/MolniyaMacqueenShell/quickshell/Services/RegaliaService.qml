@@ -67,7 +67,9 @@ Singleton {
     function detect() {
         if (packageCheck.running || socketProbe.running)
             return;
+        disconnectSocket();
         checkingInstallation = true;
+        lastError = "";
         packageCheck.running = true;
     }
 
@@ -85,6 +87,7 @@ Singleton {
         apiVersion = 0;
         capabilities = [];
         statusRequestPending = false;
+        statusWatchdog.stop();
         pendingRequests = ({});
     }
 
@@ -130,7 +133,9 @@ Singleton {
         if (!daemonOnline || statusRequestPending)
             return;
         statusRequestPending = true;
+        statusWatchdog.restart();
         sendRequest("status", null, response => {
+            statusWatchdog.stop();
             statusRequestPending = false;
             if (response.error) {
                 lastError = errorMessage(response.error);
@@ -138,6 +143,16 @@ Singleton {
             }
             applyStatus(response.result || {});
         });
+    }
+
+    Timer {
+        id: statusWatchdog
+        interval: 2500
+        repeat: false
+        onTriggered: {
+            root.lastError = I18n.tr("Regalia service did not respond");
+            root.disconnectSocket();
+        }
     }
 
     function applyStatus(status) {
@@ -422,6 +437,7 @@ Singleton {
                 root.compatible = false;
                 root.statusReceived = false;
                 root.statusRequestPending = false;
+                statusWatchdog.stop();
                 root.pendingRequests = ({});
             }
         }

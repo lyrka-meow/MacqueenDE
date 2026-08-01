@@ -9187,5 +9187,125 @@
   },
   "VPN support is optional. Install Regalia separately to unlock connection, server and routing settings.": {
     "VPN support is optional. Install Regalia separately to unlock connection, server and routing settings.": "Поддержка VPN необязательна. Установите Regalia отдельно, чтобы открыть настройки подключения, серверов и маршрутизации."
+  },
+  "%1 servers": {
+    "%1 servers": "Серверов: %1"
+  },
+  "Add a VPN subscription link. Regalia stores it privately and downloads the server list.": {
+    "Add a VPN subscription link. Regalia stores it privately and downloads the server list.": "Добавьте ссылку на VPN-подписку. Regalia сохранит её приватно и загрузит список серверов."
+  },
+  "Add and download": {
+    "Add and download": "Добавить и загрузить"
+  },
+  "All traffic through VPN": {
+    "All traffic through VPN": "Весь трафик через VPN"
+  },
+  "Bypass VPN by default": {
+    "Bypass VPN by default": "По умолчанию в обход VPN"
+  },
+  "Create routing profile": {
+    "Create routing profile": "Создать профиль маршрутизации"
+  },
+  "Delete \"%1\" and all of its servers?": {
+    "Delete \"%1\" and all of its servers?": "Удалить «%1» и все его серверы?"
+  },
+  "Delete routing profile": {
+    "Delete routing profile": "Удалить профиль маршрутизации"
+  },
+  "Delete subscription": {
+    "Delete subscription": "Удалить подписку"
+  },
+  "Direct by default": {
+    "Direct by default": "По умолчанию напрямую"
+  },
+  "Disconnect VPN before changing subscriptions or servers.": {
+    "Disconnect VPN before changing subscriptions or servers.": "Отключите VPN перед изменением подписок или серверов."
+  },
+  "Failed to activate routing profile": {
+    "Failed to activate routing profile": "Не удалось включить профиль маршрутизации"
+  },
+  "Failed to add subscription": {
+    "Failed to add subscription": "Не удалось добавить подписку"
+  },
+  "Failed to create routing profile": {
+    "Failed to create routing profile": "Не удалось создать профиль маршрутизации"
+  },
+  "Failed to delete routing profile": {
+    "Failed to delete routing profile": "Не удалось удалить профиль маршрутизации"
+  },
+  "Failed to delete subscription": {
+    "Failed to delete subscription": "Не удалось удалить подписку"
+  },
+  "Failed to download subscription": {
+    "Failed to download subscription": "Не удалось загрузить подписку"
+  },
+  "Failed to select server": {
+    "Failed to select server": "Не удалось выбрать сервер"
+  },
+  "Failed to update subscription": {
+    "Failed to update subscription": "Не удалось обновить подписку"
+  },
+  "No servers yet. Update the subscription to download them.": {
+    "No servers yet. Update the subscription to download them.": "Серверов пока нет. Обновите подписку, чтобы загрузить их."
+  },
+  "Paste subscription URL": {
+    "Paste subscription URL": "Вставьте ссылку подписки"
+  },
+  "Please wait": {
+    "Please wait": "Подождите"
+  },
+  "Routing profile created": {
+    "Routing profile created": "Профиль маршрутизации создан"
+  },
+  "Routing profile deleted": {
+    "Routing profile deleted": "Профиль маршрутизации удалён"
+  },
+  "Routing profile name": {
+    "Routing profile name": "Название профиля маршрутизации"
+  },
+  "Routing profile selected": {
+    "Routing profile selected": "Профиль маршрутизации выбран"
+  },
+  "Routing profiles": {
+    "Routing profiles": "Профили маршрутизации"
+  },
+  "Select a server to enable VPN.": {
+    "Select a server to enable VPN.": "Выберите сервер, чтобы включить VPN."
+  },
+  "Selected": {
+    "Selected": "Выбран"
+  },
+  "Server selected": {
+    "Server selected": "Сервер выбран"
+  },
+  "Servers": {
+    "Servers": "Серверы"
+  },
+  "Subscription added": {
+    "Subscription added": "Подписка добавлена"
+  },
+  "Subscription deleted": {
+    "Subscription deleted": "Подписка удалена"
+  },
+  "Subscription name": {
+    "Subscription name": "Название подписки"
+  },
+  "Subscription updated": {
+    "Subscription updated": "Подписка обновлена"
+  },
+  "Subscriptions": {
+    "Subscriptions": "Подписки"
+  },
+  "Use": {
+    "Use": "Использовать"
+  },
+  "VPN by default": {
+    "VPN by default": "По умолчанию через VPN"
+  },
+  "VPN is ready to connect.": {
+    "VPN is ready to connect.": "VPN готов к подключению."
+  },
+  "Without a routing profile, all traffic goes through VPN. Create one to prepare per-application rules.": {
+    "Without a routing profile, all traffic goes through VPN. Create one to prepare per-application rules.": "Без профиля маршрутизации весь трафик идёт через VPN. Создайте профиль, чтобы настроить правила для отдельных приложений."
   }
 }

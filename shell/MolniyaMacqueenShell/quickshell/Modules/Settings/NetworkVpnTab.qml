@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import qs.Common
+import qs.Modals.Common
 import qs.Modules.Settings.Widgets
 import qs.Services
 import qs.Widgets
@@ -10,10 +11,43 @@ import qs.Widgets
 Item {
     id: networkVpnTab
 
+    property string pendingRouteOutbound: "proxy"
+
+    readonly property var availableServers: {
+        const result = [];
+        const groups = RegaliaService.serverGroups || [];
+        for (const group of groups) {
+            for (const server of (group.items || [])) {
+                result.push({
+                    "id": server.id,
+                    "name": server.name,
+                    "protocol": server.protocol,
+                    "address": server.address,
+                    "port": server.port,
+                    "ready": server.ready,
+                    "profileName": group.profileName
+                });
+            }
+        }
+        return result;
+    }
+
+    function configurationMessage() {
+        if (RegaliaService.configurationReady)
+            return I18n.tr("VPN is ready to connect.");
+        if (RegaliaService.configurationError === "no server is selected")
+            return I18n.tr("Select a server to enable VPN.");
+        return RegaliaService.configurationError || I18n.tr("Complete the Regalia configuration before enabling VPN.");
+    }
+
     LayoutMirroring.enabled: I18n.isRtl
     LayoutMirroring.childrenInherit: true
 
     Component.onCompleted: RegaliaService.detect()
+
+    ConfirmModal {
+        id: deleteConfirm
+    }
 
     DankFlickable {
         anchors.fill: parent
@@ -265,6 +299,371 @@ Item {
             }
 
             SettingsCard {
+                title: I18n.tr("Subscriptions")
+                iconName: "link"
+                settingKey: "regaliaSubscriptions"
+                tags: ["regalia", "subscription", "profile", "url"]
+                width: parent.width
+                visible: RegaliaService.availabilityState === "ready"
+
+                Column {
+                    width: parent.width
+                    spacing: Theme.spacingM
+
+                    StyledText {
+                        width: parent.width
+                        text: I18n.tr("Add a VPN subscription link. Regalia stores it privately and downloads the server list.")
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceVariantText
+                    }
+
+                    StyledText {
+                        width: parent.width
+                        text: I18n.tr("Disconnect VPN before changing subscriptions or servers.")
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.warning
+                        visible: RegaliaService.enabled
+                    }
+
+                    Repeater {
+                        model: RegaliaService.profiles
+
+                        delegate: Rectangle {
+                            required property var modelData
+
+                            width: parent.width
+                            height: 68
+                            radius: Theme.cornerRadius
+                            color: Theme.surfaceContainer
+                            border.width: 1
+                            border.color: Theme.outline
+
+                            Row {
+                                anchors.fill: parent
+                                anchors.margins: Theme.spacingM
+                                spacing: Theme.spacingS
+
+                                Column {
+                                    width: parent.width - profileActions.width - Theme.spacingS
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Theme.spacingXXS
+
+                                    StyledText {
+                                        width: parent.width
+                                        text: modelData.name
+                                        elide: Text.ElideRight
+                                        font.pixelSize: Theme.fontSizeMedium
+                                        font.weight: Font.Medium
+                                        color: Theme.surfaceText
+                                    }
+
+                                    StyledText {
+                                        width: parent.width
+                                        text: modelData.lastError ? modelData.lastError : I18n.tr("%1 servers").arg(modelData.serverCount || 0)
+                                        elide: Text.ElideRight
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: modelData.lastError ? Theme.error : Theme.surfaceVariantText
+                                    }
+                                }
+
+                                Row {
+                                    id: profileActions
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Theme.spacingXS
+
+                                    DankButton {
+                                        text: I18n.tr("Update")
+                                        iconName: "refresh"
+                                        buttonHeight: 32
+                                        enabled: !RegaliaService.busy && !RegaliaService.enabled
+                                        onClicked: RegaliaService.refreshProfile(modelData.id)
+                                    }
+
+                                    DankButton {
+                                        text: I18n.tr("Delete")
+                                        iconName: "delete"
+                                        buttonHeight: 32
+                                        backgroundColor: Theme.surfaceContainerHigh
+                                        textColor: Theme.error
+                                        enabled: !RegaliaService.busy && !RegaliaService.enabled
+                                        onClicked: deleteConfirm.showWithOptions({
+                                            "title": I18n.tr("Delete subscription"),
+                                            "message": I18n.tr("Delete \"%1\" and all of its servers?").arg(modelData.name),
+                                            "confirmText": I18n.tr("Delete"),
+                                            "confirmColor": Theme.error,
+                                            "onConfirm": () => RegaliaService.deleteProfile(modelData.id)
+                                        })
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Theme.outline
+                        opacity: 0.2
+                        visible: RegaliaService.profiles.length > 0
+                    }
+
+                    DankTextField {
+                        id: subscriptionName
+                        width: parent.width
+                        placeholderText: I18n.tr("Subscription name")
+                        backgroundColor: Theme.surfaceContainerHighest
+                        normalBorderColor: Theme.outlineMedium
+                        focusedBorderColor: Theme.primary
+                        enabled: !RegaliaService.busy && !RegaliaService.enabled
+                    }
+
+                    DankTextField {
+                        id: subscriptionUrl
+                        width: parent.width
+                        placeholderText: I18n.tr("Paste subscription URL")
+                        echoMode: TextInput.Password
+                        showPasswordToggle: true
+                        backgroundColor: Theme.surfaceContainerHighest
+                        normalBorderColor: Theme.outlineMedium
+                        focusedBorderColor: Theme.primary
+                        enabled: !RegaliaService.busy && !RegaliaService.enabled
+                        onAccepted: addSubscriptionButton.clicked()
+                    }
+
+                    DankButton {
+                        id: addSubscriptionButton
+                        text: RegaliaService.busy ? I18n.tr("Please wait") : I18n.tr("Add and download")
+                        iconName: "add_link"
+                        buttonHeight: 38
+                        enabled: !RegaliaService.busy && !RegaliaService.enabled && subscriptionName.text.trim().length > 0 && subscriptionUrl.text.trim().length > 0
+                        onClicked: {
+                            const name = subscriptionName.text;
+                            const url = subscriptionUrl.text;
+                            subscriptionName.text = "";
+                            subscriptionUrl.text = "";
+                            RegaliaService.createProfile(name, url);
+                        }
+                    }
+                }
+            }
+
+            SettingsCard {
+                title: I18n.tr("Servers")
+                iconName: "dns"
+                settingKey: "regaliaServers"
+                tags: ["regalia", "servers", "protocol"]
+                width: parent.width
+                visible: RegaliaService.availabilityState === "ready" && RegaliaService.profiles.length > 0
+
+                Column {
+                    width: parent.width
+                    spacing: Theme.spacingS
+
+                    StyledText {
+                        width: parent.width
+                        text: I18n.tr("No servers yet. Update the subscription to download them.")
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceVariantText
+                        visible: networkVpnTab.availableServers.length === 0
+                    }
+
+                    Repeater {
+                        model: networkVpnTab.availableServers
+
+                        delegate: Rectangle {
+                            required property var modelData
+                            readonly property bool selected: modelData.id === RegaliaService.activeServerId
+
+                            width: parent.width
+                            height: 66
+                            radius: Theme.cornerRadius
+                            color: selected ? Theme.withAlpha(Theme.primary, 0.12) : Theme.surfaceContainer
+                            border.width: 1
+                            border.color: selected ? Theme.primary : Theme.outline
+
+                            Row {
+                                anchors.fill: parent
+                                anchors.margins: Theme.spacingM
+                                spacing: Theme.spacingM
+
+                                Column {
+                                    width: parent.width - selectServerButton.width - Theme.spacingM
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Theme.spacingXXS
+
+                                    StyledText {
+                                        width: parent.width
+                                        text: modelData.name
+                                        elide: Text.ElideRight
+                                        font.pixelSize: Theme.fontSizeMedium
+                                        font.weight: Font.Medium
+                                        color: Theme.surfaceText
+                                    }
+
+                                    StyledText {
+                                        width: parent.width
+                                        text: modelData.profileName + " • " + String(modelData.protocol || "").toUpperCase() + (modelData.address ? " • " + modelData.address + (modelData.port ? ":" + modelData.port : "") : "")
+                                        elide: Text.ElideRight
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: modelData.ready ? Theme.surfaceVariantText : Theme.warning
+                                    }
+                                }
+
+                                DankButton {
+                                    id: selectServerButton
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: selected ? I18n.tr("Selected") : (modelData.ready ? I18n.tr("Select") : I18n.tr("Unavailable"))
+                                    iconName: selected ? "check" : "arrow_forward"
+                                    buttonHeight: 34
+                                    enabled: !selected && modelData.ready && !RegaliaService.busy && !RegaliaService.enabled
+                                    onClicked: RegaliaService.selectServer(modelData.id)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            SettingsCard {
+                title: I18n.tr("Routing profiles")
+                iconName: "route"
+                settingKey: "regaliaRoutes"
+                tags: ["regalia", "routing", "proxy", "direct"]
+                width: parent.width
+                visible: RegaliaService.availabilityState === "ready"
+
+                Column {
+                    width: parent.width
+                    spacing: Theme.spacingM
+
+                    StyledText {
+                        width: parent.width
+                        text: I18n.tr("Without a routing profile, all traffic goes through VPN. Create one to prepare per-application rules.")
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.surfaceVariantText
+                        visible: RegaliaService.routes.length === 0
+                    }
+
+                    Repeater {
+                        model: RegaliaService.routes
+
+                        delegate: Rectangle {
+                            required property var modelData
+                            readonly property bool selected: modelData.id === RegaliaService.activeRouteId
+
+                            width: parent.width
+                            height: 60
+                            radius: Theme.cornerRadius
+                            color: selected ? Theme.withAlpha(Theme.primary, 0.12) : Theme.surfaceContainer
+                            border.width: 1
+                            border.color: selected ? Theme.primary : Theme.outline
+
+                            Row {
+                                anchors.fill: parent
+                                anchors.margins: Theme.spacingM
+                                spacing: Theme.spacingS
+
+                                Column {
+                                    width: parent.width - routeActions.width - Theme.spacingS
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Theme.spacingXXS
+
+                                    StyledText {
+                                        width: parent.width
+                                        text: modelData.name
+                                        elide: Text.ElideRight
+                                        font.pixelSize: Theme.fontSizeMedium
+                                        font.weight: Font.Medium
+                                        color: Theme.surfaceText
+                                    }
+
+                                    StyledText {
+                                        width: parent.width
+                                        text: modelData.defaultOutbound === "direct" ? I18n.tr("Direct by default") : I18n.tr("VPN by default")
+                                        font.pixelSize: Theme.fontSizeSmall
+                                        color: Theme.surfaceVariantText
+                                    }
+                                }
+
+                                Row {
+                                    id: routeActions
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: Theme.spacingXS
+
+                                    DankButton {
+                                        text: selected ? I18n.tr("Selected") : I18n.tr("Use")
+                                        iconName: selected ? "check" : "play_arrow"
+                                        buttonHeight: 32
+                                        enabled: !selected && !RegaliaService.busy && !RegaliaService.enabled
+                                        onClicked: RegaliaService.activateRoute(modelData.id)
+                                    }
+
+                                    DankButton {
+                                        text: I18n.tr("Delete")
+                                        iconName: "delete"
+                                        buttonHeight: 32
+                                        backgroundColor: Theme.surfaceContainerHigh
+                                        textColor: Theme.error
+                                        enabled: !RegaliaService.busy && !RegaliaService.enabled
+                                        onClicked: deleteConfirm.showWithOptions({
+                                            "title": I18n.tr("Delete routing profile"),
+                                            "message": I18n.tr("Delete \"%1\"?").arg(modelData.name),
+                                            "confirmText": I18n.tr("Delete"),
+                                            "confirmColor": Theme.error,
+                                            "onConfirm": () => RegaliaService.deleteRoute(modelData.id)
+                                        })
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Theme.outline
+                        opacity: 0.2
+                        visible: RegaliaService.routes.length > 0
+                    }
+
+                    DankTextField {
+                        id: routeName
+                        width: parent.width
+                        placeholderText: I18n.tr("Routing profile name")
+                        backgroundColor: Theme.surfaceContainerHighest
+                        normalBorderColor: Theme.outlineMedium
+                        focusedBorderColor: Theme.primary
+                        enabled: !RegaliaService.busy && !RegaliaService.enabled
+                    }
+
+                    DankDropdown {
+                        width: parent.width
+                        compactMode: true
+                        options: [I18n.tr("All traffic through VPN"), I18n.tr("Bypass VPN by default")]
+                        currentValue: networkVpnTab.pendingRouteOutbound === "direct" ? I18n.tr("Bypass VPN by default") : I18n.tr("All traffic through VPN")
+                        enabled: !RegaliaService.busy && !RegaliaService.enabled
+                        onValueChanged: value => networkVpnTab.pendingRouteOutbound = value === I18n.tr("Bypass VPN by default") ? "direct" : "proxy"
+                    }
+
+                    DankButton {
+                        text: I18n.tr("Create routing profile")
+                        iconName: "add"
+                        buttonHeight: 38
+                        enabled: !RegaliaService.busy && !RegaliaService.enabled && routeName.text.trim().length > 0
+                        onClicked: {
+                            const name = routeName.text;
+                            routeName.text = "";
+                            RegaliaService.createRoute(name, networkVpnTab.pendingRouteOutbound);
+                        }
+                    }
+                }
+            }
+
+            SettingsCard {
                 title: I18n.tr("Current configuration")
                 iconName: "tune"
                 settingKey: "regaliaConfiguration"
@@ -306,7 +705,7 @@ Item {
                     StyledText {
                         width: parent.width
                         wrapMode: Text.Wrap
-                        text: RegaliaService.configurationReady ? I18n.tr("Regalia is ready. Subscription, server and per-application routing controls will appear in this section.") : (RegaliaService.configurationError || I18n.tr("Complete the Regalia configuration before enabling VPN."))
+                        text: networkVpnTab.configurationMessage()
                         font.pixelSize: Theme.fontSizeSmall
                         color: RegaliaService.configurationReady ? Theme.surfaceVariantText : Theme.warning
                     }

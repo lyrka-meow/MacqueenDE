@@ -35,6 +35,13 @@ Singleton {
     property string configurationError: ""
     property var activeServer: null
     property var activeRoute: null
+    property string activeServerId: ""
+    property string activeRouteId: ""
+    property var profiles: []
+    property var serverGroups: []
+    property var routes: []
+    property bool configurationLoading: false
+    property int configurationRequestsPending: 0
     property string lastError: ""
 
     readonly property bool available: installed && daemonOnline && compatible
@@ -55,6 +62,7 @@ Singleton {
     property int requestCounter: 0
 
     signal statusChanged
+    signal configurationChanged
 
     function detect() {
         if (packageCheck.running || socketProbe.running)
@@ -147,8 +155,174 @@ Singleton {
         configurationError = status.configurationError || "";
         activeServer = status.activeServer || null;
         activeRoute = status.activeRoute || null;
+        activeServerId = status.activeServerId || "";
+        activeRouteId = status.activeRouteId || "";
         lastError = "";
         statusChanged();
+        refreshConfiguration();
+    }
+
+    function refreshConfiguration() {
+        if (!available || configurationLoading)
+            return;
+        configurationLoading = true;
+        configurationRequestsPending = 3;
+        requestCollection("profiles.list", result => {
+            profiles = result || [];
+        });
+        requestCollection("servers.list", result => {
+            serverGroups = result?.profiles || [];
+            activeServerId = result?.activeServerId || activeServerId;
+        });
+        requestCollection("routes.list", result => {
+            routes = result?.items || [];
+            activeRouteId = result?.activeRouteId || activeRouteId;
+        });
+    }
+
+    function requestCollection(method, applyResult) {
+        sendRequest(method, null, response => {
+            if (response.error)
+                lastError = errorMessage(response.error);
+            else
+                applyResult(response.result);
+            configurationRequestsPending--;
+            if (configurationRequestsPending <= 0) {
+                configurationRequestsPending = 0;
+                configurationLoading = false;
+                configurationChanged();
+            }
+        });
+    }
+
+    function mutationFailed(title, response) {
+        busy = false;
+        lastError = errorMessage(response.error);
+        ToastService.showError(I18n.tr(title), lastError);
+    }
+
+    function finishMutation(message) {
+        busy = false;
+        lastError = "";
+        if (message)
+            ToastService.showInfo(I18n.tr(message));
+        refreshStatus();
+    }
+
+    function createProfile(name, subscriptionUrl) {
+        if (!available || busy || name.trim().length === 0 || subscriptionUrl.trim().length === 0)
+            return;
+        busy = true;
+        sendRequest("profiles.create", {"name": name.trim(), "subscriptionUrl": subscriptionUrl.trim()}, response => {
+            if (response.error) {
+                mutationFailed("Failed to add subscription", response);
+                return;
+            }
+            const id = response.result?.id || "";
+            if (id.length === 0) {
+                busy = false;
+                refreshConfiguration();
+                return;
+            }
+            sendRequest("profiles.refresh", {"id": id}, refreshResponse => {
+                if (refreshResponse.error) {
+                    mutationFailed("Failed to download subscription", refreshResponse);
+                    refreshConfiguration();
+                    return;
+                }
+                finishMutation("Subscription added");
+            });
+        });
+    }
+
+    function refreshProfile(id) {
+        if (!available || busy || !id)
+            return;
+        busy = true;
+        sendRequest("profiles.refresh", {"id": id}, response => {
+            if (response.error) {
+                mutationFailed("Failed to update subscription", response);
+                refreshConfiguration();
+                return;
+            }
+            finishMutation("Subscription updated");
+        });
+    }
+
+    function deleteProfile(id) {
+        if (!available || busy || !id)
+            return;
+        busy = true;
+        sendRequest("profiles.delete", {"id": id}, response => {
+            if (response.error) {
+                mutationFailed("Failed to delete subscription", response);
+                return;
+            }
+            finishMutation("Subscription deleted");
+        });
+    }
+
+    function selectServer(id) {
+        if (!available || busy || !id)
+            return;
+        busy = true;
+        sendRequest("servers.select", {"id": id}, response => {
+            if (response.error) {
+                mutationFailed("Failed to select server", response);
+                return;
+            }
+            finishMutation("Server selected");
+        });
+    }
+
+    function createRoute(name, defaultOutbound) {
+        if (!available || busy || name.trim().length === 0)
+            return;
+        busy = true;
+        sendRequest("routes.create", {"name": name.trim(), "defaultOutbound": defaultOutbound}, response => {
+            if (response.error) {
+                mutationFailed("Failed to create routing profile", response);
+                return;
+            }
+            const id = response.result?.id || "";
+            if (id.length === 0) {
+                finishMutation("Routing profile created");
+                return;
+            }
+            sendRequest("routes.activate", {"id": id}, activateResponse => {
+                if (activateResponse.error) {
+                    mutationFailed("Failed to activate routing profile", activateResponse);
+                    return;
+                }
+                finishMutation("Routing profile created");
+            });
+        });
+    }
+
+    function activateRoute(id) {
+        if (!available || busy || !id)
+            return;
+        busy = true;
+        sendRequest("routes.activate", {"id": id}, response => {
+            if (response.error) {
+                mutationFailed("Failed to activate routing profile", response);
+                return;
+            }
+            finishMutation("Routing profile selected");
+        });
+    }
+
+    function deleteRoute(id) {
+        if (!available || busy || !id)
+            return;
+        busy = true;
+        sendRequest("routes.delete", {"id": id}, response => {
+            if (response.error) {
+                mutationFailed("Failed to delete routing profile", response);
+                return;
+            }
+            finishMutation("Routing profile deleted");
+        });
     }
 
     function setEnabled(value) {

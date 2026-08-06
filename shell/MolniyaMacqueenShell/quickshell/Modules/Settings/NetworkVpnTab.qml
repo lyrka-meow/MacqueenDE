@@ -12,6 +12,8 @@ import qs.Widgets
 Item {
     id: networkVpnTab
 
+    property string section: "overview"
+
     property string pendingRouteOutbound: "proxy"
     property string pendingAppOutbound: "direct"
     property string appSearchQuery: ""
@@ -160,6 +162,8 @@ Item {
 
     Component.onCompleted: RegaliaService.detect()
 
+    onSectionChanged: Qt.callLater(() => vpnFlickable.contentY = 0)
+
     onSelectedRouteChanged: {
         pendingAppOutbound = selectedRoute?.defaultOutbound === "direct" ? "proxy" : "direct";
         appSearchQuery = "";
@@ -174,6 +178,7 @@ Item {
     }
 
     DankFlickable {
+        id: vpnFlickable
         anchors.fill: parent
         clip: true
         contentHeight: mainColumn.height + Theme.spacingXL
@@ -193,6 +198,7 @@ Item {
                 settingKey: "networkVpn"
                 tags: ["vpn", "regalia", "proxy", "tun", "routing"]
                 width: parent.width
+                visible: networkVpnTab.section === "overview" || RegaliaService.availabilityState !== "ready"
 
                 Column {
                     width: parent.width
@@ -290,32 +296,75 @@ Item {
                                 }
                             }
 
-                            Row {
+                            Column {
                                 anchors.horizontalCenter: parent.horizontalCenter
                                 spacing: Theme.spacingS
-                                visible: !RegaliaService.checkingInstallation
+                                visible: !RegaliaService.checkingInstallation && !RegaliaService.componentOperationRunning
 
-                                DankButton {
-                                    text: RegaliaService.availabilityState === "service-offline" ? I18n.tr("Start service") : I18n.tr("Open project")
-                                    iconName: RegaliaService.availabilityState === "service-offline" ? "play_arrow" : "open_in_new"
-                                    buttonHeight: 36
-                                    enabled: !RegaliaService.busy
-                                    onClicked: {
-                                        if (RegaliaService.availabilityState === "service-offline")
-                                            RegaliaService.startDaemon();
-                                        else
-                                            RegaliaService.openProject();
+                                Row {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    spacing: Theme.spacingS
+                                    visible: RegaliaService.availabilityState !== "service-offline"
+
+                                    DankButton {
+                                        text: I18n.tr("Install binary")
+                                        iconName: "download"
+                                        buttonHeight: 36
+                                        enabled: !RegaliaService.busy
+                                        onClicked: RegaliaService.installComponent("binary")
+                                    }
+
+                                    DankButton {
+                                        text: I18n.tr("Build from source")
+                                        iconName: "code"
+                                        buttonHeight: 36
+                                        backgroundColor: Theme.surfaceContainerHigh
+                                        textColor: Theme.surfaceText
+                                        enabled: !RegaliaService.busy
+                                        onClicked: RegaliaService.installComponent("source")
                                     }
                                 }
 
-                                DankButton {
-                                    text: I18n.tr("Check again")
-                                    iconName: "refresh"
-                                    buttonHeight: 36
-                                    backgroundColor: Theme.surfaceContainerHigh
-                                    textColor: Theme.surfaceText
-                                    enabled: !RegaliaService.busy
-                                    onClicked: RegaliaService.detect()
+                                Row {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    spacing: Theme.spacingS
+
+                                    DankButton {
+                                        text: I18n.tr("Start service")
+                                        iconName: "play_arrow"
+                                        buttonHeight: 36
+                                        visible: RegaliaService.availabilityState === "service-offline"
+                                        enabled: !RegaliaService.busy
+                                        onClicked: RegaliaService.startDaemon()
+                                    }
+
+                                    DankButton {
+                                        text: I18n.tr("Check again")
+                                        iconName: "refresh"
+                                        buttonHeight: 36
+                                        backgroundColor: Theme.surfaceContainerHigh
+                                        textColor: Theme.surfaceText
+                                        enabled: !RegaliaService.busy
+                                        onClicked: RegaliaService.detect()
+                                    }
+                                }
+                            }
+
+                            Row {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: Theme.spacingM
+                                visible: RegaliaService.componentOperationRunning
+
+                                DankSpinner {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    running: RegaliaService.componentOperationRunning
+                                }
+
+                                StyledText {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: RegaliaService.componentOperation === "install-source" ? I18n.tr("Building and installing Regalia") : I18n.tr("Installing Regalia")
+                                    font.pixelSize: Theme.fontSizeMedium
+                                    color: Theme.surfaceText
                                 }
                             }
 
@@ -325,7 +374,7 @@ Item {
                                 wrapMode: Text.Wrap
                                 font.pixelSize: Theme.fontSizeSmall
                                 color: Theme.error
-                                text: RegaliaService.lastError
+                                text: RegaliaService.componentOperationError || RegaliaService.lastError
                                 visible: text.length > 0
                             }
                         }
@@ -420,6 +469,58 @@ Item {
                                 }
                             }
                         }
+
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: Theme.outline
+                            opacity: 0.2
+                        }
+
+                        Row {
+                            width: parent.width
+                            spacing: Theme.spacingM
+
+                            Column {
+                                width: parent.width - removeRegaliaButton.width - Theme.spacingM
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: Theme.spacingXXS
+
+                                StyledText {
+                                    width: parent.width
+                                    text: I18n.tr("Regalia component")
+                                    font.pixelSize: Theme.fontSizeMedium
+                                    font.weight: Font.Medium
+                                    color: Theme.surfaceText
+                                }
+
+                                StyledText {
+                                    width: parent.width
+                                    text: I18n.tr("Removing the component keeps your subscriptions and routing profiles")
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    color: Theme.surfaceVariantText
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+
+                            DankButton {
+                                id: removeRegaliaButton
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: I18n.tr("Remove")
+                                iconName: "delete"
+                                buttonHeight: 34
+                                backgroundColor: Theme.surfaceContainerHigh
+                                textColor: Theme.error
+                                enabled: !RegaliaService.componentOperationRunning
+                                onClicked: deleteConfirm.showWithOptions({
+                                    "title": I18n.tr("Remove Regalia"),
+                                    "message": I18n.tr("Remove Regalia binaries and services? Your subscriptions and routing profiles will be kept."),
+                                    "confirmText": I18n.tr("Remove"),
+                                    "confirmColor": Theme.error,
+                                    "onConfirm": () => RegaliaService.uninstallComponent()
+                                })
+                            }
+                        }
                     }
                 }
             }
@@ -430,7 +531,7 @@ Item {
                 settingKey: "regaliaSubscriptions"
                 tags: ["regalia", "subscription", "profile", "url"]
                 width: parent.width
-                visible: RegaliaService.availabilityState === "ready"
+                visible: networkVpnTab.section === "subscriptions" && RegaliaService.availabilityState === "ready"
 
                 Column {
                     width: parent.width
@@ -581,7 +682,7 @@ Item {
                 settingKey: "regaliaServers"
                 tags: ["regalia", "servers", "protocol"]
                 width: parent.width
-                visible: RegaliaService.availabilityState === "ready" && RegaliaService.profiles.length > 0
+                visible: networkVpnTab.section === "servers" && RegaliaService.availabilityState === "ready"
 
                 Column {
                     width: parent.width
@@ -659,7 +760,7 @@ Item {
                 settingKey: "regaliaRoutes"
                 tags: ["regalia", "routing", "proxy", "direct"]
                 width: parent.width
-                visible: RegaliaService.availabilityState === "ready"
+                visible: networkVpnTab.section === "routing" && RegaliaService.availabilityState === "ready"
 
                 Column {
                     width: parent.width
@@ -795,7 +896,7 @@ Item {
                 settingKey: "regaliaApplicationRoutes"
                 tags: ["regalia", "routing", "applications", "processPath"]
                 width: parent.width
-                visible: RegaliaService.availabilityState === "ready" && networkVpnTab.selectedRoute !== null
+                visible: networkVpnTab.section === "routing" && RegaliaService.availabilityState === "ready" && networkVpnTab.selectedRoute !== null
 
                 Column {
                     width: parent.width
@@ -1279,7 +1380,7 @@ Item {
                 settingKey: "regaliaConfiguration"
                 tags: ["regalia", "server", "route", "profile"]
                 width: parent.width
-                visible: RegaliaService.availabilityState === "ready"
+                visible: networkVpnTab.section === "overview" && RegaliaService.availabilityState === "ready"
 
                 Column {
                     width: parent.width
@@ -1326,7 +1427,7 @@ Item {
                 title: I18n.tr("Diagnostics")
                 iconName: "monitor_heart"
                 width: parent.width
-                visible: RegaliaService.availabilityState === "ready" && (RegaliaService.engineError.length > 0 || RegaliaService.restoreError.length > 0 || RegaliaService.lastError.length > 0)
+                visible: networkVpnTab.section === "overview" && RegaliaService.availabilityState === "ready" && (RegaliaService.engineError.length > 0 || RegaliaService.restoreError.length > 0 || RegaliaService.lastError.length > 0)
 
                 Column {
                     width: parent.width

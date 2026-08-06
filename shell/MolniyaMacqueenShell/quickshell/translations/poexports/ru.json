@@ -9418,5 +9418,41 @@
   },
   "Show all running processes": {
     "Show all running processes": "Показать все запущенные процессы"
+  },
+  "Install binary": {
+    "Install binary": "Установить бинарник"
+  },
+  "Build from source": {
+    "Build from source": "Собрать из исходников"
+  },
+  "Building and installing Regalia": {
+    "Building and installing Regalia": "Сборка и установка Regalia"
+  },
+  "Installing Regalia": {
+    "Installing Regalia": "Установка Regalia"
+  },
+  "Component operation failed": {
+    "Component operation failed": "Не удалось выполнить операцию с компонентом"
+  },
+  "Regalia operation failed": {
+    "Regalia operation failed": "Ошибка операции Regalia"
+  },
+  "Regalia installed": {
+    "Regalia installed": "Regalia установлена"
+  },
+  "Regalia removed": {
+    "Regalia removed": "Regalia удалена"
+  },
+  "Regalia component": {
+    "Regalia component": "Компонент Regalia"
+  },
+  "Removing the component keeps your subscriptions and routing profiles": {
+    "Removing the component keeps your subscriptions and routing profiles": "При удалении компонента подписки и профили маршрутизации сохранятся"
+  },
+  "Remove Regalia": {
+    "Remove Regalia": "Удалить Regalia"
+  },
+  "Remove Regalia binaries and services? Your subscriptions and routing profiles will be kept.": {
+    "Remove Regalia binaries and services? Your subscriptions and routing profiles will be kept.": "Удалить бинарники и службы Regalia? Подписки и профили маршрутизации будут сохранены."
   }
 }

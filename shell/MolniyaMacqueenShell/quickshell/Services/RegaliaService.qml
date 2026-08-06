@@ -12,6 +12,8 @@ Singleton {
 
     readonly property var log: Log.scoped("RegaliaService")
     readonly property string projectUrl: "https://github.com/lyrka-meow/Regalia"
+    readonly property string installerUrl: "https://raw.githubusercontent.com/lyrka-meow/Regalia/main/installer/install-github.sh"
+    readonly property string uninstallerUrl: "https://raw.githubusercontent.com/lyrka-meow/Regalia/main/installer/uninstall-github.sh"
     readonly property string runtimeDirectory: Quickshell.env("XDG_RUNTIME_DIR")
     readonly property string socketPath: runtimeDirectory.length > 0 ? runtimeDirectory + "/regalia/regaliad.sock" : ""
     readonly property int minimumApiVersion: 4
@@ -46,6 +48,9 @@ Singleton {
     property bool configurationLoading: false
     property int configurationRequestsPending: 0
     property string lastError: ""
+    property bool componentOperationRunning: false
+    property string componentOperation: ""
+    property string componentOperationError: ""
 
     readonly property bool available: installed && daemonOnline && compatible
     readonly property bool configurationReady: configurationState === "ready"
@@ -427,6 +432,28 @@ Singleton {
         Qt.openUrlExternally(projectUrl);
     }
 
+    function installComponent(mode) {
+        if (componentManagerProcess.running || (mode !== "binary" && mode !== "source"))
+            return;
+        componentOperation = "install-" + mode;
+        componentOperationError = "";
+        componentOperationRunning = true;
+        componentManagerProcess.command = ["bash", "-lc",
+            "set -o pipefail; curl -fsSL '" + installerUrl + "' | env REGALIA_INSTALL_MODE=" + mode + " REGALIA_PRIVILEGE_MODE=pkexec bash"];
+        componentManagerProcess.running = true;
+    }
+
+    function uninstallComponent() {
+        if (componentManagerProcess.running)
+            return;
+        componentOperation = "uninstall";
+        componentOperationError = "";
+        componentOperationRunning = true;
+        componentManagerProcess.command = ["bash", "-lc",
+            "set -o pipefail; curl -fsSL '" + uninstallerUrl + "' | env REGALIA_PRIVILEGE_MODE=pkexec bash"];
+        componentManagerProcess.running = true;
+    }
+
     Process {
         id: packageCheck
         command: ["sh", "-c", "command -v regalia >/dev/null 2>&1 && command -v regaliad >/dev/null 2>&1"]
@@ -472,6 +499,41 @@ Singleton {
             }
             reconnectDelay.restart();
         }
+    }
+
+    Process {
+        id: componentManagerProcess
+        running: false
+
+        stdout: StdioCollector {
+            id: componentManagerOutput
+        }
+
+        stderr: StdioCollector {
+            id: componentManagerError
+        }
+
+        onExited: exitCode => {
+            const operation = root.componentOperation;
+            root.componentOperationRunning = false;
+            if (exitCode !== 0) {
+                root.componentOperationError = componentManagerError.text.trim()
+                    || componentManagerOutput.text.trim()
+                    || I18n.tr("Component operation failed");
+                ToastService.showError(I18n.tr("Regalia operation failed"), root.componentOperationError);
+                return;
+            }
+            root.componentOperationError = "";
+            ToastService.showInfo(operation === "uninstall" ? I18n.tr("Regalia removed") : I18n.tr("Regalia installed"));
+            componentDetectDelay.restart();
+        }
+    }
+
+    Timer {
+        id: componentDetectDelay
+        interval: 900
+        repeat: false
+        onTriggered: root.detect()
     }
 
     Timer {

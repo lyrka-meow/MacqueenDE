@@ -268,7 +268,33 @@ Rectangle {
                     "id": "network_vpn",
                     "text": I18n.tr("VPN"),
                     "icon": "vpn_key",
-                    "tabIndex": 41
+                    "collapsedByDefault": true,
+                    "children": [
+                        {
+                            "id": "network_vpn_overview",
+                            "text": I18n.tr("Overview"),
+                            "icon": "dashboard",
+                            "tabIndex": 41
+                        },
+                        {
+                            "id": "network_vpn_subscriptions",
+                            "text": I18n.tr("Subscriptions"),
+                            "icon": "link",
+                            "tabIndex": 45
+                        },
+                        {
+                            "id": "network_vpn_servers",
+                            "text": I18n.tr("Servers"),
+                            "icon": "dns",
+                            "tabIndex": 46
+                        },
+                        {
+                            "id": "network_vpn_routing",
+                            "text": I18n.tr("Routing profiles"),
+                            "icon": "alt_route",
+                            "tabIndex": 47
+                        }
+                    ]
                 }
             ]
         },
@@ -500,28 +526,48 @@ Rectangle {
             return false;
         if (_expandedIds.indexOf("," + categoryId + ",") >= 0)
             return true;
-        var category = categoryStructure.find(cat => cat.id === categoryId);
+        var category = findItemById(categoryId);
         if (category && category.collapsedByDefault)
             return false;
         return true;
     }
 
+    function findItemById(id) {
+        function findIn(items) {
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                if (item.id === id)
+                    return item;
+                if (item.children) {
+                    var nested = findIn(item.children);
+                    if (nested)
+                        return nested;
+                }
+            }
+            return null;
+        }
+        return findIn(categoryStructure);
+    }
+
+    function itemContainsTab(item, tabIndex) {
+        if (item.tabIndex === tabIndex)
+            return true;
+        if (!item.children)
+            return false;
+        return item.children.some(child => itemContainsTab(child, tabIndex));
+    }
+
     function isChildActive(category) {
         if (!category.children)
             return false;
-        return category.children.some(child => child.tabIndex === currentIndex);
+        return category.children.some(child => itemContainsTab(child, currentIndex));
     }
 
     function findParentCategory(tabIndex) {
         for (var i = 0; i < categoryStructure.length; i++) {
             var cat = categoryStructure[i];
-            if (cat.children) {
-                for (var j = 0; j < cat.children.length; j++) {
-                    if (cat.children[j].tabIndex === tabIndex) {
-                        return cat;
-                    }
-                }
-            }
+            if (itemContainsTab(cat, tabIndex))
+                return cat;
         }
         return null;
     }
@@ -531,10 +577,19 @@ Rectangle {
         if (!parent)
             return;
 
-        if (!isCategoryExpanded(parent.id)) {
-            _setExpanded(parent.id, true);
-            _setAutoExpanded(parent.id, true);
+        function expandPath(item) {
+            if (!itemContainsTab(item, tabIndex))
+                return;
+            if (item.children && !isCategoryExpanded(item.id)) {
+                _setExpanded(item.id, true);
+                _setAutoExpanded(item.id, true);
+            }
+            if (item.children) {
+                for (var i = 0; i < item.children.length; i++)
+                    expandPath(item.children[i]);
+            }
         }
+        expandPath(parent);
     }
 
     function autoCollapseIfNeeded(oldTabIndex, newTabIndex) {
@@ -581,23 +636,21 @@ Rectangle {
 
     function getFlatNavigableItems() {
         var items = [];
+        function appendItem(item) {
+            if (!isItemVisible(item))
+                return;
+            if (item.children) {
+                for (var i = 0; i < item.children.length; i++)
+                    appendItem(item.children[i]);
+            } else if (item.tabIndex !== undefined) {
+                items.push(item);
+            }
+        }
         for (var i = 0; i < categoryStructure.length; i++) {
             var cat = categoryStructure[i];
             if (cat.separator || !isCategoryVisible(cat))
                 continue;
-
-            if (cat.tabIndex !== undefined && !cat.children) {
-                items.push(cat);
-            }
-
-            if (cat.children) {
-                for (var j = 0; j < cat.children.length; j++) {
-                    var child = cat.children[j];
-                    if (isItemVisible(child)) {
-                        items.push(child);
-                    }
-                }
-            }
+            appendItem(cat);
         }
         return items;
     }
@@ -610,29 +663,35 @@ Rectangle {
         if (normalized === "compositor")
             normalized = "workspaces";
 
-        for (var i = 0; i < categoryStructure.length; i++) {
-            var cat = categoryStructure[i];
-            if (cat.separator)
-                continue;
-
-            var catId = (cat.id || "").toLowerCase().replace(/[_\-\s]/g, "");
-            if (catId === normalized) {
-                if (cat.tabIndex !== undefined)
-                    return cat.tabIndex;
-                if (cat.children && cat.children.length > 0)
-                    return cat.children[0].tabIndex;
-            }
-
-            if (cat.children) {
-                for (var j = 0; j < cat.children.length; j++) {
-                    var child = cat.children[j];
-                    var childId = (child.id || "").toLowerCase().replace(/[_\-\s]/g, "");
-                    if (childId === normalized)
-                        return child.tabIndex;
+        function firstTab(item) {
+            if (item.tabIndex !== undefined)
+                return item.tabIndex;
+            if (item.children) {
+                for (var i = 0; i < item.children.length; i++) {
+                    var nestedTab = firstTab(item.children[i]);
+                    if (nestedTab >= 0)
+                        return nestedTab;
                 }
             }
+            return -1;
         }
-        return -1;
+        function findTab(items) {
+            for (var i = 0; i < items.length; i++) {
+                var item = items[i];
+                if (item.separator)
+                    continue;
+                var itemId = (item.id || "").toLowerCase().replace(/[_\-\s]/g, "");
+                if (itemId === normalized)
+                    return firstTab(item);
+                if (item.children) {
+                    var nested = findTab(item.children);
+                    if (nested >= 0)
+                        return nested;
+                }
+            }
+            return -1;
+        }
+        return findTab(categoryStructure);
     }
 
     property real __maxTextWidth: Math.max(__m1.advanceWidth, __m2.advanceWidth, __m3.advanceWidth, __m4.advanceWidth, __m5.advanceWidth, __m6.advanceWidth)
@@ -1050,76 +1109,179 @@ Rectangle {
                         Repeater {
                             model: categoryDelegate.modelData.children || []
 
-                            delegate: Rectangle {
-                                id: childDelegate
+                            delegate: Column {
+                                id: childGroup
                                 required property int index
                                 required property var modelData
 
-                                readonly property bool isActive: root.currentIndex === modelData.tabIndex
-                                readonly property bool isHighlighted: root.keyboardHighlightIndex === modelData.tabIndex
-
                                 width: childrenColumn.width
-                                height: Math.max(Theme.iconSize - 4, Theme.fontSizeSmall + 1) + Theme.spacingS * 2
-                                radius: Theme.cornerRadius
                                 visible: root.isItemVisible(modelData)
-                                color: {
-                                    if (isActive)
-                                        return Theme.buttonBg;
-                                    if (isHighlighted)
-                                        return Theme.buttonHover;
-                                    if (childMouseArea.containsMouse)
-                                        return Theme.surfaceHover;
-                                    return "transparent";
-                                }
+                                spacing: Theme.spacingXXS
 
-                                DankRipple {
-                                    id: childRipple
-                                    rippleColor: childDelegate.isActive ? Theme.buttonText : Theme.surfaceText
-                                    cornerRadius: childDelegate.radius
-                                    animationDuration: Anims.settingsNavigationRippleDuration
-                                }
+                                Rectangle {
+                                    id: childDelegate
 
-                                Row {
-                                    id: childRowContent
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: Theme.spacingL + Theme.spacingM
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    spacing: Theme.spacingM
+                                    readonly property bool hasChildren: childGroup.modelData.children !== undefined && childGroup.modelData.children.length > 0
+                                    readonly property bool isActive: !hasChildren && root.currentIndex === childGroup.modelData.tabIndex
+                                    readonly property bool isHighlighted: !hasChildren && root.keyboardHighlightIndex === childGroup.modelData.tabIndex
+
+                                    width: childGroup.width
+                                    height: Math.max(Theme.iconSize - 4, Theme.fontSizeSmall + 1) + Theme.spacingS * 2
+                                    radius: Theme.cornerRadius
+                                    color: {
+                                        if (isActive)
+                                            return Theme.buttonBg;
+                                        if (isHighlighted)
+                                            return Theme.buttonHover;
+                                        if (childMouseArea.containsMouse)
+                                            return Theme.surfaceHover;
+                                        return "transparent";
+                                    }
+
+                                    DankRipple {
+                                        id: childRipple
+                                        rippleColor: childDelegate.isActive ? Theme.buttonText : Theme.surfaceText
+                                        cornerRadius: childDelegate.radius
+                                        animationDuration: Anims.settingsNavigationRippleDuration
+                                    }
+
+                                    Row {
+                                        anchors.left: parent.left
+                                        anchors.leftMargin: Theme.spacingL + Theme.spacingM
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: Theme.spacingM
+
+                                        DankIcon {
+                                            name: childGroup.modelData.icon || ""
+                                            size: Theme.iconSize - 4
+                                            color: childDelegate.isActive ? Theme.buttonText : Theme.surfaceVariantText
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+
+                                        StyledText {
+                                            text: childGroup.modelData.text || ""
+                                            font.pixelSize: Theme.fontSizeSmall + 1
+                                            font.weight: (childDelegate.isActive || root.isChildActive(childGroup.modelData)) ? Font.Medium : Font.Normal
+                                            color: childDelegate.isActive ? Theme.buttonText : Theme.surfaceText
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                    }
 
                                     DankIcon {
-                                        name: childDelegate.modelData.icon || ""
-                                        size: Theme.iconSize - 4
-                                        color: childDelegate.isActive ? Theme.buttonText : Theme.surfaceVariantText
+                                        name: root.isCategoryExpanded(childGroup.modelData.id) ? "expand_less" : "expand_more"
+                                        size: Theme.iconSize - 6
+                                        color: Theme.surfaceVariantText
+                                        anchors.right: parent.right
+                                        anchors.rightMargin: Theme.spacingM
                                         anchors.verticalCenter: parent.verticalCenter
+                                        visible: childDelegate.hasChildren
                                     }
 
-                                    StyledText {
-                                        text: childDelegate.modelData.text || ""
-                                        font.pixelSize: Theme.fontSizeSmall + 1
-                                        font.weight: childDelegate.isActive ? Font.Medium : Font.Normal
-                                        color: childDelegate.isActive ? Theme.buttonText : Theme.surfaceText
-                                        anchors.verticalCenter: parent.verticalCenter
+                                    MouseArea {
+                                        id: childMouseArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onPressed: mouse => childRipple.trigger(mouse.x, mouse.y)
+                                        onClicked: {
+                                            root.keyboardHighlightIndex = -1;
+                                            if (childDelegate.hasChildren)
+                                                root.toggleCategory(childGroup.modelData.id);
+                                            else
+                                                root.tabChangeRequested(childGroup.modelData.tabIndex);
+                                            Qt.callLater(searchField.forceActiveFocus);
+                                        }
+                                    }
+
+                                    Behavior on color {
+                                        ColorAnimation {
+                                            duration: root.navigationStateDuration
+                                            easing.type: Easing.BezierSpline
+                                            easing.bezierCurve: Anims.expressiveEffects
+                                        }
                                     }
                                 }
 
-                                MouseArea {
-                                    id: childMouseArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onPressed: mouse => childRipple.trigger(mouse.x, mouse.y)
-                                    onClicked: {
-                                        root.keyboardHighlightIndex = -1;
-                                        root.tabChangeRequested(childDelegate.modelData.tabIndex);
-                                        Qt.callLater(searchField.forceActiveFocus);
-                                    }
-                                }
+                                Column {
+                                    width: childGroup.width
+                                    spacing: Theme.spacingXXS
+                                    visible: childDelegate.hasChildren && root.isCategoryExpanded(childGroup.modelData.id)
 
-                                Behavior on color {
-                                    ColorAnimation {
-                                        duration: root.navigationStateDuration
-                                        easing.type: Easing.BezierSpline
-                                        easing.bezierCurve: Anims.expressiveEffects
+                                    Repeater {
+                                        model: childGroup.modelData.children || []
+
+                                        delegate: Rectangle {
+                                            id: grandchildDelegate
+                                            required property int index
+                                            required property var modelData
+
+                                            readonly property bool isActive: root.currentIndex === modelData.tabIndex
+                                            readonly property bool isHighlighted: root.keyboardHighlightIndex === modelData.tabIndex
+
+                                            width: childGroup.width
+                                            height: Math.max(Theme.iconSize - 6, Theme.fontSizeSmall) + Theme.spacingS * 2
+                                            radius: Theme.cornerRadius
+                                            visible: root.isItemVisible(modelData)
+                                            color: {
+                                                if (isActive)
+                                                    return Theme.buttonBg;
+                                                if (isHighlighted)
+                                                    return Theme.buttonHover;
+                                                if (grandchildMouseArea.containsMouse)
+                                                    return Theme.surfaceHover;
+                                                return "transparent";
+                                            }
+
+                                            Row {
+                                                anchors.left: parent.left
+                                                anchors.leftMargin: Theme.spacingXL * 2
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                spacing: Theme.spacingS
+
+                                                DankIcon {
+                                                    name: grandchildDelegate.modelData.icon || ""
+                                                    size: Theme.iconSize - 8
+                                                    color: grandchildDelegate.isActive ? Theme.buttonText : Theme.surfaceVariantText
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                }
+
+                                                StyledText {
+                                                    text: grandchildDelegate.modelData.text || ""
+                                                    font.pixelSize: Theme.fontSizeSmall
+                                                    font.weight: grandchildDelegate.isActive ? Font.Medium : Font.Normal
+                                                    color: grandchildDelegate.isActive ? Theme.buttonText : Theme.surfaceVariantText
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                }
+                                            }
+
+                                            DankRipple {
+                                                id: grandchildRipple
+                                                rippleColor: grandchildDelegate.isActive ? Theme.buttonText : Theme.surfaceText
+                                                cornerRadius: grandchildDelegate.radius
+                                                animationDuration: Anims.settingsNavigationRippleDuration
+                                            }
+
+                                            MouseArea {
+                                                id: grandchildMouseArea
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onPressed: mouse => grandchildRipple.trigger(mouse.x, mouse.y)
+                                                onClicked: {
+                                                    root.keyboardHighlightIndex = -1;
+                                                    root.tabChangeRequested(grandchildDelegate.modelData.tabIndex);
+                                                    Qt.callLater(searchField.forceActiveFocus);
+                                                }
+                                            }
+
+                                            Behavior on color {
+                                                ColorAnimation {
+                                                    duration: root.navigationStateDuration
+                                                    easing.type: Easing.BezierSpline
+                                                    easing.bezierCurve: Anims.expressiveEffects
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }

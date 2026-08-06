@@ -13,6 +13,15 @@ FocusScope {
     property int currentIndex: 0
     property var parentModal: null
 
+    function vpnSectionForIndex(index) {
+        switch (index) {
+        case 45: return "subscriptions";
+        case 46: return "servers";
+        case 47: return "routing";
+        default: return "overview";
+        }
+    }
+
     focus: true
 
     Rectangle {
@@ -274,11 +283,13 @@ FocusScope {
         Loader {
             id: networkVpnLoader
             anchors.fill: parent
-            active: root.currentIndex === 41
+            active: root.currentIndex === 41 || root.currentIndex === 45 || root.currentIndex === 46 || root.currentIndex === 47
             visible: active
             focus: active
 
-            sourceComponent: NetworkVpnTab {}
+            sourceComponent: NetworkVpnTab {
+                section: root.vpnSectionForIndex(root.currentIndex)
+            }
 
             onActiveChanged: {
                 if (active && item)

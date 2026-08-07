@@ -9454,5 +9454,95 @@
   },
   "Remove Regalia binaries and services? Your subscriptions and routing profiles will be kept.": {
     "Remove Regalia binaries and services? Your subscriptions and routing profiles will be kept.": "Удалить бинарники и службы Regalia? Подписки и профили маршрутизации будут сохранены."
+  },
+  "Search servers by name, country, protocol, address or subscription": {
+    "Search servers by name, country, protocol, address or subscription": "Поиск по названию, стране, протоколу, адресу или подписке"
+  },
+  "%1 of %2 servers": {
+    "%1 of %2 servers": "%1 из %2 серверов"
+  },
+  "No servers match your search.": {
+    "No servers match your search.": "По вашему запросу серверы не найдены."
+  },
+  "Clear search": {
+    "Clear search": "Очистить поиск"
+  },
+  "Connection quality": {
+    "Connection quality": "Качество соединения"
+  },
+  "Update Regalia to run a connection test": {
+    "Update Regalia to run a connection test": "Обновите Regalia, чтобы проверить соединение"
+  },
+  "The last test failed": {
+    "The last test failed": "Последняя проверка завершилась ошибкой"
+  },
+  "Run an on-demand test — no background load": {
+    "Run an on-demand test — no background load": "Проверка только по запросу — без фоновой нагрузки"
+  },
+  "Excellent connection": {
+    "Excellent connection": "Отличное соединение"
+  },
+  "Good connection": {
+    "Good connection": "Хорошее соединение"
+  },
+  "Average connection": {
+    "Average connection": "Среднее соединение"
+  },
+  "Poor connection": {
+    "Poor connection": "Плохое соединение"
+  },
+  "Not tested yet": {
+    "Not tested yet": "Ещё не проверялось"
+  },
+  "Preparing test…": {
+    "Preparing test…": "Подготовка проверки…"
+  },
+  "Measuring latency…": {
+    "Measuring latency…": "Измерение задержки…"
+  },
+  "Measuring download speed…": {
+    "Measuring download speed…": "Измерение скорости загрузки…"
+  },
+  "Measuring upload speed…": {
+    "Measuring upload speed…": "Измерение скорости отдачи…"
+  },
+  "Connection test failed": {
+    "Connection test failed": "Не удалось проверить соединение"
+  },
+  "Regalia service went offline during the connection test": {
+    "Regalia service went offline during the connection test": "Служба Regalia отключилась во время проверки соединения"
+  },
+  "Compare": {
+    "Compare": "Сравнить"
+  },
+  "Test": {
+    "Test": "Проверить"
+  },
+  "Via VPN": {
+    "Via VPN": "Через VPN"
+  },
+  "Errors %1%": {
+    "Errors %1%": "Сбои %1%"
+  },
+  "VPN difference: download %1% · latency %2 ms": {
+    "VPN difference: download %1% · latency %2 ms": "Разница VPN: загрузка %1% · задержка %2 мс"
+  },
+  "Direct": {
+    "Direct": "Напрямую"
+  },
+  "Current route": {
+    "Current route": "Текущий маршрут"
+  },
+  "Last test: %1 · history %2/20 · 30 days": {
+    "Last test: %1 · history %2/20 · 30 days": "Последняя проверка: %1 · история %2/20 · 30 дней"
+  },
+  "Clear history": {
+    "Clear history": "Очистить историю"
+  },
+  "Direct and VPN tests run sequentially (~14 MB via Cloudflare). Other applications keep their routes.": {
+    "Direct and VPN tests run sequentially (~14 MB via Cloudflare). Other applications keep their routes.": "Прямой и VPN-маршрут проверяются по очереди (~14 МБ через Cloudflare). Маршруты остальных приложений не меняются."
+  },
+  "The test uses about 7 MB via Cloudflare and only runs when you press the button.": {
+    "The test uses about 7 MB via Cloudflare and only runs when you press the button.": "Проверка использует около 7 МБ через Cloudflare и запускается только по кнопке."
   }
 }

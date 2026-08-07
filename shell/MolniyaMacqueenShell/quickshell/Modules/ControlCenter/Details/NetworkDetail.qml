@@ -18,10 +18,10 @@ Rectangle {
         if (height > 0)
             return height;
         if (NetworkService.wifiToggling)
-            return headerRow.height + hotspotContentHeight + wifiToggleContent.height + Theme.spacingM;
+            return headerRow.height + hotspotContentHeight + qualityContentHeight + wifiToggleContent.height + Theme.spacingM;
         if (NetworkService.wifiEnabled)
-            return headerRow.height + hotspotContentHeight + wifiContent.height + Theme.spacingM;
-        return headerRow.height + hotspotContentHeight + wifiOffContent.height + Theme.spacingM;
+            return headerRow.height + hotspotContentHeight + qualityContentHeight + wifiContent.height + Theme.spacingM;
+        return headerRow.height + hotspotContentHeight + qualityContentHeight + wifiOffContent.height + Theme.spacingM;
     }
     radius: Theme.cornerRadius
     color: Theme.nestedSurface
@@ -41,6 +41,7 @@ Rectangle {
     property bool hasBothConnectionTypes: hasEthernetAvailable && hasWifiAvailable
     property int maxPinnedNetworks: 3
     readonly property int hotspotContentHeight: currentPreferenceIndex === 1 && NetworkService.hotspotAvailable ? 56 + Theme.spacingS : 0
+    readonly property int qualityContentHeight: connectionQuality.height + Theme.spacingS
 
     property var hotspotStartConfirm: ConfirmModal {}
 
@@ -355,13 +356,23 @@ Rectangle {
         }
     }
 
-    Item {
-        id: wifiToggleContent
+    ConnectionQualityCard {
+        id: connectionQuality
         anchors.top: hotspotRow.visible ? hotspotRow.bottom : headerRow.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.margins: Theme.spacingM
+        anchors.leftMargin: Theme.spacingM
+        anchors.rightMargin: Theme.spacingM
         anchors.topMargin: hotspotRow.visible ? Theme.spacingS : Theme.spacingM
+    }
+
+    Item {
+        id: wifiToggleContent
+        anchors.top: connectionQuality.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.margins: Theme.spacingM
+        anchors.topMargin: Theme.spacingS
         visible: currentPreferenceIndex === 1 && NetworkService.wifiToggling
         height: visible ? wifiToggleColumn.implicitHeight + Theme.spacingM * 2 : 0
 
@@ -398,11 +409,11 @@ Rectangle {
 
     Item {
         id: wifiOffContent
-        anchors.top: hotspotRow.visible ? hotspotRow.bottom : headerRow.bottom
+        anchors.top: connectionQuality.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: Theme.spacingM
-        anchors.topMargin: hotspotRow.visible ? Theme.spacingS : Theme.spacingM
+        anchors.topMargin: Theme.spacingS
         visible: currentPreferenceIndex === 1 && !NetworkService.wifiEnabled && !NetworkService.wifiToggling
         height: visible ? wifiOffColumn.implicitHeight + Theme.spacingM * 2 : 0
 
@@ -478,12 +489,12 @@ Rectangle {
 
     DankFlickable {
         id: wiredContent
-        anchors.top: headerRow.bottom
+        anchors.top: connectionQuality.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: Theme.spacingM
-        anchors.topMargin: Theme.spacingM
+        anchors.topMargin: Theme.spacingS
         visible: currentPreferenceIndex === 0 && NetworkService.backend === "networkmanager" && DMSService.apiVersion > 10
         contentHeight: wiredColumn.height
         clip: true
@@ -679,12 +690,12 @@ Rectangle {
 
     Item {
         id: wifiScanningOverlay
-        anchors.top: hotspotRow.visible ? hotspotRow.bottom : headerRow.bottom
+        anchors.top: connectionQuality.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: Theme.spacingM
-        anchors.topMargin: hotspotRow.visible ? Theme.spacingS : Theme.spacingM
+        anchors.topMargin: Theme.spacingS
         visible: currentPreferenceIndex === 1 && NetworkService.wifiEnabled && !NetworkService.wifiToggling && NetworkService.wifiInterface && (NetworkService.wifiNetworks?.length ?? 0) < 1 && NetworkService.isScanning
 
         DankIcon {
@@ -706,12 +717,12 @@ Rectangle {
 
     DankListView {
         id: wifiContent
-        anchors.top: hotspotRow.visible ? hotspotRow.bottom : headerRow.bottom
+        anchors.top: connectionQuality.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: Theme.spacingM
-        anchors.topMargin: hotspotRow.visible ? Theme.spacingS : Theme.spacingM
+        anchors.topMargin: Theme.spacingS
         visible: currentPreferenceIndex === 1 && NetworkService.wifiEnabled && !NetworkService.wifiToggling && !wifiScanningOverlay.visible
         clip: true
         spacing: Theme.spacingS

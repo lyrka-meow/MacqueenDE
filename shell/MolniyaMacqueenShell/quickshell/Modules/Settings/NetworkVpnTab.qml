@@ -15,6 +15,7 @@ Item {
     property string section: "overview"
 
     property string pendingRouteOutbound: "proxy"
+    property string serverSearchQuery: ""
     property string pendingAppOutbound: "direct"
     property string appSearchQuery: ""
     property bool appPickerExpanded: false
@@ -122,6 +123,23 @@ Item {
             }
         }
         return result;
+    }
+
+    readonly property var filteredServers: {
+        const tokens = serverSearchQuery.trim().toLowerCase().split(/\s+/).filter(token => token.length > 0);
+        if (tokens.length === 0)
+            return availableServers;
+
+        return availableServers.filter(server => {
+            const haystack = [
+                server.name || "",
+                server.profileName || "",
+                server.protocol || "",
+                server.address || "",
+                server.port !== undefined ? String(server.port) : ""
+            ].join(" ").toLowerCase();
+            return tokens.every(token => haystack.includes(token));
+        });
     }
 
     function configurationMessage() {
@@ -688,6 +706,33 @@ Item {
                     width: parent.width
                     spacing: Theme.spacingS
 
+                    DankTextField {
+                        id: serverSearchField
+                        width: parent.width
+                        visible: networkVpnTab.availableServers.length > 0
+                        placeholderText: I18n.tr("Search servers by name, country, protocol, address or subscription")
+                        leftIconName: "search"
+                        showClearButton: true
+                        backgroundColor: Theme.surfaceContainerHighest
+                        normalBorderColor: Theme.outlineMedium
+                        focusedBorderColor: Theme.primary
+                        onTextChanged: networkVpnTab.serverSearchQuery = text
+                    }
+
+                    Row {
+                        width: parent.width
+                        visible: networkVpnTab.availableServers.length > 0
+
+                        StyledText {
+                            width: parent.width
+                            text: networkVpnTab.serverSearchQuery.trim().length > 0
+                                ? I18n.tr("%1 of %2 servers").arg(networkVpnTab.filteredServers.length).arg(networkVpnTab.availableServers.length)
+                                : I18n.tr("%1 servers").arg(networkVpnTab.availableServers.length)
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: networkVpnTab.filteredServers.length > 0 ? Theme.surfaceVariantText : Theme.warning
+                        }
+                    }
+
                     StyledText {
                         width: parent.width
                         text: I18n.tr("No servers yet. Update the subscription to download them.")
@@ -697,8 +742,38 @@ Item {
                         visible: networkVpnTab.availableServers.length === 0
                     }
 
+                    Rectangle {
+                        width: parent.width
+                        height: 108
+                        radius: Theme.cornerRadius
+                        color: Theme.surfaceContainer
+                        border.width: 1
+                        border.color: Theme.outline
+                        visible: networkVpnTab.availableServers.length > 0 && networkVpnTab.filteredServers.length === 0
+
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: Theme.spacingS
+
+                            StyledText {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: I18n.tr("No servers match your search.")
+                                font.pixelSize: Theme.fontSizeSmall
+                                color: Theme.surfaceVariantText
+                            }
+
+                            DankButton {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: I18n.tr("Clear search")
+                                iconName: "close"
+                                buttonHeight: 32
+                                onClicked: serverSearchField.text = ""
+                            }
+                        }
+                    }
+
                     Repeater {
-                        model: networkVpnTab.availableServers
+                        model: networkVpnTab.filteredServers
 
                         delegate: Rectangle {
                             required property var modelData

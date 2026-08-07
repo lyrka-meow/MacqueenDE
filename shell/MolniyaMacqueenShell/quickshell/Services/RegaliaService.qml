@@ -51,8 +51,15 @@ Singleton {
     property bool componentOperationRunning: false
     property string componentOperation: ""
     property string componentOperationError: ""
+    property var networkTestJob: null
+    property var networkTestHistory: []
+    property bool networkTestHistoryLoading: false
+    property string networkTestError: ""
 
     readonly property bool available: installed && daemonOnline && compatible
+    readonly property bool networkTestSupported: available && capabilities.includes("network.test")
+    readonly property bool networkCompareSupported: networkTestSupported && capabilities.includes("network.test.compare")
+    readonly property bool networkTestRunning: networkTestJob?.state === "running"
     readonly property bool configurationReady: configurationState === "ready"
     readonly property string availabilityState: {
         if (checkingInstallation || (daemonOnline && !statusReceived))
@@ -71,6 +78,7 @@ Singleton {
 
     signal statusChanged
     signal configurationChanged
+    signal networkTestChanged
 
     function detect() {
         if (packageCheck.running || socketProbe.running)
@@ -96,6 +104,13 @@ Singleton {
         capabilities = [];
         statusRequestPending = false;
         statusWatchdog.stop();
+        networkTestPoll.stop();
+        networkTestHistoryLoading = false;
+        if (networkTestRunning) {
+            networkTestError = I18n.tr("Regalia service went offline during the connection test");
+            networkTestJob = null;
+            networkTestChanged();
+        }
         pendingRequests = ({});
     }
 
@@ -420,6 +435,89 @@ Singleton {
         });
     }
 
+    function startNetworkTest(mode, network) {
+        if (!networkTestSupported || networkTestRunning)
+            return;
+        networkTestError = "";
+        sendRequest("network.test.start", {"mode": mode, "network": network || {}}, response => {
+            if (response.error) {
+                networkTestError = errorMessage(response.error);
+                ToastService.showError(I18n.tr("Connection test failed"), networkTestError);
+                networkTestChanged();
+                return;
+            }
+            networkTestJob = response.result || null;
+            networkTestPoll.restart();
+            networkTestChanged();
+        });
+    }
+
+    function cancelNetworkTest() {
+        const id = networkTestJob?.id || "";
+        if (!networkTestRunning || id.length === 0)
+            return;
+        sendRequest("network.test.cancel", {"id": id}, response => {
+            if (!response.error)
+                networkTestJob = response.result || networkTestJob;
+            networkTestChanged();
+        });
+    }
+
+    function pollNetworkTest() {
+        const id = networkTestJob?.id || "";
+        if (!networkTestRunning || id.length === 0)
+            return;
+        sendRequest("network.test.status", {"id": id}, response => {
+            if (response.error) {
+                networkTestError = errorMessage(response.error);
+                networkTestPoll.stop();
+                networkTestChanged();
+                return;
+            }
+            networkTestJob = response.result || networkTestJob;
+            if (networkTestRunning)
+                networkTestPoll.restart();
+            else {
+                networkTestPoll.stop();
+                if (networkTestJob?.state === "failed")
+                    networkTestError = networkTestJob.error || I18n.tr("Connection test failed");
+                refreshNetworkTestHistory();
+            }
+            networkTestChanged();
+        });
+    }
+
+    function refreshNetworkTestHistory() {
+        if (!networkTestSupported || networkTestHistoryLoading)
+            return;
+        networkTestHistoryLoading = true;
+        sendRequest("network.test.history", null, response => {
+            networkTestHistoryLoading = false;
+            if (response.error) {
+                networkTestError = errorMessage(response.error);
+                networkTestChanged();
+                return;
+            }
+            networkTestHistory = response.result?.items || [];
+            networkTestChanged();
+        });
+    }
+
+    function clearNetworkTestHistory() {
+        if (!networkTestSupported)
+            return;
+        sendRequest("network.test.history.clear", null, response => {
+            if (response.error) {
+                networkTestError = errorMessage(response.error);
+                networkTestChanged();
+                return;
+            }
+            networkTestHistory = [];
+            networkTestJob = null;
+            networkTestChanged();
+        });
+    }
+
     function startDaemon() {
         if (!installed || startServiceProcess.running)
             return;
@@ -543,6 +641,13 @@ Singleton {
         onTriggered: root.probeDaemon()
     }
 
+    Timer {
+        id: networkTestPoll
+        interval: 650
+        repeat: false
+        onTriggered: root.pollNetworkTest()
+    }
+
     DankSocket {
         id: requestSocket
         path: root.socketPath
@@ -559,6 +664,13 @@ Singleton {
                 root.statusReceived = false;
                 root.statusRequestPending = false;
                 statusWatchdog.stop();
+                networkTestPoll.stop();
+                root.networkTestHistoryLoading = false;
+                if (root.networkTestRunning) {
+                    root.networkTestError = I18n.tr("Regalia service went offline during the connection test");
+                    root.networkTestJob = null;
+                    root.networkTestChanged();
+                }
                 root.pendingRequests = ({});
             }
         }

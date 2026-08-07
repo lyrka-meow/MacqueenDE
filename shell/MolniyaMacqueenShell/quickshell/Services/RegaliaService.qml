@@ -55,6 +55,7 @@ Singleton {
     property var networkTestHistory: []
     property bool networkTestHistoryLoading: false
     property string networkTestError: ""
+    property bool connectionAttemptActive: false
 
     readonly property bool available: installed && daemonOnline && compatible
     readonly property bool networkTestSupported: available && capabilities.includes("network.test")
@@ -62,7 +63,7 @@ Singleton {
     readonly property bool networkTestRunning: networkTestJob?.state === "running"
     readonly property bool configurationReady: configurationState === "ready"
     readonly property string availabilityState: {
-        if (checkingInstallation || (daemonOnline && !statusReceived))
+        if (checkingInstallation || connectionAttemptActive || (daemonOnline && !statusReceived))
             return "checking";
         if (!installed)
             return "not-installed";
@@ -96,6 +97,8 @@ Singleton {
     }
 
     function disconnectSocket() {
+        connectionAttemptWindow.stop();
+        connectionAttemptActive = false;
         requestSocket.connected = false;
         daemonOnline = false;
         compatible = false;
@@ -115,9 +118,19 @@ Singleton {
     }
 
     function connectSocket() {
-        if (!installed || socketPath.length === 0 || requestSocket.connected)
+        if (!installed || socketPath.length === 0)
             return;
-        requestSocket.connected = true;
+        connectionAttemptWindow.stop();
+        connectionAttemptActive = true;
+        requestSocket.connected = false;
+        // Let DankSocket fully release a connection to an old socket inode
+        // before reconnecting after regaliad has been restarted or upgraded.
+        Qt.callLater(() => {
+            if (!root.installed || root.socketPath.length === 0)
+                return;
+            requestSocket.connected = true;
+            connectionAttemptWindow.restart();
+        });
     }
 
     function sendRequest(method, params, callback) {
@@ -642,6 +655,20 @@ Singleton {
     }
 
     Timer {
+        id: connectionAttemptWindow
+        interval: 5000
+        repeat: false
+        onTriggered: {
+            root.connectionAttemptActive = false;
+            if (!requestSocket.linkUp) {
+                requestSocket.connected = false;
+                root.daemonOnline = false;
+                root.lastError = I18n.tr("Could not connect to the Regalia service");
+            }
+        }
+    }
+
+    Timer {
         id: networkTestPoll
         interval: 650
         repeat: false
@@ -654,8 +681,10 @@ Singleton {
         connected: false
 
         onConnectionStateChanged: {
-            root.daemonOnline = connected;
-            if (connected) {
+            root.daemonOnline = linkUp;
+            if (linkUp) {
+                connectionAttemptWindow.stop();
+                root.connectionAttemptActive = false;
                 root.statusReceived = false;
                 root.lastError = "";
                 root.refreshStatus();
@@ -672,6 +701,10 @@ Singleton {
                     root.networkTestChanged();
                 }
                 root.pendingRequests = ({});
+                // DankSocket normally reconnects forever. Regalia is optional,
+                // so only keep retrying inside an explicit five-second check.
+                if (!root.connectionAttemptActive)
+                    requestSocket.connected = false;
             }
         }
 

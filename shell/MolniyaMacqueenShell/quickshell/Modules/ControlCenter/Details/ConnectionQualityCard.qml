@@ -13,6 +13,8 @@ Rectangle {
         return RegaliaService.networkTestHistory.length > 0 ? RegaliaService.networkTestHistory[0] : null;
     }
     readonly property var measurements: latest?.results || []
+    readonly property bool latestFailed: latest?.status === "failed"
+    readonly property bool latestUnstable: latest?.reliability === "unstable"
     readonly property var primaryMeasurement: {
         if (measurements.length < 1)
             return null;
@@ -24,7 +26,11 @@ Rectangle {
     }
     readonly property bool running: RegaliaService.networkTestRunning
     readonly property int compactHeight: 72
-    readonly property int detailHeight: measurements.length > 1 ? 270 : 220
+    readonly property bool hasSignalDetails: latest?.network?.signalStartDbm !== undefined
+        || latest?.network?.signalPercent > 0
+    readonly property int detailHeight: (measurements.length > 1 ? 270 : 220)
+        + (latestFailed || latestUnstable ? 64 : 0)
+        + (hasSignalDetails ? 24 : 0)
 
     implicitHeight: expanded ? detailHeight : compactHeight
     height: implicitHeight
@@ -56,7 +62,8 @@ Rectangle {
             return {
                 "kind": "wifi",
                 "interface": NetworkService.wifiInterface || "",
-                "name": NetworkService.currentWifiSSID || ""
+                "name": NetworkService.currentWifiSSID || "",
+                "signalPercent": NetworkService.wifiSignalStrength || 0
             };
         }
         return {
@@ -94,6 +101,45 @@ Rectangle {
         if (phase.indexOf("upload") >= 0)
             return I18n.tr("Measuring upload speed…");
         return I18n.tr("Preparing test…");
+    }
+
+    function failureText(code) {
+        switch (code) {
+        case "latency_unavailable": return I18n.tr("The connection did not answer reliably enough to measure latency");
+        case "download_failed": return I18n.tr("Download measurement failed because the connection was interrupted");
+        case "upload_failed": return I18n.tr("Upload measurement failed because the connection was interrupted");
+        case "test_timeout": return I18n.tr("The connection was too unstable and the test timed out");
+        case "test_channel_unavailable": return I18n.tr("Regalia's test channel did not become ready");
+        default: return I18n.tr("The connection test could not be completed");
+        }
+    }
+
+    function reliabilityText(warnings) {
+        const labels = [];
+        for (const warning of warnings || []) {
+            switch (warning) {
+            case "weak_wifi_signal": labels.push(I18n.tr("weak Wi-Fi signal")); break;
+            case "wifi_signal_changed": labels.push(I18n.tr("signal changed during the test")); break;
+            case "unstable_latency": labels.push(I18n.tr("latency varied too much")); break;
+            case "request_errors": labels.push(I18n.tr("some requests were lost")); break;
+            }
+        }
+        return labels.join(" · ");
+    }
+
+    function signalText() {
+        const network = latest?.network;
+        if (!network)
+            return "";
+        const start = network.signalStartDbm;
+        const end = network.signalEndDbm;
+        if (start !== undefined && end !== undefined)
+            return I18n.tr("Wi-Fi signal: %1 → %2 dBm").arg(Number(start).toFixed(0)).arg(Number(end).toFixed(0));
+        if (start !== undefined)
+            return I18n.tr("Wi-Fi signal: %1 dBm").arg(Number(start).toFixed(0));
+        if (network.signalPercent > 0)
+            return I18n.tr("Wi-Fi signal at start: %1%").arg(network.signalPercent);
+        return "";
     }
 
     function timestampText(value) {
@@ -151,14 +197,19 @@ Rectangle {
                             return I18n.tr("Update Regalia to run a connection test");
                         if (running)
                             return root.phaseText(RegaliaService.networkTestJob?.phase || "");
+                        if (root.latestFailed)
+                            return root.failureText(root.latest?.errorCode || "");
                         if (RegaliaService.networkTestError.length > 0)
                             return I18n.tr("The last test failed");
+                        if (root.latestUnstable)
+                            return I18n.tr("Unstable connection · comparison is unreliable");
                         if (primaryMeasurement)
                             return root.ratingText(primaryMeasurement.rating) + " · " + root.timestampText(latest.finishedAt);
                         return I18n.tr("Run an on-demand test — no background load");
                     }
                     font.pixelSize: Theme.fontSizeSmall
-                    color: RegaliaService.networkTestError.length > 0 ? Theme.error : Theme.surfaceVariantText
+                    color: root.latestFailed || RegaliaService.networkTestError.length > 0 ? Theme.error
+                        : (root.latestUnstable ? Theme.warning : Theme.surfaceVariantText)
                     elide: Text.ElideRight
                 }
             }
@@ -225,6 +276,29 @@ Rectangle {
             visible: root.expanded
             opacity: visible ? 1 : 0
 
+            Rectangle {
+                width: parent.width
+                height: qualityWarningText.implicitHeight + Theme.spacingM * 2
+                radius: Theme.cornerRadius
+                visible: root.latestFailed || root.latestUnstable
+                color: Theme.withAlpha(root.latestFailed ? Theme.error : Theme.warning, 0.12)
+                border.width: 1
+                border.color: Theme.withAlpha(root.latestFailed ? Theme.error : Theme.warning, 0.45)
+
+                StyledText {
+                    id: qualityWarningText
+                    width: parent.width - Theme.spacingM * 2
+                    anchors.centerIn: parent
+                    text: root.latestFailed
+                        ? root.failureText(root.latest?.errorCode || "")
+                        : I18n.tr("The numbers are shown for reference, but the connection changed too much for a fair VPN comparison: %1")
+                            .arg(root.reliabilityText(root.latest?.warnings || []))
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: root.latestFailed ? Theme.error : Theme.warning
+                }
+            }
+
             Repeater {
                 model: root.measurements
 
@@ -287,7 +361,7 @@ Rectangle {
 
             StyledText {
                 width: parent.width
-                visible: root.latest?.compare !== null && root.latest?.compare !== undefined
+                visible: root.latest?.compare !== null && root.latest?.compare !== undefined && !root.latestUnstable
                 text: {
                     const comparison = root.latest?.compare;
                     if (!comparison)
@@ -301,6 +375,15 @@ Rectangle {
                 font.pixelSize: Theme.fontSizeSmall
                 font.weight: Font.Medium
                 color: Theme.surfaceText
+                elide: Text.ElideRight
+            }
+
+            StyledText {
+                width: parent.width
+                visible: root.hasSignalDetails
+                text: root.signalText()
+                font.pixelSize: Theme.fontSizeSmall
+                color: root.latestUnstable ? Theme.warning : Theme.surfaceVariantText
                 elide: Text.ElideRight
             }
 
@@ -346,7 +429,7 @@ Rectangle {
             StyledText {
                 width: parent.width
                 text: root.measurements.length > 1
-                    ? I18n.tr("Direct and VPN tests run sequentially (~14 MB via Cloudflare). Other applications keep their routes.")
+                    ? I18n.tr("Latency is sampled alternately; speed is tested sequentially (~14 MB via Cloudflare). Other applications keep their routes.")
                     : I18n.tr("The test uses about 7 MB via Cloudflare and only runs when you press the button.")
                 wrapMode: Text.WordWrap
                 font.pixelSize: Theme.fontSizeSmall

@@ -9476,6 +9476,51 @@
   "The last test failed": {
     "The last test failed": "Последняя проверка завершилась ошибкой"
   },
+  "The connection did not answer reliably enough to measure latency": {
+    "The connection did not answer reliably enough to measure latency": "Соединение не отвечало достаточно стабильно для измерения задержки"
+  },
+  "Download measurement failed because the connection was interrupted": {
+    "Download measurement failed because the connection was interrupted": "Не удалось измерить загрузку: соединение прервалось"
+  },
+  "Upload measurement failed because the connection was interrupted": {
+    "Upload measurement failed because the connection was interrupted": "Не удалось измерить отдачу: соединение прервалось"
+  },
+  "The connection was too unstable and the test timed out": {
+    "The connection was too unstable and the test timed out": "Соединение было слишком нестабильным, время проверки истекло"
+  },
+  "Regalia's test channel did not become ready": {
+    "Regalia's test channel did not become ready": "Канал проверки Regalia не успел запуститься"
+  },
+  "The connection test could not be completed": {
+    "The connection test could not be completed": "Не удалось завершить проверку соединения"
+  },
+  "Unstable connection · comparison is unreliable": {
+    "Unstable connection · comparison is unreliable": "Нестабильное соединение · сравнению нельзя доверять"
+  },
+  "weak Wi-Fi signal": {
+    "weak Wi-Fi signal": "слабый сигнал Wi-Fi"
+  },
+  "signal changed during the test": {
+    "signal changed during the test": "сигнал изменился во время проверки"
+  },
+  "latency varied too much": {
+    "latency varied too much": "задержка менялась слишком сильно"
+  },
+  "some requests were lost": {
+    "some requests were lost": "часть запросов была потеряна"
+  },
+  "The numbers are shown for reference, but the connection changed too much for a fair VPN comparison: %1": {
+    "The numbers are shown for reference, but the connection changed too much for a fair VPN comparison: %1": "Числа показаны для справки, но соединение менялось слишком сильно для честного сравнения VPN: %1"
+  },
+  "Wi-Fi signal: %1 → %2 dBm": {
+    "Wi-Fi signal: %1 → %2 dBm": "Сигнал Wi-Fi: %1 → %2 дБм"
+  },
+  "Wi-Fi signal: %1 dBm": {
+    "Wi-Fi signal: %1 dBm": "Сигнал Wi-Fi: %1 дБм"
+  },
+  "Wi-Fi signal at start: %1%": {
+    "Wi-Fi signal at start: %1%": "Сигнал Wi-Fi в начале: %1%"
+  },
   "Run an on-demand test — no background load": {
     "Run an on-demand test — no background load": "Проверка только по запросу — без фоновой нагрузки"
   },
@@ -9541,6 +9586,9 @@
   },
   "Direct and VPN tests run sequentially (~14 MB via Cloudflare). Other applications keep their routes.": {
     "Direct and VPN tests run sequentially (~14 MB via Cloudflare). Other applications keep their routes.": "Прямой и VPN-маршрут проверяются по очереди (~14 МБ через Cloudflare). Маршруты остальных приложений не меняются."
+  },
+  "Latency is sampled alternately; speed is tested sequentially (~14 MB via Cloudflare). Other applications keep their routes.": {
+    "Latency is sampled alternately; speed is tested sequentially (~14 MB via Cloudflare). Other applications keep their routes.": "Задержка измеряется поочерёдно, скорость — последовательно (~14 МБ через Cloudflare). Маршруты остальных приложений не меняются."
   },
   "The test uses about 7 MB via Cloudflare and only runs when you press the button.": {
     "The test uses about 7 MB via Cloudflare and only runs when you press the button.": "Проверка использует около 7 МБ через Cloudflare и запускается только по кнопке."

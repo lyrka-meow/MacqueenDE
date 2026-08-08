@@ -10,6 +10,8 @@ import qs.Services
 Singleton {
     id: root
 
+    Component.onCompleted: root.detect()
+
     readonly property var log: Log.scoped("RegaliaService")
     readonly property string projectUrl: "https://github.com/lyrka-meow/Regalia"
     readonly property string installerUrl: "https://raw.githubusercontent.com/lyrka-meow/Regalia/main/installer/install-github.sh"
